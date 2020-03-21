@@ -1,0 +1,29 @@
+<idea-plugin>
+    <id>ai.deepcode.jetbrains-plugin</id>
+    <name>DeepCode</name>
+    <vendor email="hello@deepcode.ai" url="www.deepcode.ai">DeepCode</vendor>
+
+    <description><![CDATA[
+    The Visual Studio Code extension provided by DeepCode.ai finds bugs and critical vulnerabilities in your code.
+    We support Java, Python, JavaScript, TypeScript and XML.<br>
+    ]]></description>
+
+    <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+         on how to target different products -->
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Add your extensions here -->
+        <annotator language="JAVA" implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
+        <postStartupActivity implementation="ai.deepcode.jbplugin.DeepCodeStartupActivity"/>
+    </extensions>
+
+    <actions>
+        <!-- Add your actions here -->
+        <action id="ai.deepcode.jbplugin.actions.AnalyseAction" class="ai.deepcode.jbplugin.actions.AnalyseAction"
+                text="DeepCode Analyse" description="Analyse current file with DeepCode.ai">
+            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="shift alt T"/>
+        </action>
+    </actions>
+</idea-plugin>
