@@ -12,7 +12,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
-import com.intellij.psi.PsiFile;
+import com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
@@ -37,8 +37,8 @@ public class AnalyseAction extends AnAction {
     }
 //    Document doc = event.getRequiredData(CommonDataKeys.EDITOR).getDocument();
     String fileText = event.getRequiredData(PlatformDataKeys.FILE_TEXT);
-    final PsiFile psiFile = event.getRequiredData(PlatformDataKeys.PSI_FILE);
-    String fileExtension = psiFile.getVirtualFile().getExtension();
+    final VirtualFile virtualFile = event.getRequiredData(PlatformDataKeys.VIRTUAL_FILE);
+    String fileExtension = virtualFile.getExtension();
     if (!DeepCodeParams.getSupportedExtensions(project).contains(fileExtension)) {
       String message =
           String.format("Files with `%1$s` extension are not supported yet.", fileExtension);
@@ -48,11 +48,11 @@ public class AnalyseAction extends AnAction {
 
     String loggedToken = DeepCodeParams.getSessionToken();
     //            "aeedc7d1c2656ea4b0adb1e215999f588b457cedf415c832a0209c9429c7636e";
-    FileContent fileContent = new FileContent("/test.js", fileText);
+    FileContent fileContent = new FileContent("/" + virtualFile.getName(), fileText);
     FileContentRequest files = new FileContentRequest(Collections.singletonList(fileContent));
     CreateBundleResponse createBundleResponse;
     createBundleResponse = DeepCodeRestApi.createBundle(loggedToken, files);
-    assertNotNull(createBundleResponse);
+
     String bundleId = createBundleResponse.getBundleId();
     System.out.printf(
         "Create Bundle call return:\nStatus code [%1$d] %3$s \nBundleId: [%2$s]\n",
