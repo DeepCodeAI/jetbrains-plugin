@@ -17,6 +17,7 @@
         <annotator language="JAVA" implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
         <postStartupActivity implementation="ai.deepcode.jbplugin.DeepCodeStartupActivity"/>
         <toolWindow id="DeepCode" anchor="bottom" factoryClass="ai.deepcode.jbplugin.DeepCodeToolWindowFactory"/>
+        <externalAnnotator language="TEXT" implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
     </extensions>
 
     <actions>

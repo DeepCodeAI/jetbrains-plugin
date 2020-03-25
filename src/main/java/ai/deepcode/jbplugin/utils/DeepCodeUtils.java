@@ -17,31 +17,37 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class DeepCodeUtils {
 
-  private static final Map<PsiFile, GetAnalysisResponse> mapFile2Response = new ConcurrentHashMap<>();
+  private static final Map<PsiFile, GetAnalysisResponse> mapFile2Response =
+      new ConcurrentHashMap<>();
 
-/*
-  public static void putAnalysisResponse(@NotNull String filePath, @NotNull GetAnalysisResponse response){
-    mapFile2Response.put(filePath, response);
-  }
-*/
+  /*
+    public static void putAnalysisResponse(@NotNull String filePath, @NotNull GetAnalysisResponse response){
+      mapFile2Response.put(filePath, response);
+    }
+  */
 
-  public static void removeAnalysisResponse(@NotNull PsiFile psiFile){
+  public static void removeAnalysisResponse(@NotNull PsiFile psiFile) {
     mapFile2Response.remove(psiFile);
   }
 
   @NotNull
-  public static GetAnalysisResponse getAnalysisResponse(@NotNull PsiFile psiFile){
+  public static GetAnalysisResponse getAnalysisResponse(@NotNull PsiFile psiFile) {
     GetAnalysisResponse response = mapFile2Response.get(psiFile);
-    if (response != null && !response.getStatus().equals("DONE")) {
-      mapFile2Response.remove(psiFile);
+    if (response != null) {
+      if (response.getStatus().equals("DONE")) {
+        return response;
+      } else {
+        mapFile2Response.remove(psiFile);
+      }
     }
-    return mapFile2Response.computeIfAbsent(psiFile, DeepCodeUtils::createResponse);
+    return createResponse(psiFile);
   }
 
   @NotNull
-  private static GetAnalysisResponse createResponse(@NotNull PsiFile psiFile){
+  private static GetAnalysisResponse createResponse(@NotNull PsiFile psiFile) {
     String loggedToken = DeepCodeParams.getSessionToken();
-    FileContent fileContent = new FileContent("/" + psiFile.getVirtualFile().getPath(), psiFile.getText());
+    FileContent fileContent =
+        new FileContent("/" + psiFile.getVirtualFile().getPath(), psiFile.getText());
     FileContentRequest files = new FileContentRequest(Collections.singletonList(fileContent));
     CreateBundleResponse createBundleResponse = DeepCodeRestApi.createBundle(loggedToken, files);
 
