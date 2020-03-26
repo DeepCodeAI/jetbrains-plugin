@@ -5,6 +5,7 @@ import ai.deepcode.javaclient.responses.GetFiltersResponse;
 import ai.deepcode.jbplugin.DeepCodeNotifications;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.project.Project;
+import com.intellij.psi.PsiFile;
 
 import java.util.Collections;
 import java.util.Set;
@@ -43,7 +44,12 @@ public class DeepCodeParams {
         && DeepCodeRestApi.checkSession(getSessionToken()).getStatusCode() == 200;
   }
 
-  public static Set<String> getSupportedExtensions(Project project) {
+  public static boolean isSupportedFileFormat(PsiFile psiFile) {
+    String fileExtension = psiFile.getVirtualFile().getExtension();
+    return getSupportedExtensions(psiFile.getProject()).contains(fileExtension);
+  }
+
+  private static Set<String> getSupportedExtensions(Project project) {
     if (supportedExtensions.isEmpty()) {
       GetFiltersResponse filtersResponse = DeepCodeRestApi.getFilters(getSessionToken());
       if (filtersResponse.getStatusCode() == 200) {
@@ -51,6 +57,7 @@ public class DeepCodeParams {
             filtersResponse.getExtensions().stream()
                 .map(s -> s.substring(1)) // remove preceding `.` (`.js` -> `js`)
                 .collect(Collectors.toSet());
+        System.out.println(supportedExtensions);
       } else if (filtersResponse.getStatusCode() == 401) {
         DeepCodeNotifications.showLoginLink(project);
       } else {

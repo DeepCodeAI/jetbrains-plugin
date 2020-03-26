@@ -19,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class DeepCodeUtils {
 
-  // todo: keep few latest file versions
+  // todo: keep few latest file versions (Guava com.google.common.cache.CacheBuilder ?)
   private static final Map<PsiFile, GetAnalysisResponse> mapFile2Response =
       new ConcurrentHashMap<>();
 
@@ -44,7 +44,7 @@ public class DeepCodeUtils {
 
   @NotNull
   public static GetAnalysisResponse getAnalysisResponse(@NotNull PsiFile psiFile) {
-//    System.out.println(psiFile+ "@" + Integer.toHexString(psiFile.hashCode()));
+    System.out.println(psiFile+ "@" + Integer.toHexString(psiFile.hashCode()));
     addFileListener(psiFile.getProject());
 
     GetAnalysisResponse response = mapFile2Response.get(psiFile);

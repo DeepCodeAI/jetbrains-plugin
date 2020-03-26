@@ -17,8 +17,12 @@
         <annotator language="JAVA" implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
         <postStartupActivity implementation="ai.deepcode.jbplugin.DeepCodeStartupActivity"/>
         <toolWindow id="DeepCode" anchor="bottom" factoryClass="ai.deepcode.jbplugin.DeepCodeToolWindowFactory"/>
+
+        <!--        For Idea CE and those that doesn't include corresponding plugin-->
         <externalAnnotator language="TEXT" implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+
         <externalAnnotator language="JAVA" implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <externalAnnotator language="JavaScript" implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
     </extensions>
 
     <actions>

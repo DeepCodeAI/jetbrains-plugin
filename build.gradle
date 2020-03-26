@@ -1,3 +1,5 @@
+import org.jetbrains.intellij.tasks.RunIdeTask
+
 plugins {
     id 'java'
     id 'org.jetbrains.intellij' version '0.4.16'
@@ -23,7 +25,8 @@ intellij {
     pluginName "DeepCode"
 //    version '2019.3.4'
 //    localPath 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-0\\193.6911.18'
-    localPath 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-1\\201.6487.11'
+//    localPath 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-1\\201.6487.11'
+    localPath 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-U\\ch-0\\201.6487.11'
     plugins += 'java'
     plugins += 'PsiViewer:201-SNAPSHOT'
 
@@ -36,3 +39,9 @@ patchPluginXml {
       Add change notes here.<br>
       <em>most HTML tags may be used</em>"""
 }
+
+task runIC_201(type: RunIdeTask){
+    ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-1\\201.6487.11'
+}
+
+tasks.withType(RunIdeTask).forEach {task -> task.dependsOn(prepareSandbox)}

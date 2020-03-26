@@ -1,6 +1,7 @@
 package ai.deepcode.jbplugin.annotators;
 
 import ai.deepcode.javaclient.responses.*;
+import ai.deepcode.jbplugin.utils.DeepCodeParams;
 import ai.deepcode.jbplugin.utils.DeepCodeUtils;
 import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.ExternalAnnotator;
@@ -16,11 +17,12 @@ import org.slf4j.LoggerFactory;
 public class DeepCodeExternalAnnotator
     extends ExternalAnnotator<GetAnalysisResponse, GetAnalysisResponse> {
 
-  private static final Logger LOG = LoggerFactory.getLogger("DeepCode");
+  private static final Logger LOG = LoggerFactory.getLogger("DeepCode.Annotator");
 
   @Nullable
   @Override
   public GetAnalysisResponse collectInformation(@NotNull PsiFile psiFile) {
+    if (!DeepCodeParams.isSupportedFileFormat(psiFile)) return null;
     return DeepCodeUtils.getAnalysisResponse(psiFile);
   }
 
@@ -32,9 +34,7 @@ public class DeepCodeExternalAnnotator
 
   @Override
   public void apply(
-      @NotNull PsiFile psiFile,
-      GetAnalysisResponse response,
-      @NotNull AnnotationHolder holder) {
+      @NotNull PsiFile psiFile, GetAnalysisResponse response, @NotNull AnnotationHolder holder) {
 
     if (!response.getStatus().equals("DONE")) return;
     AnalysisResults analysisResults = response.getAnalysisResults();
@@ -90,7 +90,7 @@ public class DeepCodeExternalAnnotator
         final TextRange rangeToAnnotate =
             new TextRange(lineStartOffset + startCol, lineEndOffset + endCol);
 
-        holder.newAnnotation(severity, message).range(rangeToAnnotate).create();
+        holder.newAnnotation(severity, "DeepCode: " + message).range(rangeToAnnotate).create();
       }
     }
   }
