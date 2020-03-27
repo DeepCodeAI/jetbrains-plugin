@@ -13,14 +13,14 @@ import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.ex.EditorEx;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Pair;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class AnalyseAction extends AnAction {
   private static final Logger LOG = LoggerFactory.getLogger("DeepCode.AnalyseAction");
@@ -117,7 +117,11 @@ public class AnalyseAction extends AnAction {
       return Collections.emptyList();
     }
 
-    List<String> result = new ArrayList<>();
+    TreeMap<Pair<Integer, Integer>, String> resultMap =
+        new TreeMap<>(
+            Comparator.comparingInt((Pair<Integer, Integer> p) -> p.getFirst())
+                .thenComparingInt(p -> p.getSecond()));
+
     for (String suggestionIndex : fileSuggestions.keySet()) {
       final Suggestion suggestion = suggestions.get(suggestionIndex);
       if (suggestion == null) {
@@ -133,10 +137,12 @@ public class AnalyseAction extends AnAction {
         final int startCol = fileRange.getCols().get(0) - 1; // inclusive
         final int endCol = fileRange.getCols().get(1);
 
-        result.add(String.format("(%1$d:%2$d) %3$s", startRow, startCol, message));
+        resultMap.put(new Pair<>(startRow, startCol), message);
       }
     }
-    return result;
+    return resultMap.entrySet().stream()
+        .map(entry -> entry.getKey().toString() + " " + entry.getValue())
+        .collect(Collectors.toList());
   }
 
   private void printMessage(Project project, String message) {
