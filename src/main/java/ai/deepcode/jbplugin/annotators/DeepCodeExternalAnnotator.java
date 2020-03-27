@@ -1,12 +1,16 @@
 package ai.deepcode.jbplugin.annotators;
 
 import ai.deepcode.javaclient.responses.*;
+import ai.deepcode.jbplugin.actions.AnalyseAction;
 import ai.deepcode.jbplugin.utils.DeepCodeParams;
 import ai.deepcode.jbplugin.utils.DeepCodeUtils;
 import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.ExternalAnnotator;
 import com.intellij.lang.annotation.HighlightSeverity;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
@@ -22,6 +26,13 @@ public class DeepCodeExternalAnnotator
   @Nullable
   @Override
   public GetAnalysisResponse collectInformation(@NotNull PsiFile psiFile) {
+    if (!DeepCodeParams.isSupportedFileFormat(psiFile)) return null;
+    return DeepCodeUtils.getAnalysisResponse(psiFile);
+  }
+
+  @Override
+  @Nullable
+  public GetAnalysisResponse collectInformation(@NotNull PsiFile psiFile, @NotNull Editor editor, boolean hasErrors) {
     if (!DeepCodeParams.isSupportedFileFormat(psiFile)) return null;
     return DeepCodeUtils.getAnalysisResponse(psiFile);
   }

@@ -58,10 +58,12 @@ public class DeepCodeParams {
                 .map(s -> s.substring(1)) // remove preceding `.` (`.js` -> `js`)
                 .collect(Collectors.toSet());
         System.out.println(supportedExtensions);
+/*
       } else if (filtersResponse.getStatusCode() == 401) {
         DeepCodeNotifications.showLoginLink(project);
       } else {
         DeepCodeNotifications.showError(filtersResponse.getStatusDescription(), project);
+*/
       }
     }
     return supportedExtensions;

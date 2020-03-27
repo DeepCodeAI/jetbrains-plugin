@@ -5,6 +5,9 @@ import ai.deepcode.javaclient.requests.FileContent;
 import ai.deepcode.javaclient.requests.FileContentRequest;
 import ai.deepcode.javaclient.responses.CreateBundleResponse;
 import ai.deepcode.javaclient.responses.GetAnalysisResponse;
+import ai.deepcode.jbplugin.actions.AnalyseAction;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
@@ -83,4 +86,13 @@ public class DeepCodeUtils {
     // todo: show notification
     return result;
   }
+
+  public static void updateCurrentFilePanel(PsiFile psiFile) {
+    ApplicationManager.getApplication()
+            .invokeLater(
+                    () ->
+                            WriteCommandAction.runWriteCommandAction(
+                                    psiFile.getProject(), () -> AnalyseAction.updateCurrentFilePanel(psiFile)));
+  }
+
 }

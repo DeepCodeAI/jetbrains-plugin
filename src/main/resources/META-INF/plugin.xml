@@ -4,8 +4,8 @@
     <vendor email="hello@deepcode.ai" url="www.deepcode.ai">DeepCode</vendor>
 
     <description><![CDATA[
-    The Visual Studio Code extension provided by DeepCode.ai finds bugs and critical vulnerabilities in your code.
-    We support Java, Python, JavaScript, TypeScript and XML.<br>
+    The IntelliJ IDEs extension provided by DeepCode.ai finds bugs and critical vulnerabilities in your code.
+    We support Java, Python, JavaScript, TypeScript and HTML.<br>
     ]]></description>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
@@ -23,6 +23,8 @@
 
         <externalAnnotator language="JAVA" implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
         <externalAnnotator language="JavaScript" implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <externalAnnotator language="HTML" implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <externalAnnotator language="Python" implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
     </extensions>
 
     <actions>

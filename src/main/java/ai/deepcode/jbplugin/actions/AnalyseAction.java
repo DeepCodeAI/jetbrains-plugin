@@ -34,20 +34,20 @@ public class AnalyseAction extends AnAction {
 
   @Override
   public void actionPerformed(@NotNull AnActionEvent event) {
-    Project project = event.getProject();
+    final PsiFile psiFile = event.getRequiredData(PlatformDataKeys.PSI_FILE);
+    Project project = psiFile.getProject();
 
     if (!DeepCodeParams.isLogged()) {
       DeepCodeNotifications.showLoginLink(project);
       return;
     }
 
-    final PsiFile psiFile = event.getRequiredData(PlatformDataKeys.PSI_FILE);
     if (!DeepCodeParams.isSupportedFileFormat(psiFile)) {
       DeepCodeNotifications.showInfo(
-          String.format(
-              "Files with `%1$s` extension are not supported yet.",
-              psiFile.getVirtualFile().getExtension()),
-          project);
+              String.format(
+                      "Files with `%1$s` extension are not supported yet.",
+                      psiFile.getVirtualFile().getExtension()),
+              project);
       return;
     }
     /*
@@ -77,6 +77,14 @@ public class AnalyseAction extends AnAction {
         getAnalysisResponse = DeepCodeRestApi.getAnalysis(loggedToken, bundleId);
         DeepCodeUtils.putAnalysisResponse(filePath, getAnalysisResponse);
     */
+    updateCurrentFilePanel(psiFile);
+  }
+
+  public static void updateCurrentFilePanel(@NotNull PsiFile psiFile) {
+    Project project = psiFile.getProject();
+    cleanMessages(project);
+
+    if (!DeepCodeParams.isSupportedFileFormat(psiFile)) return;
 
     GetAnalysisResponse getAnalysisResponse = DeepCodeUtils.getAnalysisResponse(psiFile);
 
@@ -95,8 +103,8 @@ public class AnalyseAction extends AnAction {
     }
   }
 
-  private List<String> getPresentableAnalysisResults(
-      @NotNull PsiFile psiFile, GetAnalysisResponse response) {
+  private static List<String> getPresentableAnalysisResults(
+          @NotNull PsiFile psiFile, GetAnalysisResponse response) {
     if (!response.getStatus().equals("DONE")) return Collections.emptyList();
     AnalysisResults analysisResults = response.getAnalysisResults();
     if (analysisResults == null) {
@@ -145,7 +153,7 @@ public class AnalyseAction extends AnAction {
         .collect(Collectors.toList());
   }
 
-  private void printMessage(Project project, String message) {
+  private static void printMessage(Project project, String message) {
     EditorEx editor = DeepCodeToolWindowFactory.CurrentFileEditor.get(project);
     if (editor.isDisposed()) {
       return;
@@ -153,6 +161,16 @@ public class AnalyseAction extends AnAction {
     Document document = editor.getDocument();
     if (document.getTextLength() >= 0) {
       document.insertString(document.getTextLength(), message + "\n");
+    }
+  }
+  private static void cleanMessages(Project project) {
+    EditorEx editor = DeepCodeToolWindowFactory.CurrentFileEditor.get(project);
+    if (editor.isDisposed()) {
+      return;
+    }
+    Document document = editor.getDocument();
+    if (document.getTextLength() >= 0) {
+      document.setText("");
     }
   }
 }
