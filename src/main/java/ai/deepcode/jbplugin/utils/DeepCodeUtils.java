@@ -5,6 +5,7 @@ import ai.deepcode.javaclient.requests.FileContent;
 import ai.deepcode.javaclient.requests.FileContentRequest;
 import ai.deepcode.javaclient.responses.CreateBundleResponse;
 import ai.deepcode.javaclient.responses.GetAnalysisResponse;
+import ai.deepcode.jbplugin.DeepCodeToolWindowFactory;
 import ai.deepcode.jbplugin.actions.AnalyseAction;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.WriteCommandAction;
@@ -32,22 +33,22 @@ public class DeepCodeUtils {
   private static void addFileListener(@NotNull final Project project) {
     if (!projects.contains(project)) {
       PsiManager.getInstance(project)
-              .addPsiTreeChangeListener(
-                      new PsiTreeAnyChangeAbstractAdapter() {
-                        @Override
-                        protected void onChange(@Nullable PsiFile file) {
-                          if (file != null) {
-                            mapFile2Response.remove(file);
-                          }
-                        }
-                      });
+          .addPsiTreeChangeListener(
+              new PsiTreeAnyChangeAbstractAdapter() {
+                @Override
+                protected void onChange(@Nullable PsiFile file) {
+                  if (file != null) {
+                    mapFile2Response.remove(file);
+                  }
+                }
+              });
       projects.add(project);
     }
   }
 
   @NotNull
   public static GetAnalysisResponse getAnalysisResponse(@NotNull PsiFile psiFile) {
-    System.out.println(psiFile+ "@" + Integer.toHexString(psiFile.hashCode()));
+    System.out.println(psiFile + "@" + Integer.toHexString(psiFile.hashCode()));
     addFileListener(psiFile.getProject());
 
     GetAnalysisResponse response = mapFile2Response.get(psiFile);
@@ -70,7 +71,8 @@ public class DeepCodeUtils {
         new FileContent("/" + psiFile.getVirtualFile().getPath(), psiFile.getText());
     FileContentRequest files = new FileContentRequest(Collections.singletonList(fileContent));
     CreateBundleResponse createBundleResponse = DeepCodeRestApi.createBundle(loggedToken, files);
-    GetAnalysisResponse result = DeepCodeRestApi.getAnalysis(loggedToken, createBundleResponse.getBundleId());
+    GetAnalysisResponse result =
+        DeepCodeRestApi.getAnalysis(loggedToken, createBundleResponse.getBundleId());
     for (int i = 0; i < 10; i++) {
       if (result.getStatus().equals("DONE")) {
         return result;
@@ -89,10 +91,10 @@ public class DeepCodeUtils {
 
   public static void updateCurrentFilePanel(PsiFile psiFile) {
     ApplicationManager.getApplication()
-            .invokeLater(
-                    () ->
-                            WriteCommandAction.runWriteCommandAction(
-                                    psiFile.getProject(), () -> AnalyseAction.updateCurrentFilePanel(psiFile)));
+        .invokeLater(
+            () ->
+                WriteCommandAction.runWriteCommandAction(
+                    psiFile.getProject(),
+                    () -> DeepCodeToolWindowFactory.updateCurrentFilePanel(psiFile)));
   }
-
 }

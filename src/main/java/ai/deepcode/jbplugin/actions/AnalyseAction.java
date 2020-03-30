@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.stream.Collectors;
 
+
 public class AnalyseAction extends AnAction {
   private static final Logger LOG = LoggerFactory.getLogger("DeepCode.AnalyseAction");
 
@@ -77,100 +78,6 @@ public class AnalyseAction extends AnAction {
         getAnalysisResponse = DeepCodeRestApi.getAnalysis(loggedToken, bundleId);
         DeepCodeUtils.putAnalysisResponse(filePath, getAnalysisResponse);
     */
-    updateCurrentFilePanel(psiFile);
-  }
-
-  public static void updateCurrentFilePanel(@NotNull PsiFile psiFile) {
-    Project project = psiFile.getProject();
-    cleanMessages(project);
-
-    if (!DeepCodeParams.isSupportedFileFormat(psiFile)) return;
-
-    GetAnalysisResponse getAnalysisResponse = DeepCodeUtils.getAnalysisResponse(psiFile);
-
-    final String resultMsg =
-        "Get Analysis call results: "
-            + "\nreturns Status code: "
-            + getAnalysisResponse.getStatusCode()
-            + " "
-            + getAnalysisResponse.getStatusDescription()
-            + "\nreturns Body: "
-            + getAnalysisResponse;
-    System.out.println(resultMsg);
-
-    for (String message : getPresentableAnalysisResults(psiFile, getAnalysisResponse)) {
-      printMessage(project, message);
-    }
-  }
-
-  private static List<String> getPresentableAnalysisResults(
-          @NotNull PsiFile psiFile, GetAnalysisResponse response) {
-    if (!response.getStatus().equals("DONE")) return Collections.emptyList();
-    AnalysisResults analysisResults = response.getAnalysisResults();
-    if (analysisResults == null) {
-      LOG.error("AnalysisResults is null for: ", response);
-      return Collections.emptyList();
-    }
-    FileSuggestions fileSuggestions =
-        analysisResults.getFiles().get("/" + psiFile.getVirtualFile().getPath());
-    if (fileSuggestions == null) return Collections.emptyList();
-    final Suggestions suggestions = analysisResults.getSuggestions();
-    if (suggestions == null) {
-      LOG.error("Suggestions is empty for: ", response);
-      return Collections.emptyList();
-    }
-    Document document = psiFile.getViewProvider().getDocument();
-    if (document == null) {
-      LOG.error("Document not found for: ", psiFile, response);
-      return Collections.emptyList();
-    }
-
-    TreeMap<Pair<Integer, Integer>, String> resultMap =
-        new TreeMap<>(
-            Comparator.comparingInt((Pair<Integer, Integer> p) -> p.getFirst())
-                .thenComparingInt(p -> p.getSecond()));
-
-    for (String suggestionIndex : fileSuggestions.keySet()) {
-      final Suggestion suggestion = suggestions.get(suggestionIndex);
-      if (suggestion == null) {
-        LOG.error("Suggestion not found for: ", suggestionIndex, response);
-        return Collections.emptyList();
-      }
-
-      final String message = suggestion.getMessage();
-
-      for (FileRange fileRange : fileSuggestions.get(suggestionIndex)) {
-        final int startRow = fileRange.getRows().get(0);
-        final int endRow = fileRange.getRows().get(1);
-        final int startCol = fileRange.getCols().get(0) - 1; // inclusive
-        final int endCol = fileRange.getCols().get(1);
-
-        resultMap.put(new Pair<>(startRow, startCol), message);
-      }
-    }
-    return resultMap.entrySet().stream()
-        .map(entry -> entry.getKey().toString() + " " + entry.getValue())
-        .collect(Collectors.toList());
-  }
-
-  private static void printMessage(Project project, String message) {
-    EditorEx editor = DeepCodeToolWindowFactory.CurrentFileEditor.get(project);
-    if (editor.isDisposed()) {
-      return;
-    }
-    Document document = editor.getDocument();
-    if (document.getTextLength() >= 0) {
-      document.insertString(document.getTextLength(), message + "\n");
-    }
-  }
-  private static void cleanMessages(Project project) {
-    EditorEx editor = DeepCodeToolWindowFactory.CurrentFileEditor.get(project);
-    if (editor.isDisposed()) {
-      return;
-    }
-    Document document = editor.getDocument();
-    if (document.getTextLength() >= 0) {
-      document.setText("");
-    }
+    DeepCodeToolWindowFactory.updateCurrentFilePanel(psiFile);
   }
 }
