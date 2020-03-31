@@ -3,27 +3,30 @@ package ai.deepcode.jbplugin;
 import ai.deepcode.javaclient.responses.*;
 import ai.deepcode.jbplugin.ui.panels.ProjectFilesPanel;
 import ai.deepcode.jbplugin.utils.DeepCodeParams;
+import ai.deepcode.jbplugin.utils.AnalysisData;
 import ai.deepcode.jbplugin.utils.DeepCodeUtils;
 import com.intellij.execution.impl.ConsoleViewUtil;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.ex.EditorEx;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.util.Pair;
-import com.intellij.openapi.vcs.changes.ui.CurrentBranchComponent;
+import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiManager;
+import com.intellij.psi.PsiTreeAnyChangeAbstractAdapter;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
 import com.intellij.ui.scale.JBUIScale;
 import com.intellij.util.ui.AbstractLayoutManager;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +40,7 @@ import java.util.stream.Collectors;
 
 public class DeepCodeToolWindowFactory implements ToolWindowFactory, Disposable {
   private static final Logger LOG = LoggerFactory.getLogger("DeepCodeToolWindowFactory");
+  private static PsiFile myCurrentFile;
 
   @Override
   public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
@@ -80,6 +84,19 @@ public class DeepCodeToolWindowFactory implements ToolWindowFactory, Disposable 
         contentFactory.createContent(currentFilePanel, "Current File", false);
     contentManager.addContent(currentFileContent);
 
+    //Update CurrentFile Panel if file was edited
+    PsiManager.getInstance(project)
+            .addPsiTreeChangeListener(
+                    new PsiTreeAnyChangeAbstractAdapter() {
+                      @Override
+                      protected void onChange(@Nullable PsiFile file) {
+                        if (file != null && file.equals(myCurrentFile)) {
+                          updateCurrentFilePanel(file);
+                        }
+                      }
+                    });
+
+
     // Project Files panel
     final ProjectFilesPanel projectFilesPanel = new ProjectFilesPanel(true);
     Content projectFilesContent =
@@ -120,26 +137,20 @@ public class DeepCodeToolWindowFactory implements ToolWindowFactory, Disposable 
   }
 
   public static void updateCurrentFilePanel(@NotNull PsiFile psiFile) {
+    myCurrentFile = psiFile;
     Project project = psiFile.getProject();
     cleanMessages(project);
-
     if (!DeepCodeParams.isSupportedFileFormat(psiFile)) return;
-
-    GetAnalysisResponse getAnalysisResponse = DeepCodeUtils.getAnalysisResponse(psiFile);
-
-    final String resultMsg =
-            "Get Analysis call results: "
-                    + "\nreturns Status code: "
-                    + getAnalysisResponse.getStatusCode()
-                    + " "
-                    + getAnalysisResponse.getStatusDescription()
-                    + "\nreturns Body: "
-                    + getAnalysisResponse;
-    System.out.println(resultMsg);
-
-    for (String message : getPresentableAnalysisResults(psiFile, getAnalysisResponse)) {
-      printMessage(project, message);
+    List<AnalysisData.SuggestionForFile> suggestions = AnalysisData.getAnalysis(psiFile);
+    for (AnalysisData.SuggestionForFile suggestion : suggestions) {
+      printMessage(project, suggestion.getMessage());
+      for (TextRange range : suggestion.getRanges()) {
+        printMessage(project, "  " + range);
+      }
     }
+//    for (String message : getPresentableAnalysisResults(psiFile, suggestions)) {
+//      printMessage(project, message);
+//    }
   }
 
   private static List<String> getPresentableAnalysisResults(

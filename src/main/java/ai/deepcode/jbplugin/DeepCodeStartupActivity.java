@@ -4,16 +4,13 @@ import ai.deepcode.javaclient.DeepCodeRestApi;
 import ai.deepcode.javaclient.responses.LoginResponse;
 import ai.deepcode.jbplugin.utils.DeepCodeParams;
 import ai.deepcode.jbplugin.utils.DeepCodeUtils;
-import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent;
 import com.intellij.openapi.fileEditor.FileEditorManagerListener;
-import com.intellij.openapi.fileEditor.impl.EditorHistoryManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.startup.StartupActivity;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
-import com.intellij.util.messages.MessageBus;
 import com.intellij.util.messages.MessageBusConnection;
 import org.jetbrains.annotations.NotNull;
 

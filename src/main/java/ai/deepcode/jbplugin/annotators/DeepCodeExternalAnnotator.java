@@ -1,15 +1,10 @@
 package ai.deepcode.jbplugin.annotators;
 
-import ai.deepcode.javaclient.responses.*;
-import ai.deepcode.jbplugin.actions.AnalyseAction;
 import ai.deepcode.jbplugin.utils.DeepCodeParams;
-import ai.deepcode.jbplugin.utils.DeepCodeUtils;
+import ai.deepcode.jbplugin.utils.AnalysisData;
 import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.ExternalAnnotator;
 import com.intellij.lang.annotation.HighlightSeverity;
-import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.command.WriteCommandAction;
-import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiFile;
@@ -18,64 +13,41 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+
 public class DeepCodeExternalAnnotator
-    extends ExternalAnnotator<GetAnalysisResponse, GetAnalysisResponse> {
+    extends ExternalAnnotator<
+        List<AnalysisData.SuggestionForFile>, List<AnalysisData.SuggestionForFile>> {
 
   private static final Logger LOG = LoggerFactory.getLogger("DeepCode.Annotator");
 
   @Nullable
   @Override
-  public GetAnalysisResponse collectInformation(@NotNull PsiFile psiFile) {
+  public List<AnalysisData.SuggestionForFile> collectInformation(@NotNull PsiFile psiFile) {
     if (!DeepCodeParams.isSupportedFileFormat(psiFile)) return null;
-    return DeepCodeUtils.getAnalysisResponse(psiFile);
+    return AnalysisData.getAnalysis(psiFile);
   }
 
   @Override
   @Nullable
-  public GetAnalysisResponse collectInformation(@NotNull PsiFile psiFile, @NotNull Editor editor, boolean hasErrors) {
-    if (!DeepCodeParams.isSupportedFileFormat(psiFile)) return null;
-    return DeepCodeUtils.getAnalysisResponse(psiFile);
+  public List<AnalysisData.SuggestionForFile> collectInformation(
+      @NotNull PsiFile psiFile, @NotNull Editor editor, boolean hasErrors) {
+    return collectInformation(psiFile);
   }
 
   @Nullable
   @Override
-  public GetAnalysisResponse doAnnotate(GetAnalysisResponse collectedInfo) {
+  public List<AnalysisData.SuggestionForFile> doAnnotate(
+      List<AnalysisData.SuggestionForFile> collectedInfo) {
     return collectedInfo;
   }
 
   @Override
   public void apply(
-      @NotNull PsiFile psiFile, GetAnalysisResponse response, @NotNull AnnotationHolder holder) {
-
-    if (!response.getStatus().equals("DONE")) return;
-    AnalysisResults analysisResults = response.getAnalysisResults();
-    if (analysisResults == null) {
-      LOG.error("AnalysisResults is null for: ", response);
-      return;
-    }
-    FileSuggestions fileSuggestions =
-        analysisResults.getFiles().get("/" + psiFile.getVirtualFile().getPath());
-    if (fileSuggestions == null) return;
-    final Suggestions suggestions = analysisResults.getSuggestions();
-    if (suggestions == null) {
-      LOG.error("Suggestions is empty for: ", response);
-      return;
-    }
-    Document document = psiFile.getViewProvider().getDocument();
-    if (document == null) {
-      LOG.error("Document not found for: ", psiFile, response);
-      return;
-    }
-
-    for (String suggestionIndex : fileSuggestions.keySet()) {
-      final Suggestion suggestion = suggestions.get(suggestionIndex);
-      if (suggestion == null) {
-        LOG.error("Suggestion not found for: ", suggestionIndex, response);
-        return;
-      }
-
-      final String message = suggestion.getMessage();
-
+      @NotNull PsiFile psiFile,
+      List<AnalysisData.SuggestionForFile> suggestions,
+      @NotNull AnnotationHolder holder) {
+    for (AnalysisData.SuggestionForFile suggestion : suggestions) {
       HighlightSeverity severity;
       switch (suggestion.getSeverity()) {
         case 1:
@@ -91,17 +63,11 @@ public class DeepCodeExternalAnnotator
           severity = HighlightSeverity.INFORMATION;
           break;
       }
-      for (FileRange fileRange : fileSuggestions.get(suggestionIndex)) {
-        final int startRow = fileRange.getRows().get(0);
-        final int endRow = fileRange.getRows().get(1);
-        final int startCol = fileRange.getCols().get(0) - 1; // inclusive
-        final int endCol = fileRange.getCols().get(1);
-        final int lineStartOffset = document.getLineStartOffset(startRow - 1); // to 0-based
-        final int lineEndOffset = document.getLineStartOffset(endRow - 1);
-        final TextRange rangeToAnnotate =
-            new TextRange(lineStartOffset + startCol, lineEndOffset + endCol);
-
-        holder.newAnnotation(severity, "DeepCode: " + message).range(rangeToAnnotate).create();
+      for (TextRange range : suggestion.getRanges()) {
+        holder
+            .newAnnotation(severity, "DeepCode: " + suggestion.getMessage())
+            .range(range)
+            .create();
       }
     }
   }

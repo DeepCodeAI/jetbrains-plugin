@@ -1,26 +1,17 @@
 package ai.deepcode.jbplugin.actions;
 
-import ai.deepcode.javaclient.responses.*;
 import ai.deepcode.jbplugin.DeepCodeNotifications;
 import ai.deepcode.jbplugin.DeepCodeToolWindowFactory;
 import ai.deepcode.jbplugin.utils.DeepCodeParams;
-import ai.deepcode.jbplugin.utils.DeepCodeUtils;
-import com.intellij.lang.annotation.HighlightSeverity;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
-import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.editor.ex.EditorEx;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.Pair;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 
 public class AnalyseAction extends AnAction {
