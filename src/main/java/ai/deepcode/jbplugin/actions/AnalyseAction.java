@@ -1,8 +1,8 @@
 package ai.deepcode.jbplugin.actions;
 
 import ai.deepcode.jbplugin.DeepCodeNotifications;
-import ai.deepcode.jbplugin.DeepCodeToolWindowFactory;
 import ai.deepcode.jbplugin.utils.DeepCodeParams;
+import ai.deepcode.jbplugin.utils.DeepCodeUtils;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
@@ -69,6 +69,6 @@ public class AnalyseAction extends AnAction {
         getAnalysisResponse = DeepCodeRestApi.getAnalysis(loggedToken, bundleId);
         DeepCodeUtils.putAnalysisResponse(filePath, getAnalysisResponse);
     */
-    DeepCodeToolWindowFactory.updateCurrentFilePanel(psiFile);
+    DeepCodeUtils.asyncUpdateCurrentFilePanel(psiFile);
   }
 }

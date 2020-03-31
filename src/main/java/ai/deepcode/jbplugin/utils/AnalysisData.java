@@ -7,15 +7,12 @@ import ai.deepcode.javaclient.responses.*;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
-import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiManager;
-import com.intellij.psi.PsiTreeAnyChangeAbstractAdapter;
+import com.intellij.psi.*;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -67,9 +64,10 @@ public final class AnalysisData {
     if (!projects.contains(project)) {
       PsiManager.getInstance(project)
           .addPsiTreeChangeListener(
-              new PsiTreeAnyChangeAbstractAdapter() {
+              new PsiTreeChangeAdapter() {
                 @Override
-                protected void onChange(@Nullable PsiFile file) {
+                public void beforeChildrenChange(@NotNull PsiTreeChangeEvent event) {
+                  PsiFile file = event.getFile();
                   if (file != null) {
                     mapFile2Suggestions.remove(file);
                   }
@@ -97,7 +95,12 @@ public final class AnalysisData {
   @NotNull
   public static Map<PsiFile, List<SuggestionForFile>> getAnalysis(@NotNull Set<PsiFile> psiFiles) {
     // fixme
-    System.out.println("Analysis requested for files: " + psiFiles);
+    System.out.println(
+        "--------------\n"
+            + "Analysis requested for files: "
+            + psiFiles
+            + " at "
+            + new SimpleDateFormat("mm:SS").format(System.currentTimeMillis()));
 
     Map<PsiFile, List<SuggestionForFile>> result = new HashMap<>();
     psiFiles.stream().map(PsiElement::getProject).distinct().forEach(AnalysisData::addFileListener);
@@ -151,7 +154,7 @@ public final class AnalysisData {
       response = DeepCodeRestApi.getAnalysis(loggedToken, createBundleResponse.getBundleId());
 
       // todo: show progress notification
-      System.out.println(response);
+      System.out.println("    " + response);
 
       try {
         Thread.sleep(1000);

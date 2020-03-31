@@ -36,21 +36,13 @@ public class DeepCodeStartupActivity implements StartupActivity {
   }
 
   private static final class MyEditorManagerListener implements FileEditorManagerListener {
-/*
-    @Override
-    public void fileOpened(@NotNull final FileEditorManager source, @NotNull final VirtualFile file){
-      final PsiFile psiFile = PsiManager.getInstance(source.getProject()).findFile(file);
-//      System.out.println(virtualFile);
-      DeepCodeUtils.updateCurrentFilePanel(psiFile);
-    }
-*/
 
     @Override
     public void selectionChanged(@NotNull final FileEditorManagerEvent event){
       final VirtualFile virtualFile = event.getNewFile();
       final PsiFile psiFile = PsiManager.getInstance(event.getManager().getProject()).findFile(virtualFile);
 //      System.out.println(virtualFile);
-      DeepCodeUtils.updateCurrentFilePanel(psiFile);
+      DeepCodeUtils.asyncUpdateCurrentFilePanel(psiFile);
     }
   }
 }

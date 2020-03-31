@@ -1,9 +1,8 @@
 package ai.deepcode.jbplugin;
 
-import ai.deepcode.javaclient.responses.*;
 import ai.deepcode.jbplugin.ui.panels.ProjectFilesPanel;
-import ai.deepcode.jbplugin.utils.DeepCodeParams;
 import ai.deepcode.jbplugin.utils.AnalysisData;
+import ai.deepcode.jbplugin.utils.DeepCodeParams;
 import ai.deepcode.jbplugin.utils.DeepCodeUtils;
 import com.intellij.execution.impl.ConsoleViewUtil;
 import com.intellij.openapi.Disposable;
@@ -13,30 +12,25 @@ import com.intellij.openapi.editor.ex.EditorEx;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.util.Disposer;
-import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
-import com.intellij.psi.PsiTreeAnyChangeAbstractAdapter;
+import com.intellij.psi.PsiTreeChangeAdapter;
+import com.intellij.psi.PsiTreeChangeEvent;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
 import com.intellij.ui.scale.JBUIScale;
 import com.intellij.util.ui.AbstractLayoutManager;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
 
 public class DeepCodeToolWindowFactory implements ToolWindowFactory, Disposable {
   private static final Logger LOG = LoggerFactory.getLogger("DeepCodeToolWindowFactory");
@@ -84,25 +78,24 @@ public class DeepCodeToolWindowFactory implements ToolWindowFactory, Disposable 
         contentFactory.createContent(currentFilePanel, "Current File", false);
     contentManager.addContent(currentFileContent);
 
-    //Update CurrentFile Panel if file was edited
+    // Update CurrentFile Panel if file was edited
     PsiManager.getInstance(project)
-            .addPsiTreeChangeListener(
-                    new PsiTreeAnyChangeAbstractAdapter() {
-                      @Override
-                      protected void onChange(@Nullable PsiFile file) {
-                        if (file != null && file.equals(myCurrentFile)) {
-                          updateCurrentFilePanel(file);
-                        }
-                      }
-                    });
-
+        .addPsiTreeChangeListener(
+            new PsiTreeChangeAdapter() {
+              @Override
+              public void childrenChanged(@NotNull PsiTreeChangeEvent event) {
+                PsiFile file = event.getFile();
+                if (file != null && file.equals(myCurrentFile)) {
+                  DeepCodeUtils.asyncUpdateCurrentFilePanel(file);
+                }
+              }
+            });
 
     // Project Files panel
     final ProjectFilesPanel projectFilesPanel = new ProjectFilesPanel(true);
     Content projectFilesContent =
-            contentFactory.createContent(projectFilesPanel, "Project Files", false);
+        contentFactory.createContent(projectFilesPanel, "Project Files", false);
     contentManager.addContent(projectFilesContent);
-
   }
 
   /**
@@ -117,7 +110,7 @@ public class DeepCodeToolWindowFactory implements ToolWindowFactory, Disposable 
   @Override
   public void dispose() {}
 
-// ------------------------------------------------------------------------------
+  // ------------------------------------------------------------------------------
 
   private static class CurrentFileEditor {
 
@@ -127,10 +120,10 @@ public class DeepCodeToolWindowFactory implements ToolWindowFactory, Disposable 
       if (myEditor == null) {
         myEditor = ConsoleViewUtil.setupConsoleEditor(project, false, false);
         Disposer.register(
-                project,
-                () -> {
-                  EditorFactory.getInstance().releaseEditor(myEditor);
-                });
+            project,
+            () -> {
+              EditorFactory.getInstance().releaseEditor(myEditor);
+            });
       }
       return myEditor;
     }
@@ -148,59 +141,6 @@ public class DeepCodeToolWindowFactory implements ToolWindowFactory, Disposable 
         printMessage(project, "  " + range);
       }
     }
-//    for (String message : getPresentableAnalysisResults(psiFile, suggestions)) {
-//      printMessage(project, message);
-//    }
-  }
-
-  private static List<String> getPresentableAnalysisResults(
-          @NotNull PsiFile psiFile, GetAnalysisResponse response) {
-    if (!response.getStatus().equals("DONE")) return Collections.emptyList();
-    AnalysisResults analysisResults = response.getAnalysisResults();
-    if (analysisResults == null) {
-      LOG.error("AnalysisResults is null for: ", response);
-      return Collections.emptyList();
-    }
-    FileSuggestions fileSuggestions =
-            analysisResults.getFiles().get("/" + psiFile.getVirtualFile().getPath());
-    if (fileSuggestions == null) return Collections.emptyList();
-    final Suggestions suggestions = analysisResults.getSuggestions();
-    if (suggestions == null) {
-      LOG.error("Suggestions is empty for: ", response);
-      return Collections.emptyList();
-    }
-    Document document = psiFile.getViewProvider().getDocument();
-    if (document == null) {
-      LOG.error("Document not found for: ", psiFile, response);
-      return Collections.emptyList();
-    }
-
-    TreeMap<Pair<Integer, Integer>, String> resultMap =
-            new TreeMap<>(
-                    Comparator.comparingInt((Pair<Integer, Integer> p) -> p.getFirst())
-                            .thenComparingInt(p -> p.getSecond()));
-
-    for (String suggestionIndex : fileSuggestions.keySet()) {
-      final Suggestion suggestion = suggestions.get(suggestionIndex);
-      if (suggestion == null) {
-        LOG.error("Suggestion not found for: ", suggestionIndex, response);
-        return Collections.emptyList();
-      }
-
-      final String message = suggestion.getMessage();
-
-      for (FileRange fileRange : fileSuggestions.get(suggestionIndex)) {
-        final int startRow = fileRange.getRows().get(0);
-        final int endRow = fileRange.getRows().get(1);
-        final int startCol = fileRange.getCols().get(0) - 1; // inclusive
-        final int endCol = fileRange.getCols().get(1);
-
-        resultMap.put(new Pair<>(startRow, startCol), message);
-      }
-    }
-    return resultMap.entrySet().stream()
-            .map(entry -> entry.getKey().toString() + " " + entry.getValue())
-            .collect(Collectors.toList());
   }
 
   private static void printMessage(Project project, String message) {
@@ -213,6 +153,7 @@ public class DeepCodeToolWindowFactory implements ToolWindowFactory, Disposable 
       document.insertString(document.getTextLength(), message + "\n");
     }
   }
+
   private static void cleanMessages(Project project) {
     EditorEx editor = CurrentFileEditor.get(project);
     if (editor.isDisposed()) {

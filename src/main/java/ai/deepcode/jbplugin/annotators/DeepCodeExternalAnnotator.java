@@ -16,30 +16,28 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 public class DeepCodeExternalAnnotator
-    extends ExternalAnnotator<
-        List<AnalysisData.SuggestionForFile>, List<AnalysisData.SuggestionForFile>> {
+    extends ExternalAnnotator<PsiFile, List<AnalysisData.SuggestionForFile>> {
 
   private static final Logger LOG = LoggerFactory.getLogger("DeepCode.Annotator");
 
   @Nullable
   @Override
-  public List<AnalysisData.SuggestionForFile> collectInformation(@NotNull PsiFile psiFile) {
-    if (!DeepCodeParams.isSupportedFileFormat(psiFile)) return null;
-    return AnalysisData.getAnalysis(psiFile);
+  public PsiFile collectInformation(@NotNull PsiFile psiFile) {
+    return psiFile;
   }
 
   @Override
   @Nullable
-  public List<AnalysisData.SuggestionForFile> collectInformation(
+  public PsiFile collectInformation(
       @NotNull PsiFile psiFile, @NotNull Editor editor, boolean hasErrors) {
     return collectInformation(psiFile);
   }
 
   @Nullable
   @Override
-  public List<AnalysisData.SuggestionForFile> doAnnotate(
-      List<AnalysisData.SuggestionForFile> collectedInfo) {
-    return collectedInfo;
+  public List<AnalysisData.SuggestionForFile> doAnnotate(PsiFile collectedInfo) {
+    if (!DeepCodeParams.isSupportedFileFormat(collectedInfo)) return null;
+    return AnalysisData.getAnalysis(collectedInfo);
   }
 
   @Override
