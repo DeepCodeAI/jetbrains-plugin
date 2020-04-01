@@ -68,8 +68,11 @@ public final class AnalysisData {
                 @Override
                 public void beforeChildrenChange(@NotNull PsiTreeChangeEvent event) {
                   PsiFile file = event.getFile();
-                  if (file != null) {
-                    mapFile2Suggestions.remove(file);
+                  if (file != null && mapFile2Suggestions.remove(file) != null) {
+
+                    // fixme: debug only
+                    System.out.println("Removed from cache: " + file);
+
                   }
                 }
               });
@@ -94,13 +97,14 @@ public final class AnalysisData {
    */
   @NotNull
   public static Map<PsiFile, List<SuggestionForFile>> getAnalysis(@NotNull Set<PsiFile> psiFiles) {
-    // fixme
+
+    // fixme: debug only
     System.out.println(
         "--------------\n"
             + "Analysis requested for files: "
             + psiFiles
             + " at "
-            + new SimpleDateFormat("mm:SS").format(System.currentTimeMillis()));
+            + new SimpleDateFormat("m:s:S").format(System.currentTimeMillis()));
 
     Map<PsiFile, List<SuggestionForFile>> result = new HashMap<>();
     psiFiles.stream().map(PsiElement::getProject).distinct().forEach(AnalysisData::addFileListener);
@@ -154,6 +158,7 @@ public final class AnalysisData {
       response = DeepCodeRestApi.getAnalysis(loggedToken, createBundleResponse.getBundleId());
 
       // todo: show progress notification
+      // fixme: debug only
       System.out.println("    " + response);
 
       try {

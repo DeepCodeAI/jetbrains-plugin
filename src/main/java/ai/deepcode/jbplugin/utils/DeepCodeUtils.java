@@ -8,7 +8,7 @@ import com.intellij.psi.PsiFile;
 public final class DeepCodeUtils {
   private DeepCodeUtils(){}
 
-  public static void updateCurrentFilePanel(PsiFile psiFile) {
+  public static void asyncUpdateCurrentFilePanel(PsiFile psiFile) {
     ApplicationManager.getApplication()
         .invokeLater(
             () ->

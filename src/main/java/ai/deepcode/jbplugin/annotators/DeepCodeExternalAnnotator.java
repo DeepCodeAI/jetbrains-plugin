@@ -2,6 +2,7 @@ package ai.deepcode.jbplugin.annotators;
 
 import ai.deepcode.jbplugin.utils.DeepCodeParams;
 import ai.deepcode.jbplugin.utils.AnalysisData;
+import ai.deepcode.jbplugin.utils.DeepCodeUtils;
 import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.ExternalAnnotator;
 import com.intellij.lang.annotation.HighlightSeverity;
@@ -68,5 +69,8 @@ public class DeepCodeExternalAnnotator
             .create();
       }
     }
+    // fixme
+    // Update CurrentFile Panel if file was edited
+    DeepCodeUtils.asyncUpdateCurrentFilePanel(psiFile);
   }
 }

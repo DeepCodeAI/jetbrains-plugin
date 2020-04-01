@@ -79,6 +79,7 @@ public class DeepCodeToolWindowFactory implements ToolWindowFactory, Disposable 
     contentManager.addContent(currentFileContent);
 
     // Update CurrentFile Panel if file was edited
+/*
     PsiManager.getInstance(project)
         .addPsiTreeChangeListener(
             new PsiTreeChangeAdapter() {
@@ -90,6 +91,7 @@ public class DeepCodeToolWindowFactory implements ToolWindowFactory, Disposable 
                 }
               }
             });
+*/
 
     // Project Files panel
     final ProjectFilesPanel projectFilesPanel = new ProjectFilesPanel(true);
