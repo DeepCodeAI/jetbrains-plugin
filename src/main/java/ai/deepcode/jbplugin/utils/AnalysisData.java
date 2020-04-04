@@ -72,7 +72,6 @@ public final class AnalysisData {
 
                     // fixme: debug only
                     System.out.println("Removed from cache: " + file);
-
                   }
                 }
               });
@@ -80,7 +79,7 @@ public final class AnalysisData {
     }
   }
 
-  /** see {@link #getAnalysis(java.util.Set)} */
+  /** see {@link #getAnalysis(java.util.Collection)} */
   @NotNull
   public static List<SuggestionForFile> getAnalysis(@NotNull PsiFile psiFile) {
     return getAnalysis(Collections.singleton(psiFile))
@@ -96,7 +95,7 @@ public final class AnalysisData {
    * @return
    */
   @NotNull
-  public static Map<PsiFile, List<SuggestionForFile>> getAnalysis(@NotNull Set<PsiFile> psiFiles) {
+  public static Map<PsiFile, List<SuggestionForFile>> getAnalysis(@NotNull Collection<PsiFile> psiFiles) {
 
     // fixme: debug only
     System.out.println(
@@ -104,7 +103,7 @@ public final class AnalysisData {
             + "Analysis requested for files: "
             + psiFiles
             + " at "
-            + new SimpleDateFormat("m:s:S").format(System.currentTimeMillis()));
+            + new SimpleDateFormat("m:s,S").format(System.currentTimeMillis()));
 
     Map<PsiFile, List<SuggestionForFile>> result = new HashMap<>();
     psiFiles.stream().map(PsiElement::getProject).distinct().forEach(AnalysisData::addFileListener);
@@ -234,5 +233,13 @@ public final class AnalysisData {
 
   private static FileContent createFileContent(PsiFile psiFile) {
     return new FileContent("/" + psiFile.getVirtualFile().getPath(), psiFile.getText());
+  }
+
+  public static Set<PsiFile> getAllFilesWithSuggestions(@NotNull final Project project) {
+    return mapFile2Suggestions.entrySet()
+            .stream()
+        .filter(e -> !e.getValue().isEmpty())
+        .map(Map.Entry::getKey)
+        .collect(Collectors.toSet());
   }
 }

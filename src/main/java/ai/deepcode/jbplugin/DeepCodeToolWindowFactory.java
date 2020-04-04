@@ -1,9 +1,7 @@
 package ai.deepcode.jbplugin;
 
-import ai.deepcode.jbplugin.ui.panels.ProjectFilesPanel;
 import ai.deepcode.jbplugin.utils.AnalysisData;
 import ai.deepcode.jbplugin.utils.DeepCodeParams;
-import ai.deepcode.jbplugin.utils.DeepCodeUtils;
 import com.intellij.execution.impl.ConsoleViewUtil;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.editor.Document;
@@ -16,9 +14,6 @@ import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
 import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiManager;
-import com.intellij.psi.PsiTreeChangeAdapter;
-import com.intellij.psi.PsiTreeChangeEvent;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
@@ -63,11 +58,7 @@ public class DeepCodeToolWindowFactory implements ToolWindowFactory, Disposable 
                     .setBounds(offset, 0, parent.getWidth() - offset, parent.getHeight());
               }
             }) {
-          //      @Override
-          //      public Color getBackground() {
-          //        return ((EditorEx)editor).getBackgroundColor();
-          //      }
-        };
+       };
 
     editorPanel.add(CurrentFileEditor.get(project).getComponent());
 
@@ -93,11 +84,6 @@ public class DeepCodeToolWindowFactory implements ToolWindowFactory, Disposable 
             });
 */
 
-    // Project Files panel
-    final ProjectFilesPanel projectFilesPanel = new ProjectFilesPanel(true);
-    Content projectFilesContent =
-        contentFactory.createContent(projectFilesPanel, "Project Files", false);
-    contentManager.addContent(projectFilesContent);
   }
 
   /**
