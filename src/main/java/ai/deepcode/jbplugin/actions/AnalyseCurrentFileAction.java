@@ -14,8 +14,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public class AnalyseAction extends AnAction {
-  private static final Logger LOG = LoggerFactory.getLogger("DeepCode.AnalyseAction");
+public class AnalyseCurrentFileAction extends AnAction {
+  private static final Logger LOG = LoggerFactory.getLogger("DeepCode.AnalyseCurrentFileAction");
 
   @Override
   public void update(AnActionEvent e) {

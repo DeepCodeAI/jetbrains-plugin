@@ -84,6 +84,7 @@ public final class TodoFileNode extends PsiFileNode {
                   TodoConfiguration.getInstance().getTodoPatterns()[0], Collections.emptyList()));
         }
     }
+
 /*    final List<TodoItem> todoItems = new ArrayList<>(Arrays.asList(helper.findTodoItems(psiFile)));
 
     psiFile.accept(new PsiRecursiveElementWalkingVisitor() {
@@ -138,7 +139,8 @@ public final class TodoFileNode extends PsiFileNode {
   }
 
   private TodoFilter getToDoFilter() {
-    return null; //myBuilder.getTodoTreeStructure().getTodoFilter();
+    return null;
+    //myBuilder.getTodoTreeStructure().getTodoFilter();
   }
 
   @Override

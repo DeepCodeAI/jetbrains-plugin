@@ -58,6 +58,7 @@ public class SummaryNode extends BaseToDoNode<ToDoSummary> {
         }
       }
       else {
+
 /*
         for (Iterator i = myBuilder.getAllFiles(); i.hasNext();) {
           final PsiFile psiFile = (PsiFile)i.next();

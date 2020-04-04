@@ -206,7 +206,7 @@ public abstract class TodoTreeBuilder implements Disposable {
    */
   public Iterator<PsiFile> getFiles(PsiDirectory psiDirectory) {
     return getFilesRecursively(psiDirectory).iterator();
-//    return getFiles(psiDirectory, true);
+//     return getFiles(psiDirectory, true);
   }
 
   private List<PsiFile> getFilesRecursively(PsiDirectory psiDirectory) {
