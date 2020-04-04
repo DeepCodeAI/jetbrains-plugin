@@ -26,6 +26,8 @@
         <!--        For Idea CE and those that doesn't include corresponding plugin-->
         <externalAnnotator language="TEXT"
                            implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <externalAnnotator language=""
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
 
         <externalAnnotator language="JAVA"
                            implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
@@ -39,15 +41,22 @@
 
     <actions>
         <!-- Add your actions here -->
-        <action id="ai.deepcode.jbplugin.actions.AnalyseCurrentFileAction" class="ai.deepcode.jbplugin.actions.AnalyseCurrentFileAction"
+        <group id="ai.deepcode.jbplugin.DeepCodeGroup" text="DeepCode.ai" popup="true">
+            <action id="ai.deepcode.jbplugin.ToolsMenu.AnalyseCurrentFileAction" class="ai.deepcode.jbplugin.actions.AnalyseCurrentFileAction"
+                    text="Analyse Current File" description="Analyse current file with DeepCode.ai">
+                <keyboard-shortcut keymap="$default" first-keystroke="shift alt T"/>
+            </action>
+            <action id="ai.deepcode.jbplugin.ToolsMenu.AnalyseProjectAction" class="ai.deepcode.jbplugin.actions.AnalyseProjectAction"
+                    text="Analyse All Project Files" description="Analyse all files in the Project with DeepCode.ai">
+                <keyboard-shortcut keymap="$default" first-keystroke="shift alt Y"/>
+            </action>
+
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </group>
+        <action id="ai.deepcode.jbplugin.EditorPopupMenu.AnalyseCurrentFileAction" class="ai.deepcode.jbplugin.actions.AnalyseCurrentFileAction"
                 text="DeepCode Analyse Current File" description="Analyse current file with DeepCode.ai">
-            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
             <keyboard-shortcut keymap="$default" first-keystroke="shift alt T"/>
-        </action>
-        <action id="ai.deepcode.jbplugin.actions.AnalyseProjectAction" class="ai.deepcode.jbplugin.actions.AnalyseProjectAction"
-                text="DeepCode Analyse All Project Files" description="Analyse all files in the Project with DeepCode.ai">
-            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
-            <keyboard-shortcut keymap="$default" first-keystroke="shift alt Y"/>
         </action>
     </actions>
 </idea-plugin>
