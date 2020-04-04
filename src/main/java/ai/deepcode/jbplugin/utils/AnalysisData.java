@@ -95,7 +95,8 @@ public final class AnalysisData {
    * @return
    */
   @NotNull
-  public static Map<PsiFile, List<SuggestionForFile>> getAnalysis(@NotNull Collection<PsiFile> psiFiles) {
+  public static Map<PsiFile, List<SuggestionForFile>> getAnalysis(
+      @NotNull Collection<PsiFile> psiFiles) {
 
     // fixme: debug only
     System.out.println(
@@ -141,11 +142,37 @@ public final class AnalysisData {
     return result;
   }
 
+  static final int MAX_BUNDLE_SIZE = 4000000; // bytes
+
   /** Perform costly network request. <b>No cache checks!</b> */
   @NotNull
   private static Map<PsiFile, List<SuggestionForFile>> retrieveSuggestions(
       @NotNull Set<PsiFile> psiFiles) {
     if (psiFiles.isEmpty()) return Collections.emptyMap();
+    Map<PsiFile, List<SuggestionForFile>> result = new HashMap<>();
+    long bundleSize = 0;
+    List<PsiFile> filesChunk = new ArrayList<>();
+    for (PsiFile psiFile : psiFiles) {
+      final long fileSize = psiFile.getVirtualFile().getLength();
+      if (bundleSize + fileSize > MAX_BUNDLE_SIZE) {
+        // fixme: debug only
+        System.out.println("Bundle size: " + bundleSize);
+        result.putAll(doRetrieveSuggestions(filesChunk));
+        bundleSize = 0;
+        filesChunk.clear();
+      }
+      bundleSize += fileSize;
+      filesChunk.add(psiFile);
+    }
+    // fixme: debug only
+    System.out.println("Bundle size: " + bundleSize);
+    result.putAll(doRetrieveSuggestions(filesChunk));
+    return result;
+  }
+
+  @NotNull
+  private static Map<PsiFile, List<SuggestionForFile>> doRetrieveSuggestions(
+      @NotNull Collection<PsiFile> psiFiles) {
     String loggedToken = DeepCodeParams.getSessionToken();
     FileContentRequest files =
         new FileContentRequest(
@@ -176,7 +203,7 @@ public final class AnalysisData {
 
   @NotNull
   private static Map<PsiFile, List<SuggestionForFile>> parseGetAnalysisResponse(
-      @NotNull Set<PsiFile> psiFiles, GetAnalysisResponse response) {
+      @NotNull Collection<PsiFile> psiFiles, GetAnalysisResponse response) {
     Map<PsiFile, List<SuggestionForFile>> result = new HashMap<>();
     if (!response.getStatus().equals("DONE")) return EMPTY_MAP;
     AnalysisResults analysisResults = response.getAnalysisResults();
@@ -236,8 +263,7 @@ public final class AnalysisData {
   }
 
   public static Set<PsiFile> getAllFilesWithSuggestions(@NotNull final Project project) {
-    return mapFile2Suggestions.entrySet()
-            .stream()
+    return mapFile2Suggestions.entrySet().stream()
         .filter(e -> !e.getValue().isEmpty())
         .map(Map.Entry::getKey)
         .collect(Collectors.toSet());
