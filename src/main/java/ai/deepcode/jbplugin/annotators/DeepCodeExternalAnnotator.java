@@ -14,6 +14,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.List;
 
 public class DeepCodeExternalAnnotator
@@ -36,17 +37,20 @@ public class DeepCodeExternalAnnotator
 
   @Nullable
   @Override
-  public List<AnalysisData.SuggestionForFile> doAnnotate(PsiFile collectedInfo) {
-    if (!DeepCodeParams.isSupportedFileFormat(collectedInfo)) return null;
-    return AnalysisData.getAnalysis(collectedInfo);
+  public List<AnalysisData.SuggestionForFile> doAnnotate(PsiFile psiFile) {
+    if (!DeepCodeParams.isSupportedFileFormat(psiFile)) return Collections.emptyList();
+    return AnalysisData.getAnalysis(psiFile);
   }
 
+  @SuppressWarnings("deprecation") // later move to .newAnnotation introduced in 2020.1
   @Override
   public void apply(
       @NotNull PsiFile psiFile,
       List<AnalysisData.SuggestionForFile> suggestions,
       @NotNull AnnotationHolder holder) {
+    if (suggestions == null) return;
     for (AnalysisData.SuggestionForFile suggestion : suggestions) {
+/*
       HighlightSeverity severity;
       switch (suggestion.getSeverity()) {
         case 1:
@@ -62,15 +66,33 @@ public class DeepCodeExternalAnnotator
           severity = HighlightSeverity.INFORMATION;
           break;
       }
+*/
       for (TextRange range : suggestion.getRanges()) {
+        switch (suggestion.getSeverity()) {
+          case 1:
+            holder.createWeakWarningAnnotation(range, "DeepCode: " + suggestion.getMessage());
+            break;
+          case 2:
+            holder.createWarningAnnotation(range, "DeepCode: " + suggestion.getMessage());
+            break;
+          case 3:
+            holder.createErrorAnnotation(range, "DeepCode: " + suggestion.getMessage());
+            break;
+          default:
+            holder.createInfoAnnotation(range, "DeepCode: " + suggestion.getMessage());
+            break;
+        }
+/*
         holder
             .newAnnotation(severity, "DeepCode: " + suggestion.getMessage())
             .range(range)
             .create();
+*/
       }
     }
     // fixme
     // Update CurrentFile Panel if file was edited
     DeepCodeUtils.asyncUpdateCurrentFilePanel(psiFile);
   }
+
 }
