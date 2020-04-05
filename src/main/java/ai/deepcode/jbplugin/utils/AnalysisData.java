@@ -264,6 +264,7 @@ public final class AnalysisData {
 
   public static Set<PsiFile> getAllFilesWithSuggestions(@NotNull final Project project) {
     return mapFile2Suggestions.entrySet().stream()
+        .filter(e -> e.getKey().getProject().equals(project))
         .filter(e -> !e.getValue().isEmpty())
         .map(Map.Entry::getKey)
         .collect(Collectors.toSet());
