@@ -24,6 +24,7 @@ import com.intellij.psi.search.TodoItem;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public final class TodoFileNode extends PsiFileNode {
   private final TodoTreeBuilder myBuilder;
@@ -51,7 +52,10 @@ public final class TodoFileNode extends PsiFileNode {
     }
   }
 
+  // fixme: same as createGeneralList
   private Collection<? extends AbstractTreeNode<?>> createListForSingleFile() {
+    return createGeneralList();
+/*
     PsiFile psiFile = getValue();
     TodoItem[] items= findAllTodos(psiFile, myBuilder.getTodoTreeStructure().getSearchHelper());
     List<TodoItemNode> children= new ArrayList<>(items.length);
@@ -74,73 +78,15 @@ public final class TodoFileNode extends PsiFileNode {
     }
     children.sort(SmartTodoItemPointerComparator.ourInstance);
     return children;
-  }
-
-  public static TodoItem[] findAllTodos(final PsiFile psiFile, final PsiTodoSearchHelper helper) {
-    final List<TodoItem> todoItems = new ArrayList<>();
-    for (AnalysisData.SuggestionForFile suggestion: AnalysisData.getAnalysis(psiFile)) {
-        for (TextRange range : suggestion.getRanges()) {
-          todoItems.add(new TodoItemImpl(psiFile, range.getStartOffset(), range.getEndOffset(),
-                  TodoConfiguration.getInstance().getTodoPatterns()[0], Collections.emptyList()));
-        }
-    }
-
-/*    final List<TodoItem> todoItems = new ArrayList<>(Arrays.asList(helper.findTodoItems(psiFile)));
-
-    psiFile.accept(new PsiRecursiveElementWalkingVisitor() {
-      @Override
-      public void visitElement(@NotNull PsiElement element) {
-        if (element instanceof PsiLanguageInjectionHost) {
-          InjectedLanguageManager.getInstance(psiFile.getProject()).enumerate(element, (injectedPsi, places) -> {
-            if (places.size() == 1) {
-              Document document = PsiDocumentManager.getInstance(injectedPsi.getProject()).getCachedDocument(injectedPsi);
-              if (!(document instanceof DocumentWindow)) return;
-              for (TodoItem item : helper.findTodoItems(injectedPsi)) {
-                TextRange rangeInHost = ((DocumentWindow)document).injectedToHost(item.getTextRange());
-                List<TextRange> additionalRanges = ContainerUtil.map(item.getAdditionalTextRanges(),
-                                                                     ((DocumentWindow)document)::injectedToHost);
-                TodoItemImpl hostItem = new TodoItemImpl(psiFile, rangeInHost.getStartOffset(), rangeInHost.getEndOffset(),
-                                                         item.getPattern(), additionalRanges);
-                todoItems.add(hostItem);
-              }
-            }
-          });
-        }
-        super.visitElement(element);
-      }
-    });*/
-    return todoItems.toArray(new TodoItem[0]);
+*/
   }
 
   private Collection<? extends AbstractTreeNode<?>> createGeneralList() {
-    List<TodoItemNode> children = new ArrayList<>();
-
     PsiFile psiFile = getValue();
-    final TodoItem[] items = findAllTodos(psiFile, myBuilder.getTodoTreeStructure().getSearchHelper());
-    final Document document = PsiDocumentManager.getInstance(getProject()).getDocument(psiFile);
-
-    if (document != null) {
-      for (final TodoItem todoItem : items) {
-        if (todoItem.getTextRange().getEndOffset() < document.getTextLength() + 1) {
-          final SmartTodoItemPointer pointer = new SmartTodoItemPointer(todoItem, document);
-          TodoFilter todoFilter = getToDoFilter();
-          if (todoFilter != null) {
-            if (todoFilter.contains(todoItem.getPattern())) {
-              children.add(new TodoItemNode(getProject(), pointer, myBuilder));
-            }
-          } else {
-            children.add(new TodoItemNode(getProject(), pointer, myBuilder));
-          }
-        }
-      }
-    }
-    children.sort(SmartTodoItemPointerComparator.ourInstance);
-    return children;
-  }
-
-  private TodoFilter getToDoFilter() {
-    return null;
-    //myBuilder.getTodoTreeStructure().getTodoFilter();
+    return AnalysisData.getAnalysis(psiFile)
+            .stream()
+            .map(suggestion -> new SuggestionNode(getProject(), psiFile, myBuilder, suggestion))
+            .collect(Collectors.toList());
   }
 
   @Override
