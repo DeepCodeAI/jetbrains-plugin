@@ -1,11 +1,13 @@
 package ai.deepcode.jbplugin.annotators;
 
+import ai.deepcode.jbplugin.ui.myTodoView;
 import ai.deepcode.jbplugin.utils.DeepCodeParams;
 import ai.deepcode.jbplugin.utils.AnalysisData;
 import ai.deepcode.jbplugin.utils.DeepCodeUtils;
 import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.ExternalAnnotator;
 import com.intellij.lang.annotation.HighlightSeverity;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiFile;
@@ -92,7 +94,8 @@ public class DeepCodeExternalAnnotator
     }
     // fixme
     // Update CurrentFile Panel if file was edited
-    DeepCodeUtils.asyncUpdateCurrentFilePanel(psiFile);
+    ServiceManager.getService(psiFile.getProject(), myTodoView.class).refresh();
+//    DeepCodeUtils.asyncUpdateCurrentFilePanel(psiFile);
   }
 
 }

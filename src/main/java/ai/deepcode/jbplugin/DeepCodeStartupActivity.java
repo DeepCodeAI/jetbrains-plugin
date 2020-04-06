@@ -31,7 +31,9 @@ public class DeepCodeStartupActivity implements StartupActivity {
         DeepCodeNotifications.showError(response.getStatusDescription(), project);
       }
     }
+
     // Update CurrentFile Panel if file Tab was changed in Editor
+    //TODO Remove it?
     MessageBusConnection connection = project.getMessageBus().connect();
     connection.subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, new MyEditorManagerListener());
   }

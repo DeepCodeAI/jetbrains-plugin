@@ -13,7 +13,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
+// TODO Remove it?
 public class AnalyseCurrentFileAction extends AnAction {
   private static final Logger LOG = LoggerFactory.getLogger("DeepCode.AnalyseCurrentFileAction");
 
