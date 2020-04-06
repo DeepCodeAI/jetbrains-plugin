@@ -16,9 +16,9 @@
         <!-- Add your extensions here -->
         <annotator language="JAVA" implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
         <postStartupActivity implementation="ai.deepcode.jbplugin.DeepCodeStartupActivity"/>
-        <toolWindow id="DeepCode" anchor="bottom" factoryClass="ai.deepcode.jbplugin.DeepCodeToolWindowFactory"/>
+        <toolWindow id="DeepCode(console)" anchor="bottom" factoryClass="ai.deepcode.jbplugin.DeepCodeToolWindowFactory"/>
 
-        <toolWindow id="DeepCodeTest" anchor="bottom" factoryClass="ai.deepcode.jbplugin.DeepCodeTestToolWindowFactory"
+        <toolWindow id="DeepCode" anchor="bottom" factoryClass="ai.deepcode.jbplugin.DeepCodeTestToolWindowFactory"
                     canCloseContents="true"/>
         <projectService serviceImplementation="ai.deepcode.jbplugin.ui.myTodoView"/>
         <projectService serviceImplementation="ai.deepcode.jbplugin.ui.nodes.TodoTreeHelper"/>
@@ -53,6 +53,18 @@
 
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </group>
+
+        <!-- see TodoMainGroup and TodoViewGroupByGroup -->
+        <group id="DeepCodeMainGroup">
+            <add-to-group group-id="Other.KeymapGroup"/>
+            <group id="DeepCodeViewGroupByGroup" class="ai.deepcode.jbplugin.ui.TodoPanel$GroupByActionGroup" popup="true">
+                <separator text="Group By"/>
+                <action class="ai.deepcode.jbplugin.ui.TodoPanel$MyShowModulesAction" id="DeepCodeViewGroupByShowModules"/>
+                <action class="ai.deepcode.jbplugin.ui.TodoPanel$MyShowPackagesAction" id="DeepCodeViewGroupByShowPackages"/>
+                <action class="ai.deepcode.jbplugin.ui.TodoPanel$MyFlattenPackagesAction" id="DeepCodeViewGroupByFlattenPackage"/>
+            </group>
+        </group>
+
         <action id="ai.deepcode.jbplugin.EditorPopupMenu.AnalyseCurrentFileAction" class="ai.deepcode.jbplugin.actions.AnalyseCurrentFileAction"
                 text="DeepCode Analyse Current File" description="Analyse current file with DeepCode.ai">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
