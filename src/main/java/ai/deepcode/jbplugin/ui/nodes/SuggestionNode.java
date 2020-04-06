@@ -4,6 +4,7 @@ import ai.deepcode.jbplugin.ui.SmartTodoItemPointer;
 import ai.deepcode.jbplugin.ui.SmartTodoItemPointerComparator;
 import ai.deepcode.jbplugin.ui.TodoTreeBuilder;
 import ai.deepcode.jbplugin.utils.AnalysisData;
+import com.intellij.icons.AllIcons;
 import com.intellij.ide.projectView.PresentationData;
 import com.intellij.ide.todo.TodoConfiguration;
 import com.intellij.ide.todo.TodoFilter;
@@ -19,6 +20,7 @@ import com.intellij.psi.search.PsiTodoSearchHelper;
 import com.intellij.psi.search.TodoItem;
 import org.jetbrains.annotations.NotNull;
 
+import javax.swing.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -128,5 +130,11 @@ public class SuggestionNode extends BaseToDoNode<PsiFile> {
   @Override
   protected void update(@NotNull PresentationData presentation) {
     presentation.setPresentableText(suggestion.getMessage());
+    Icon severityIcon;
+    if (suggestion.getSeverity() == 1) severityIcon = AllIcons.General.Information;
+    else if (suggestion.getSeverity() == 2) severityIcon = AllIcons.General.Warning;
+    else if (suggestion.getSeverity() == 3) severityIcon = AllIcons.General.Error;
+    else severityIcon = AllIcons.General.Error;
+    presentation.setIcon(severityIcon);
   }
 }
