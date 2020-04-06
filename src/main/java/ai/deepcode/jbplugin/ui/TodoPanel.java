@@ -5,6 +5,7 @@ import com.intellij.find.FindModel;
 import com.intellij.find.impl.FindInProjectUtil;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.*;
+import com.intellij.ide.actions.ExpandAllAction;
 import com.intellij.ide.actions.NextOccurenceToolbarAction;
 import com.intellij.ide.actions.PreviousOccurenceToolbarAction;
 import ai.deepcode.jbplugin.ui.nodes.TodoFileNode;
@@ -179,11 +180,14 @@ abstract class TodoPanel extends SimpleToolWindowPanel implements OccurenceNavig
     EditSourceOnDoubleClickHandler.install(myTree);
     new TreeSpeedSearch(myTree);
 
+    final AnAction expandAllAction = CommonActionsManager.getInstance().createExpandAllAction(myTreeExpander, this);
+    final AnAction collapseAllAction = CommonActionsManager.getInstance().createCollapseAllAction(myTreeExpander, this);
     DefaultActionGroup group = new DefaultActionGroup();
     group.add(ActionManager.getInstance().getAction(IdeActions.ACTION_EDIT_SOURCE));
     group.addSeparator();
-    group.add(CommonActionsManager.getInstance().createExpandAllAction(myTreeExpander, this));
-    group.add(CommonActionsManager.getInstance().createCollapseAllAction(myTreeExpander, this));
+    //todo Expand/collapse selected branch
+    group.add(expandAllAction);
+    group.add(collapseAllAction);
     group.addSeparator();
     group.add(ActionManager.getInstance().getAction(IdeActions.GROUP_VERSION_CONTROLS));
     PopupHandler.installPopupHandler(myTree, group, ActionPlaces.TODO_VIEW_POPUP, ActionManager.getInstance());
@@ -235,6 +239,8 @@ abstract class TodoPanel extends SimpleToolWindowPanel implements OccurenceNavig
     toolbarGroup.add(new NextOccurenceToolbarAction(myOccurenceNavigator));
     toolbarGroup.add(new SetTodoFilterAction(myProject, mySettings, todoFilter -> setTodoFilter(todoFilter)));
     toolbarGroup.add(createAutoScrollToSourceAction());
+    toolbarGroup.add(expandAllAction);
+    toolbarGroup.add(collapseAllAction);
 
     if (!myCurrentFileMode) {
       DefaultActionGroup groupBy = createGroupByActionGroup();

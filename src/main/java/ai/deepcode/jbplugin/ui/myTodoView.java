@@ -199,14 +199,6 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
     myPanels.add(myScopeBasedTodosPanel);
   }
 
-  @TestOnly
-  public void disposePanels() {
-    Disposer.dispose(myAllTodos);
-    Disposer.dispose(myChangeListTodosPanel);
-    Disposer.dispose(myCurrentFileTodosPanel);
-    Disposer.dispose(myScopeBasedTodosPanel);
-  }
-
   @NotNull
   static String getTabNameForChangeList(@NotNull String changelistName) {
     changelistName = changelistName.trim();
@@ -316,12 +308,7 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
     }
     myPanels.add(panel);
     content.setCloseable(true);
-    content.setDisposer(new Disposable() {
-      @Override
-      public void dispose() {
-        myPanels.remove(panel);
-      }
-    });
+    content.setDisposer(() -> myPanels.remove(panel));
   }
 
   @NotNull
