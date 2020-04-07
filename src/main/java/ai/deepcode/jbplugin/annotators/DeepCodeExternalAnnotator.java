@@ -1,9 +1,11 @@
 package ai.deepcode.jbplugin.annotators;
 
+import ai.deepcode.jbplugin.actions.DeepCodeIntentionAction;
 import ai.deepcode.jbplugin.ui.myTodoView;
 import ai.deepcode.jbplugin.utils.DeepCodeParams;
 import ai.deepcode.jbplugin.utils.AnalysisData;
 import ai.deepcode.jbplugin.utils.DeepCodeUtils;
+import com.intellij.lang.annotation.Annotation;
 import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.ExternalAnnotator;
 import com.intellij.lang.annotation.HighlightSeverity;
@@ -69,21 +71,24 @@ public class DeepCodeExternalAnnotator
           break;
       }
 */
+      final String message = "DeepCode: " + suggestion.getMessage();
+      Annotation annotation;
       for (TextRange range : suggestion.getRanges()) {
         switch (suggestion.getSeverity()) {
           case 1:
-            holder.createWeakWarningAnnotation(range, "DeepCode: " + suggestion.getMessage());
+            annotation = holder.createWeakWarningAnnotation(range, message);
             break;
           case 2:
-            holder.createWarningAnnotation(range, "DeepCode: " + suggestion.getMessage());
+            annotation = holder.createWarningAnnotation(range, message);
             break;
           case 3:
-            holder.createErrorAnnotation(range, "DeepCode: " + suggestion.getMessage());
+            annotation = holder.createErrorAnnotation(range, message);
             break;
           default:
-            holder.createInfoAnnotation(range, "DeepCode: " + suggestion.getMessage());
+            annotation = holder.createInfoAnnotation(range, message);
             break;
         }
+        annotation.registerFix(new DeepCodeIntentionAction(psiFile, range, suggestion.getId()));
 /*
         holder
             .newAnnotation(severity, "DeepCode: " + suggestion.getMessage())

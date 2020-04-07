@@ -251,7 +251,7 @@ public final class AnalysisData {
         }
         mySuggestions.add(
             new SuggestionForFile(
-                suggestionIndex, suggestion.getMessage(), suggestion.getSeverity(), ranges));
+                suggestion.getId(), suggestion.getMessage(), suggestion.getSeverity(), ranges));
       }
       result.put(psiFile, mySuggestions);
     }
