@@ -26,26 +26,16 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-public class SuggestionNode extends BaseToDoNode<PsiFile> {
-  private final AnalysisData.SuggestionForFile suggestion;
+public class SuggestionNode extends BaseToDoNode<AnalysisData.SuggestionForFile> {
+  private final PsiFile myPsiFile;
 
   protected SuggestionNode(
       Project project,
       @NotNull PsiFile psiFile,
       TodoTreeBuilder builder,
       @NotNull AnalysisData.SuggestionForFile suggestion) {
-    super(project, psiFile, builder);
-    this.suggestion = suggestion;
-  }
-
-  @Override
-  public int getFileCount(PsiFile val) {
-    return 1;
-  }
-
-  @Override
-  public int getTodoItemCount(PsiFile val) {
-    return suggestion.getRanges().size();
+    super(project, suggestion, builder);
+    myPsiFile = psiFile;
   }
 
   @NotNull
@@ -61,6 +51,7 @@ public class SuggestionNode extends BaseToDoNode<PsiFile> {
 
   private TodoItem[] findAllTodos(final PsiFile psiFile, final PsiTodoSearchHelper helper) {
     final List<TodoItem> todoItems = new ArrayList<>();
+    AnalysisData.SuggestionForFile suggestion = getValue();
     for (TextRange range : suggestion.getRanges()) {
       todoItems.add(
           new TodoItemImpl(
@@ -98,11 +89,10 @@ public class SuggestionNode extends BaseToDoNode<PsiFile> {
   }
 
   private Collection<? extends AbstractTreeNode<?>> createGeneralList() {
-    PsiFile psiFile = getValue();
     final TodoItem[] items =
-        findAllTodos(psiFile, myBuilder.getTodoTreeStructure().getSearchHelper());
+        findAllTodos(myPsiFile, myBuilder.getTodoTreeStructure().getSearchHelper());
     List<TodoItemNode> children = new ArrayList<>(items.length);
-    final Document document = PsiDocumentManager.getInstance(getProject()).getDocument(psiFile);
+    final Document document = PsiDocumentManager.getInstance(getProject()).getDocument(myPsiFile);
     if (document != null) {
       for (final TodoItem todoItem : items) {
         if (todoItem.getTextRange().getEndOffset() < document.getTextLength() + 1) {
@@ -129,6 +119,7 @@ public class SuggestionNode extends BaseToDoNode<PsiFile> {
 
   @Override
   protected void update(@NotNull PresentationData presentation) {
+    AnalysisData.SuggestionForFile suggestion = getValue();
     presentation.setPresentableText(suggestion.getMessage());
     Icon severityIcon;
     if (suggestion.getSeverity() == 1) severityIcon = AllIcons.General.Information;
@@ -136,5 +127,15 @@ public class SuggestionNode extends BaseToDoNode<PsiFile> {
     else if (suggestion.getSeverity() == 3) severityIcon = AllIcons.General.Error;
     else severityIcon = AllIcons.General.Error;
     presentation.setIcon(severityIcon);
+  }
+
+  @Override
+  public int getFileCount(AnalysisData.SuggestionForFile val) {
+    return 1;
+  }
+
+  @Override
+  public int getTodoItemCount(AnalysisData.SuggestionForFile val) {
+    return val.getRanges().size();
   }
 }
