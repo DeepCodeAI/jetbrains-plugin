@@ -106,14 +106,16 @@ public class DeepCodeIntentionAction implements IntentionAction {
     final String[] splitedId = fullSuggestionId.split("%2F");
     String suggestionId = splitedId[splitedId.length - 1];
 
-    document.insertString(
-        insertPosition,
-        prefix
-            + (isFileIntention ? " file " : " ")
-            + "deepcode ignore "
-            + suggestionId
-            + ": <please specify a reason of ignoring this>"
-            + postfix);
+    final String ignoreCommand =
+        prefix + (isFileIntention ? " file " : " ") + "deepcode ignore " + suggestionId + ": ";
+    final String ignoreDescription = "<please specify a reason of ignoring this>";
+
+    document.insertString(insertPosition, ignoreCommand + ignoreDescription + postfix);
+
+    int caretOffset = insertPosition + ignoreCommand.length();
+    editor.getCaretModel().moveToOffset(caretOffset);
+
+    editor.getSelectionModel().setSelection(caretOffset, caretOffset + ignoreDescription.length());
   }
 
   /**
