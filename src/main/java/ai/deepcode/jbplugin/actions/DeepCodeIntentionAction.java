@@ -11,17 +11,18 @@ import com.intellij.util.IncorrectOperationException;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Arrays;
-
 public class DeepCodeIntentionAction implements IntentionAction {
   private final PsiFile myPsiFile;
   private final TextRange myRange;
   private final String fullSuggestionId;
+  private final boolean isFileIntention;
 
-  public DeepCodeIntentionAction(PsiFile psiFile, TextRange range, String id) {
+  public DeepCodeIntentionAction(
+      PsiFile psiFile, TextRange range, String id, boolean isFileIntention) {
     myPsiFile = psiFile;
     myRange = range;
     fullSuggestionId = id;
+    this.isFileIntention = isFileIntention;
   }
 
   /**
@@ -34,7 +35,9 @@ public class DeepCodeIntentionAction implements IntentionAction {
   @NotNull
   @Override
   public String getText() {
-    return "Suppress current suggestion";
+    return isFileIntention
+        ? "Ignore this suggestion in current file (DeepCode)"
+        : "Ignore this particular suggestion (DeepCode)";
   }
 
   /**
@@ -88,7 +91,11 @@ public class DeepCodeIntentionAction implements IntentionAction {
     String suggestionId = splitedId[splitedId.length - 1];
     document.insertString(
         lineStartOffset,
-        "// deepcode ignore " + suggestionId + ": <please specify a reason of ignoring this>\n");
+        "// "
+            + (isFileIntention ? "file " : "")
+            + "deepcode ignore "
+            + suggestionId
+            + ": <please specify a reason of ignoring this>\n");
   }
 
   /**
