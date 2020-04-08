@@ -11,6 +11,8 @@ import com.intellij.util.IncorrectOperationException;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.regex.Pattern;
+
 public class DeepCodeIntentionAction implements IntentionAction {
   private final PsiFile myPsiFile;
   private final TextRange myRange;
@@ -72,6 +74,7 @@ public class DeepCodeIntentionAction implements IntentionAction {
             .anyMatch(r -> r.contains(myRange));
   }
 
+  private static final Pattern IGNORE_PATTERN = Pattern.compile(".*//.*deepcode\\s?ignore.*");
   /**
    * Called when user invokes intention. This method is called inside command. If {@link
    * #startInWriteAction()} returns {@code true}, this method is also called inside write action.
@@ -86,16 +89,31 @@ public class DeepCodeIntentionAction implements IntentionAction {
     Document document = editor.getDocument();
     if (document.getTextLength() < 0) return;
     int lineNumber = document.getLineNumber(myRange.getStartOffset());
-    int lineStartOffset = document.getLineStartOffset(lineNumber);
+    int insertPosition = document.getLineStartOffset(lineNumber);
+    String prefix = "//";
+    String postfix = "\n";
+    if (lineNumber > 0) {
+      final int prevLineStart = document.getLineStartOffset(lineNumber - 1);
+      final int prevLineEnd = document.getLineEndOffset(lineNumber - 1);
+      String prevLine = document.getText(new TextRange(prevLineStart, prevLineEnd)).toLowerCase();
+      if (IGNORE_PATTERN.matcher(prevLine).matches()) {
+        prefix = ",";
+        postfix = "";
+        insertPosition -= 1;
+      }
+    }
+
     final String[] splitedId = fullSuggestionId.split("%2F");
     String suggestionId = splitedId[splitedId.length - 1];
+
     document.insertString(
-        lineStartOffset,
-        "// "
-            + (isFileIntention ? "file " : "")
+        insertPosition,
+        prefix
+            + (isFileIntention ? " file " : " ")
             + "deepcode ignore "
             + suggestionId
-            + ": <please specify a reason of ignoring this>\n");
+            + ": <please specify a reason of ignoring this>"
+            + postfix);
   }
 
   /**
