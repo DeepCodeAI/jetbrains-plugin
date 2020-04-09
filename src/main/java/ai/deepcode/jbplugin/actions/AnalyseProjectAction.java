@@ -8,8 +8,11 @@ import ai.deepcode.jbplugin.utils.DeepCodeUtils;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.util.concurrency.NonUrgentExecutor;
 import org.jetbrains.annotations.NotNull;
 
 public class AnalyseProjectAction extends AnAction {
@@ -21,7 +24,15 @@ public class AnalyseProjectAction extends AnAction {
       DeepCodeNotifications.showLoginLink(project);
       return;
     }
-    AnalysisData.getAnalysis(DeepCodeUtils.getAllSupportedFilesInProject(project));
-    ServiceManager.getService(project, myTodoView.class).refresh();
+    //    ApplicationManager.getApplication().invokeLater(
+    ReadAction.nonBlocking(doUpdate(project)).submit(NonUrgentExecutor.getInstance());
+  }
+
+  @NotNull
+  private Runnable doUpdate(Project project) {
+    return () -> {
+      AnalysisData.getAnalysis(DeepCodeUtils.getAllSupportedFilesInProject(project));
+      ServiceManager.getService(project, myTodoView.class).refresh();
+    };
   }
 }
