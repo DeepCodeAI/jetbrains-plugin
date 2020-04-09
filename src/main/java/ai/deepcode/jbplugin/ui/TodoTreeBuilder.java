@@ -103,6 +103,14 @@ public abstract class TodoTreeBuilder implements Disposable {
     //setCanYieldUpdate(true);
   }
 
+  /**
+   * Expands n levels of the tree counting from the root
+   * @param levels depths of the expantion
+   */
+  public void expandTree(int levels){
+    TreeUtil.expand(myTree, levels);
+  }
+
   public StructureTreeModel getModel() {
     return myModel;
   }

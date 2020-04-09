@@ -4,7 +4,6 @@ package ai.deepcode.jbplugin.ui.nodes;
 
 import com.intellij.ide.IdeBundle;
 import com.intellij.ide.projectView.PresentationData;
-import ai.deepcode.jbplugin.ui.CurrentFileTodosTreeBuilder;
 import ai.deepcode.jbplugin.ui.ToDoSummary;
 import ai.deepcode.jbplugin.ui.TodoFileDirAndModuleComparator;
 import ai.deepcode.jbplugin.ui.TodoTreeBuilder;
@@ -34,8 +33,20 @@ public class SummaryNode extends BaseToDoNode<ToDoSummary> {
     ArrayList<AbstractTreeNode<?>> children = new ArrayList<>();
 
     final ProjectFileIndex projectFileIndex = ProjectRootManager.getInstance(getProject()).getFileIndex();
-    if (myToDoSettings.isModulesShown()) {
-/*
+
+    for (Iterator<PsiFile> i = myBuilder.getAllFiles(); i.hasNext();) {
+      final PsiFile psiFile = i.next();
+      if (psiFile == null) { // skip invalid PSI files
+        continue;
+      }
+      TodoFileNode fileNode = new TodoFileNode(getProject(), psiFile, myBuilder, false);
+      if (getTreeStructure().accept(psiFile) && !children.contains(fileNode)) {
+        children.add(fileNode);
+      }
+    }
+
+/*    if (myToDoSettings.isModulesShown()) {
+
       for (Iterator i = myBuilder.getAllFiles(); i.hasNext();) {
         final PsiFile psiFile = (PsiFile)i.next();
         if (psiFile == null) { // skip invalid PSI files
@@ -44,14 +55,13 @@ public class SummaryNode extends BaseToDoNode<ToDoSummary> {
         final VirtualFile virtualFile = psiFile.getVirtualFile();
         createModuleTodoNodeForFile(children, projectFileIndex, virtualFile);
       }
-*/
     }
     else {
       if (myToDoSettings.getIsPackagesShown()) {
         if (myBuilder instanceof CurrentFileTodosTreeBuilder){
-          final Iterator allFiles = myBuilder.getAllFiles();
+          final Iterator<PsiFile> allFiles = myBuilder.getAllFiles();
           if(allFiles.hasNext()){
-            children.add(new TodoFileNode(myProject, (PsiFile)allFiles.next(), myBuilder, false));
+            children.add(new TodoFileNode(myProject, allFiles.next(), myBuilder, false));
           }
         } else {
           TodoTreeHelper.getInstance(getProject()).addPackagesToChildren(children, null, myBuilder);
@@ -59,7 +69,6 @@ public class SummaryNode extends BaseToDoNode<ToDoSummary> {
       }
       else {
 
-/*
         for (Iterator i = myBuilder.getAllFiles(); i.hasNext();) {
           final PsiFile psiFile = (PsiFile)i.next();
           if (psiFile == null) { // skip invalid PSI files
@@ -70,9 +79,8 @@ public class SummaryNode extends BaseToDoNode<ToDoSummary> {
             children.add(fileNode);
           }
         }
-*/
       }
-    }
+    }*/
     Collections.sort(children, TodoFileDirAndModuleComparator.INSTANCE);
     return children;
 
@@ -94,6 +102,7 @@ public class SummaryNode extends BaseToDoNode<ToDoSummary> {
     int fileCount = getFileCount(getValue());
     final String message = IdeBundle.message("node.todo.summary", todoItemCount, fileCount);
     presentation.setPresentableText(message.replace("TODO item", "Suggestion"));
+    myBuilder.expandTree(2);
   }
 
   @Override
