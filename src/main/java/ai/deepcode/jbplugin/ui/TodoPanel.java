@@ -189,7 +189,7 @@ abstract class TodoPanel extends SimpleToolWindowPanel implements OccurenceNavig
     group.add(expandAllAction);
     group.add(collapseAllAction);
     group.addSeparator();
-    group.add(ActionManager.getInstance().getAction(IdeActions.GROUP_VERSION_CONTROLS));
+//    group.add(ActionManager.getInstance().getAction(IdeActions.GROUP_VERSION_CONTROLS));
     PopupHandler.installPopupHandler(myTree, group, ActionPlaces.TODO_VIEW_POPUP, ActionManager.getInstance());
 
     myTree.addKeyListener(
@@ -237,17 +237,18 @@ abstract class TodoPanel extends SimpleToolWindowPanel implements OccurenceNavig
     DefaultActionGroup toolbarGroup = new DefaultActionGroup();
     toolbarGroup.add(new PreviousOccurenceToolbarAction(myOccurenceNavigator));
     toolbarGroup.add(new NextOccurenceToolbarAction(myOccurenceNavigator));
-    toolbarGroup.add(new SetTodoFilterAction(myProject, mySettings, todoFilter -> setTodoFilter(todoFilter)));
+//    toolbarGroup.add(new SetTodoFilterAction(myProject, mySettings, todoFilter -> setTodoFilter(todoFilter)));
     toolbarGroup.add(createAutoScrollToSourceAction());
     toolbarGroup.add(expandAllAction);
     toolbarGroup.add(collapseAllAction);
-
+/*
     if (!myCurrentFileMode) {
       DefaultActionGroup groupBy = createGroupByActionGroup();
       toolbarGroup.add(groupBy);
     }
-
+*/
     toolbarGroup.add(new MyPreviewAction());
+    toolbarGroup.add(ActionManager.getInstance().getAction("ai.deepcode.jbplugin.ToolsMenu.AnalyseProjectAction"));
 
     setToolbar(ActionManager.getInstance().createActionToolbar(ActionPlaces.TODO_VIEW_TOOLBAR, toolbarGroup, false).getComponent());
   }

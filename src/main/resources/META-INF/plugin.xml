@@ -47,7 +47,8 @@
                 <keyboard-shortcut keymap="$default" first-keystroke="shift alt T"/>
             </action>
             <action id="ai.deepcode.jbplugin.ToolsMenu.AnalyseProjectAction" class="ai.deepcode.jbplugin.actions.AnalyseProjectAction"
-                    text="Analyse All Project Files" description="Analyse all files in the Project with DeepCode.ai">
+                    text="Analyse All Project Files" description="Analyse all files in the Project with DeepCode.ai"
+                    icon="AllIcons.Actions.Show">
                 <keyboard-shortcut keymap="$default" first-keystroke="shift alt Y"/>
             </action>
 
