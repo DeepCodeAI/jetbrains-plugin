@@ -52,23 +52,6 @@ public class DeepCodeExternalAnnotator
       @NotNull AnnotationHolder holder) {
     if (suggestions == null) return;
     for (AnalysisData.SuggestionForFile suggestion : suggestions) {
-/*
-      HighlightSeverity severity;
-      switch (suggestion.getSeverity()) {
-        case 1:
-          severity = HighlightSeverity.WEAK_WARNING;
-          break;
-        case 2:
-          severity = HighlightSeverity.WARNING;
-          break;
-        case 3:
-          severity = HighlightSeverity.ERROR;
-          break;
-        default:
-          severity = HighlightSeverity.INFORMATION;
-          break;
-      }
-*/
       final String message = "DeepCode: " + suggestion.getMessage();
       Annotation annotation;
       for (TextRange range : suggestion.getRanges()) {

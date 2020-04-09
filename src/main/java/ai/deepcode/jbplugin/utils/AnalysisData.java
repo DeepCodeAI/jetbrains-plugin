@@ -5,6 +5,7 @@ import ai.deepcode.javaclient.requests.FileContent;
 import ai.deepcode.javaclient.requests.FileContentRequest;
 import ai.deepcode.javaclient.responses.*;
 import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.*;
@@ -113,24 +114,6 @@ public final class AnalysisData {
             psiFiles.stream()
                 .filter(file -> !mapFile2Suggestions.containsKey(file))
                 .collect(Collectors.toSet())));
-    /*
-        Set<PsiFile> filesToRequest = new HashSet<>();
-        for (PsiFile psiFile : psiFiles) {
-          System.out.println(psiFile + "@" + Integer.toHexString(psiFile.hashCode()));
-          List<SuggestionForFile> suggestions = mapFile2Suggestions.get(psiFile);
-          if (suggestions != null) {
-            result.put(psiFile, suggestions);
-          } else {
-            filesToRequest.add(psiFile);
-          }
-        }
-        if (!filesToRequest.isEmpty()) {
-          final Map<PsiFile, List<SuggestionForFile>> retrievedSuggestions =
-              retrieveSuggestions(filesToRequest);
-          mapFile2Suggestions.putAll(retrievedSuggestions);
-          result.putAll(retrievedSuggestions);
-        }
-    */
     for (PsiFile psiFile : psiFiles) {
       List<SuggestionForFile> suggestions = mapFile2Suggestions.get(psiFile);
       if (suggestions != null) {
@@ -187,6 +170,7 @@ public final class AnalysisData {
       // fixme: debug only
       System.out.println("    " + response);
 
+      ProgressManager.checkCanceled();
       try {
         Thread.sleep(1000);
       } catch (InterruptedException e) {
@@ -268,5 +252,11 @@ public final class AnalysisData {
         .filter(e -> !e.getValue().isEmpty())
         .map(Map.Entry::getKey)
         .collect(Collectors.toSet());
+  }
+
+  public static void clearCache(@NotNull final Project project) {
+    mapFile2Suggestions.keySet().stream()
+            .filter(file -> file.getProject().equals(project))
+            .forEach(mapFile2Suggestions::remove);
   }
 }

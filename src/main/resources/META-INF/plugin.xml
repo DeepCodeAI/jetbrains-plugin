@@ -51,6 +51,10 @@
                     icon="AllIcons.Actions.Show">
                 <keyboard-shortcut keymap="$default" first-keystroke="shift alt Y"/>
             </action>
+            <action id="ai.deepcode.jbplugin.ToolsMenu.InvalidateCachesAndAnalyseProjectAction" class="ai.deepcode.jbplugin.actions.InvalidateCachesAndAnalyseProjectAction"
+                    text="Re-Analyse All Project Files" description="Invalidate caches and Analyse all files in the Project with DeepCode.ai"
+                    icon="AllIcons.Actions.Refresh">
+            </action>
 
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </group>
