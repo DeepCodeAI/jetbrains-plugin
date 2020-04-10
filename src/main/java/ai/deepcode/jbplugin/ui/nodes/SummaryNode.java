@@ -1,7 +1,10 @@
-// Copyright 2000-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
+// Copyright 2000-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0
+// license that can be found in the LICENSE file.
 
 package ai.deepcode.jbplugin.ui.nodes;
 
+import ai.deepcode.jbplugin.utils.AnalysisData;
+import com.intellij.icons.AllIcons;
 import com.intellij.ide.IdeBundle;
 import com.intellij.ide.projectView.PresentationData;
 import ai.deepcode.jbplugin.ui.ToDoSummary;
@@ -32,9 +35,10 @@ public class SummaryNode extends BaseToDoNode<ToDoSummary> {
   public Collection<AbstractTreeNode<?>> getChildren() {
     ArrayList<AbstractTreeNode<?>> children = new ArrayList<>();
 
-    final ProjectFileIndex projectFileIndex = ProjectRootManager.getInstance(getProject()).getFileIndex();
+    final ProjectFileIndex projectFileIndex =
+        ProjectRootManager.getInstance(getProject()).getFileIndex();
 
-    for (Iterator<PsiFile> i = myBuilder.getAllFiles(); i.hasNext();) {
+    for (Iterator<PsiFile> i = myBuilder.getAllFiles(); i.hasNext(); ) {
       final PsiFile psiFile = i.next();
       if (psiFile == null) { // skip invalid PSI files
         continue;
@@ -45,7 +49,7 @@ public class SummaryNode extends BaseToDoNode<ToDoSummary> {
       }
     }
 
-/*    if (myToDoSettings.isModulesShown()) {
+    /*    if (myToDoSettings.isModulesShown()) {
 
       for (Iterator i = myBuilder.getAllFiles(); i.hasNext();) {
         final PsiFile psiFile = (PsiFile)i.next();
@@ -83,10 +87,12 @@ public class SummaryNode extends BaseToDoNode<ToDoSummary> {
     }*/
     Collections.sort(children, TodoFileDirAndModuleComparator.INSTANCE);
     return children;
-
   }
 
-  protected void createModuleTodoNodeForFile(ArrayList<? super AbstractTreeNode<?>> children, ProjectFileIndex projectFileIndex, VirtualFile virtualFile) {
+  protected void createModuleTodoNodeForFile(
+      ArrayList<? super AbstractTreeNode<?>> children,
+      ProjectFileIndex projectFileIndex,
+      VirtualFile virtualFile) {
     Module module = projectFileIndex.getModuleForFile(virtualFile);
     if (module != null) {
       ModuleToDoNode moduleToDoNode = new ModuleToDoNode(getProject(), module, myBuilder);
@@ -100,9 +106,42 @@ public class SummaryNode extends BaseToDoNode<ToDoSummary> {
   public void update(@NotNull PresentationData presentation) {
     int todoItemCount = getTodoItemCount(getValue());
     int fileCount = getFileCount(getValue());
-    final String message = IdeBundle.message("node.todo.summary", todoItemCount, fileCount);
-    presentation.setPresentableText(message.replace("TODO item", "Suggestion"));
+    String message =
+        IdeBundle.message("node.todo.summary", todoItemCount, fileCount)
+                .replace("TODO item", "Suggestion")
+            + getErrWarnInfoCounts();
+    presentation.setPresentableText(message);
     myBuilder.expandTree(2);
+  }
+
+  private String getErrWarnInfoCounts() {
+    int errors = 0;
+    int warnings = 0;
+    int infos = 0;
+    for (PsiFile file : AnalysisData.getAllFilesWithSuggestions(myProject)) {
+      for (AnalysisData.SuggestionForFile suggestion : AnalysisData.getAnalysis(file)) {
+        final int severity = suggestion.getSeverity();
+        final int occurrences = suggestion.getRanges().size();
+        if (severity == 1) infos += occurrences;
+        else if (severity == 2) warnings += occurrences;
+        else if (severity == 3) errors += occurrences;
+      }
+    }
+    if (errors == 0 && infos == 0 && warnings == 0) return "";
+    String result = ": ";
+    boolean needComma = false;
+    if (errors != 0) {
+      result += errors + " errors";
+      needComma = true;
+    }
+    if (warnings != 0) {
+      result += (needComma ? ", " : "") + warnings + " warnings";
+      needComma = true;
+    }
+    if (infos != 0) {
+      result += (needComma ? ", " : "") + infos + " informational";
+    }
+    return result;
   }
 
   @Override
@@ -113,13 +152,13 @@ public class SummaryNode extends BaseToDoNode<ToDoSummary> {
   @Override
   public int getFileCount(ToDoSummary summary) {
     int count = 0;
-    for (Iterator<PsiFile> i = myBuilder.getAllFiles(); i.hasNext();) {
+    for (Iterator<PsiFile> i = myBuilder.getAllFiles(); i.hasNext(); ) {
       PsiFile psiFile = i.next();
       if (psiFile == null) { // skip invalid PSI files
         continue;
       }
-//      if (getTreeStructure().accept(psiFile)) {
-        count++;
+      //      if (getTreeStructure().accept(psiFile)) {
+      count++;
     }
     return count;
   }
@@ -127,7 +166,7 @@ public class SummaryNode extends BaseToDoNode<ToDoSummary> {
   @Override
   public int getTodoItemCount(final ToDoSummary val) {
     int count = 0;
-    for(final Iterator<PsiFile> i=myBuilder.getAllFiles();i.hasNext();){
+    for (final Iterator<PsiFile> i = myBuilder.getAllFiles(); i.hasNext(); ) {
       count += ReadAction.compute(() -> getTreeStructure().getTodoItemCount(i.next()));
     }
     return count;
