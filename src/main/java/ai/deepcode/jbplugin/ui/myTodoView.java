@@ -176,11 +176,11 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
 
     myContentManager.addContent(allTodosContent);
     myContentManager.addContent(currentFileTodosContent);
-    myContentManager.addContent(scopeBasedTodoContent);
+//    myContentManager.addContent(scopeBasedTodoContent);
 
     if (ProjectLevelVcsManager.getInstance(myProject).hasActiveVcss()) {
       myVcsListener.myIsVisible = true;
-      myContentManager.addContent(myChangeListTodosContent);
+//      myContentManager.addContent(myChangeListTodosContent);
     }
     for (Content content : myNotAddedContent) {
       myContentManager.addContent(content);
@@ -228,7 +228,7 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
           myIsVisible = false;
         }
         else if (!myIsVisible && hasActiveVcss) {
-          myContentManager.addContent(myChangeListTodosContent);
+//          myContentManager.addContent(myChangeListTodosContent);
           myIsVisible = true;
         }
       }, ModalityState.NON_MODAL);
