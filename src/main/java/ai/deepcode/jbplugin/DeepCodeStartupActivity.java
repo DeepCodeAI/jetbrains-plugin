@@ -31,6 +31,8 @@ public class DeepCodeStartupActivity implements StartupActivity {
         DeepCodeNotifications.showError(response.getStatusDescription(), project);
       }
     }
+    // Fixme Analyse all project files and update project Panel
+//    DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(project);
 
     // Update CurrentFile Panel if file Tab was changed in Editor
     //TODO Remove it?

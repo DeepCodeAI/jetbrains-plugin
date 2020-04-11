@@ -1,12 +1,16 @@
 package ai.deepcode.jbplugin.utils;
 
 import ai.deepcode.jbplugin.DeepCodeToolWindowFactory;
+import ai.deepcode.jbplugin.ui.myTodoView;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.command.WriteCommandAction;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
+import com.intellij.util.concurrency.NonUrgentExecutor;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -26,6 +30,18 @@ public final class DeepCodeUtils {
                 WriteCommandAction.runWriteCommandAction(
                     psiFile.getProject(),
                     () -> DeepCodeToolWindowFactory.updateCurrentFilePanel(psiFile)));
+  }
+
+  public static void asyncAnalyseProjectAndUpdatePanel(@NotNull Project project) {
+    ReadAction.nonBlocking(doUpdate(project)).submit(NonUrgentExecutor.getInstance());
+  }
+
+  @NotNull
+  private static Runnable doUpdate(Project project) {
+    return () -> {
+      AnalysisData.getAnalysis(DeepCodeUtils.getAllSupportedFilesInProject(project));
+      ServiceManager.getService(project, myTodoView.class).refresh();
+    };
   }
 
   public static List<PsiFile> getAllSupportedFilesInProject(@NotNull Project project) {
