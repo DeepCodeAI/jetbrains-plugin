@@ -3,7 +3,7 @@
 package ai.deepcode.jbplugin.ui.nodes;
 
 import com.intellij.ide.projectView.ProjectViewNode;
-import ai.deepcode.jbplugin.ui.TodoFileDirAndModuleComparator;
+import ai.deepcode.jbplugin.ui.DeepCodeDirAndModuleComparator;
 import ai.deepcode.jbplugin.ui.TodoTreeBuilder;
 import com.intellij.ide.util.treeView.AbstractTreeNode;
 import com.intellij.openapi.components.ServiceManager;
@@ -135,7 +135,7 @@ public class TodoTreeHelper {
         }
       }
     }
-   Collections.sort(children, TodoFileDirAndModuleComparator.INSTANCE);
+   Collections.sort(children, DeepCodeDirAndModuleComparator.INSTANCE);
    return children;
   }
 

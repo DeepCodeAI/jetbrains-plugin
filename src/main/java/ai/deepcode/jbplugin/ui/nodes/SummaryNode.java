@@ -9,7 +9,7 @@ import ai.deepcode.jbplugin.utils.AnalysisData;
 import com.intellij.ide.IdeBundle;
 import com.intellij.ide.projectView.PresentationData;
 import ai.deepcode.jbplugin.ui.ToDoSummary;
-import ai.deepcode.jbplugin.ui.TodoFileDirAndModuleComparator;
+import ai.deepcode.jbplugin.ui.DeepCodeDirAndModuleComparator;
 import ai.deepcode.jbplugin.ui.TodoTreeBuilder;
 import com.intellij.ide.util.treeView.AbstractTreeNode;
 import com.intellij.openapi.application.ReadAction;
@@ -20,7 +20,6 @@ import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import com.intellij.ui.HighlightedRegion;
-import com.intellij.ui.JBColor;
 import com.intellij.util.containers.ContainerUtil;
 import org.jetbrains.annotations.NotNull;
 
@@ -90,7 +89,7 @@ public class SummaryNode extends BaseToDoNode<ToDoSummary> implements Highlighte
         }
       }
     }*/
-    Collections.sort(children, TodoFileDirAndModuleComparator.INSTANCE);
+    children.sort(DeepCodeDirAndModuleComparator.INSTANCE);
     return children;
   }
 

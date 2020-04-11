@@ -13,12 +13,8 @@ import com.intellij.psi.PsiManager;
 import com.intellij.util.concurrency.NonUrgentExecutor;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public final class DeepCodeUtils {
   private DeepCodeUtils() {}
@@ -63,5 +59,49 @@ public final class DeepCodeUtils {
       psiFileList.addAll(getFilesRecursively(subDir));
     }
     return psiFileList;
+  }
+
+  // todo mapFile2EWI at AnalysisData
+  public static ErrorsWarningsInfos getEWI(Collection<PsiFile> psiFiles) {
+    int errors = 0;
+    int warnings = 0;
+    int infos = 0;
+    Set<String> countedSuggestions = new HashSet<>();
+    for (PsiFile file : psiFiles) {
+      for (AnalysisData.SuggestionForFile suggestion : AnalysisData.getAnalysis(file)) {
+        if (!countedSuggestions.contains(suggestion.getId())) {
+          final int severity = suggestion.getSeverity();
+          if (severity == 1) infos += 1;
+          else if (severity == 2) warnings += 1;
+          else if (severity == 3) errors += 1;
+          countedSuggestions.add(suggestion.getId());
+        }
+      }
+    }
+    return new ErrorsWarningsInfos(errors, warnings, infos);
+  }
+
+  public static class ErrorsWarningsInfos {
+    private int errors;
+    private int warnings;
+    private int infos;
+
+    public ErrorsWarningsInfos(int errors, int warnings, int infos) {
+      this.errors = errors;
+      this.warnings = warnings;
+      this.infos = infos;
+    }
+
+    public int getErrors() {
+      return errors;
+    }
+
+    public int getWarnings() {
+      return warnings;
+    }
+
+    public int getInfos() {
+      return infos;
+    }
   }
 }
