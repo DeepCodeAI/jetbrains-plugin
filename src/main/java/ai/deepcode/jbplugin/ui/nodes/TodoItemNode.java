@@ -10,6 +10,8 @@ import com.intellij.ide.util.treeView.AbstractTreeNode;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.RangeMarker;
+import com.intellij.openapi.editor.colors.CodeInsightColors;
+import com.intellij.openapi.editor.colors.EditorColorsManager;
 import com.intellij.openapi.editor.highlighter.EditorHighlighter;
 import com.intellij.openapi.editor.highlighter.HighlighterIterator;
 import com.intellij.openapi.editor.markup.TextAttributes;
@@ -127,7 +129,11 @@ public final class TodoItemNode extends BaseToDoNode<SmartTodoItemPointer> imple
     myHighlightedRegions.clear();
     EditorHighlighter highlighter = myBuilder.getHighlighter(todoItem.getFile(), document);
     collectHighlights(myHighlightedRegions, highlighter, lineStartOffset, lineEndOffset, lineColumnPrefix.length());
-    TextAttributes attributes = todoItem.getPattern().getAttributes().getTextAttributes();
+
+    TextAttributes attributes =
+            EditorColorsManager.getInstance().getGlobalScheme()
+                    .getAttributes(CodeInsightColors.WEAK_WARNING_ATTRIBUTES).clone();
+    //todoItem.getPattern().getAttributes().getTextAttributes();
     myHighlightedRegions.add(new HighlightedRegion(
       lineColumnPrefix.length() + startOffset - lineStartOffset,
       lineColumnPrefix.length() + endOffset - lineStartOffset,

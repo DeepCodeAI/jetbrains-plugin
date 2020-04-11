@@ -3,8 +3,9 @@
 
 package ai.deepcode.jbplugin.ui.nodes;
 
+import ai.deepcode.jbplugin.ui.HighlightedRegionProvider;
+import ai.deepcode.jbplugin.ui.utils.DeepCodeUIUtils;
 import ai.deepcode.jbplugin.utils.AnalysisData;
-import com.intellij.icons.AllIcons;
 import com.intellij.ide.IdeBundle;
 import com.intellij.ide.projectView.PresentationData;
 import ai.deepcode.jbplugin.ui.ToDoSummary;
@@ -18,16 +19,20 @@ import com.intellij.openapi.roots.ProjectFileIndex;
 import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
+import com.intellij.ui.HighlightedRegion;
+import com.intellij.ui.JBColor;
+import com.intellij.util.containers.ContainerUtil;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
+import java.util.*;
+import java.util.List;
 
-public class SummaryNode extends BaseToDoNode<ToDoSummary> {
+public class SummaryNode extends BaseToDoNode<ToDoSummary> implements HighlightedRegionProvider {
+  private final List<HighlightedRegion> myHighlightedRegions;
+
   public SummaryNode(Project project, @NotNull ToDoSummary value, TodoTreeBuilder builder) {
     super(project, value, builder);
+    myHighlightedRegions = ContainerUtil.createConcurrentList();
   }
 
   @Override
@@ -106,42 +111,16 @@ public class SummaryNode extends BaseToDoNode<ToDoSummary> {
   public void update(@NotNull PresentationData presentation) {
     int todoItemCount = getTodoItemCount(getValue());
     int fileCount = getFileCount(getValue());
-    String message =
-        IdeBundle.message("node.todo.summary", todoItemCount, fileCount)
-                .replace("TODO item", "Suggestion")
-            + getErrWarnInfoCounts();
+    String message = IdeBundle.message("node.todo.summary", todoItemCount, fileCount)
+            .replace("TODO item", "Suggestion");
+    message = DeepCodeUIUtils.addErrWarnInfoCounts(
+            AnalysisData.getAllFilesWithSuggestions(myProject),
+            message,
+            true,
+            myHighlightedRegions
+            );
     presentation.setPresentableText(message);
     myBuilder.expandTree(2);
-  }
-
-  private String getErrWarnInfoCounts() {
-    int errors = 0;
-    int warnings = 0;
-    int infos = 0;
-    for (PsiFile file : AnalysisData.getAllFilesWithSuggestions(myProject)) {
-      for (AnalysisData.SuggestionForFile suggestion : AnalysisData.getAnalysis(file)) {
-        final int severity = suggestion.getSeverity();
-        final int occurrences = suggestion.getRanges().size();
-        if (severity == 1) infos += occurrences;
-        else if (severity == 2) warnings += occurrences;
-        else if (severity == 3) errors += occurrences;
-      }
-    }
-    if (errors == 0 && infos == 0 && warnings == 0) return "";
-    String result = ": ";
-    boolean needComma = false;
-    if (errors != 0) {
-      result += errors + " errors";
-      needComma = true;
-    }
-    if (warnings != 0) {
-      result += (needComma ? ", " : "") + warnings + " warnings";
-      needComma = true;
-    }
-    if (infos != 0) {
-      result += (needComma ? ", " : "") + infos + " informational";
-    }
-    return result;
   }
 
   @Override
@@ -175,5 +154,10 @@ public class SummaryNode extends BaseToDoNode<ToDoSummary> {
   @Override
   public int getWeight() {
     return 0;
+  }
+
+  @Override
+  public Iterable<HighlightedRegion> getHighlightedRegions() {
+    return myHighlightedRegions;
   }
 }

@@ -2,31 +2,30 @@
 
 package ai.deepcode.jbplugin.ui.nodes;
 
+import ai.deepcode.jbplugin.ui.HighlightedRegionProvider;
+import ai.deepcode.jbplugin.ui.TodoTreeBuilder;
+import ai.deepcode.jbplugin.ui.utils.DeepCodeUIUtils;
 import ai.deepcode.jbplugin.utils.AnalysisData;
 import com.intellij.ide.IdeBundle;
 import com.intellij.ide.projectView.PresentationData;
 import com.intellij.ide.projectView.ViewSettings;
 import com.intellij.ide.projectView.impl.nodes.PsiFileNode;
-import ai.deepcode.jbplugin.ui.SmartTodoItemPointer;
-import ai.deepcode.jbplugin.ui.SmartTodoItemPointerComparator;
-import ai.deepcode.jbplugin.ui.TodoTreeBuilder;
-import com.intellij.ide.todo.TodoConfiguration;
-import com.intellij.ide.todo.TodoFilter;
 import com.intellij.ide.util.treeView.AbstractTreeNode;
-import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.IndexNotReadyException;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.TextRange;
-import com.intellij.psi.*;
-import com.intellij.psi.impl.search.TodoItemImpl;
-import com.intellij.psi.search.PsiTodoSearchHelper;
-import com.intellij.psi.search.TodoItem;
+import com.intellij.psi.PsiFile;
+import com.intellij.ui.HighlightedRegion;
+import com.intellij.util.containers.ContainerUtil;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 
-public final class TodoFileNode extends PsiFileNode {
+public final class TodoFileNode extends PsiFileNode implements HighlightedRegionProvider {
+  private final List<HighlightedRegion> myHighlightedRegions;
+
   private final TodoTreeBuilder myBuilder;
   private final boolean mySingleFileMode;
 
@@ -37,6 +36,7 @@ public final class TodoFileNode extends PsiFileNode {
     super(project,file,ViewSettings.DEFAULT);
     myBuilder=treeBuilder;
     mySingleFileMode=singleFileMode;
+    myHighlightedRegions = ContainerUtil.createConcurrentList();
   }
 
   @Override
@@ -99,7 +99,14 @@ public final class TodoFileNode extends PsiFileNode {
       newName=mySingleFileMode ? getValue().getName() : getValue().getVirtualFile().getPresentableUrl();
     }
 
-    data.setPresentableText(newName);
+    PsiFile psiFile = getValue();
+    String message = DeepCodeUIUtils.addErrWarnInfoCounts(
+            Collections.singleton(psiFile),
+            newName,
+            false,
+            myHighlightedRegions
+    );
+    data.setPresentableText(message);
     int todoItemCount;
     try {
       todoItemCount = myBuilder.getTodoTreeStructure().getTodoItemCount(getValue());
@@ -115,5 +122,10 @@ public final class TodoFileNode extends PsiFileNode {
   @Override
   public int getWeight() {
     return 4;
+  }
+
+  @Override
+  public Iterable<HighlightedRegion> getHighlightedRegions() {
+    return myHighlightedRegions;
   }
 }

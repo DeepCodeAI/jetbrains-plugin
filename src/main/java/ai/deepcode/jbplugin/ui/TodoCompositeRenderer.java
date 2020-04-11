@@ -34,24 +34,30 @@ final class TodoCompositeRenderer implements TreeCellRenderer {
     Component result;
 
     Object userObject = ((DefaultMutableTreeNode)obj).getUserObject();
+/*
     if (userObject instanceof SummaryNode) {
       myNodeRenderer.getTreeCellRendererComponent(tree, userObject.toString(), selected, expanded, leaf, row, hasFocus);
       myNodeRenderer.setFont(UIUtil.getTreeFont().deriveFont(Font.BOLD));
       myNodeRenderer.setIcon(null);
       result = myNodeRenderer;
-    }
-    else if (userObject instanceof TodoItemNode && !((TodoItemNode)userObject).getAdditionalLines().isEmpty()) {
+*/
+    if (userObject instanceof TodoItemNode && !((TodoItemNode)userObject).getAdditionalLines().isEmpty()) {
       myMultiLineRenderer.getTreeCellRendererComponent(tree, obj, selected, expanded, leaf, row, hasFocus);
       result = myMultiLineRenderer;
     }
-    else if (userObject instanceof NodeDescriptor && userObject instanceof HighlightedRegionProvider) {
-      NodeDescriptor descriptor = (NodeDescriptor)userObject;
+    else if (userObject instanceof HighlightedRegionProvider) {
       HighlightedRegionProvider regionProvider = (HighlightedRegionProvider)userObject;
       myColorTreeCellRenderer.getTreeCellRendererComponent(tree, obj, selected, expanded, leaf, row, hasFocus);
       for (HighlightedRegion region : regionProvider.getHighlightedRegions()) {
         myColorTreeCellRenderer.addHighlighter(region.startOffset, region.endOffset, region.textAttributes);
       }
-      myColorTreeCellRenderer.setIcon(descriptor.getIcon());
+      if (userObject instanceof SummaryNode) {
+        myColorTreeCellRenderer.setFont(UIUtil.getTreeFont().deriveFont(Font.BOLD));
+        myColorTreeCellRenderer.setIcon(null);
+      } else if (userObject instanceof NodeDescriptor) {
+          NodeDescriptor descriptor = (NodeDescriptor)userObject;
+          myColorTreeCellRenderer.setIcon(descriptor.getIcon());
+      }
       result = myColorTreeCellRenderer;
     }
     else {
