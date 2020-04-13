@@ -5,7 +5,9 @@ import ai.deepcode.javaclient.requests.FileContent;
 import ai.deepcode.javaclient.requests.FileContentRequest;
 import ai.deepcode.javaclient.responses.*;
 import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.util.StatusBarProgress;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.*;
@@ -156,14 +158,28 @@ public final class AnalysisData {
   @NotNull
   private static Map<PsiFile, List<SuggestionForFile>> doRetrieveSuggestions(
       @NotNull Collection<PsiFile> psiFiles) {
+    ProgressIndicator progress = new StatusBarProgress();
+//    progress.setIndeterminate(false);
+    progress.start();
+
+    ProgressManager.checkCanceled();
+    progress.setText("Preparing files for upload...");
+    //fixme if not logged?
     String loggedToken = DeepCodeParams.getSessionToken();
     FileContentRequest files =
         new FileContentRequest(
             psiFiles.stream().map(AnalysisData::createFileContent).collect(Collectors.toList()));
+
+    ProgressManager.checkCanceled();
+    progress.setText("Uploading files to the server...");
     CreateBundleResponse createBundleResponse = DeepCodeRestApi.createBundle(loggedToken, files);
+
+    ProgressManager.checkCanceled();
+    progress.setText("Waiting for analysis from server...");
     GetAnalysisResponse response;
     int counter = 0;
     do {
+//      progress.setFraction(((double) counter) / 10);
       response = DeepCodeRestApi.getAnalysis(loggedToken, createBundleResponse.getBundleId());
 
       // todo: show progress notification
@@ -181,6 +197,7 @@ public final class AnalysisData {
       if (counter == 10) break;
       counter++;
     } while (!response.getStatus().equals("DONE"));
+    progress.stop();
 
     return parseGetAnalysisResponse(psiFiles, response);
   }

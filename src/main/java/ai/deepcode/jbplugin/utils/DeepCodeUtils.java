@@ -3,9 +3,11 @@ package ai.deepcode.jbplugin.utils;
 import ai.deepcode.jbplugin.DeepCodeToolWindowFactory;
 import ai.deepcode.jbplugin.ui.myTodoView;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.components.ServiceManager;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiFile;
@@ -29,7 +31,14 @@ public final class DeepCodeUtils {
   }
 
   public static void asyncAnalyseProjectAndUpdatePanel(@NotNull Project project) {
-    ReadAction.nonBlocking(doUpdate(project)).submit(NonUrgentExecutor.getInstance());
+    ProgressManager.getInstance().run(new Task.Backgroundable(project, "Analysing all project files...") {
+      @Override
+      public void run(@NotNull ProgressIndicator indicator) {
+        ApplicationManager.getApplication().runReadAction(doUpdate(project));
+//        ServiceManager.getService(project, myTodoView.class).refresh();
+      }
+    });
+//    ReadAction.nonBlocking(doUpdate(project)).submit(NonUrgentExecutor.getInstance());
   }
 
   @NotNull
