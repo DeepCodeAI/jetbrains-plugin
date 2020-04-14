@@ -2,8 +2,10 @@ package ai.deepcode.jbplugin;
 
 import ai.deepcode.javaclient.DeepCodeRestApi;
 import ai.deepcode.javaclient.responses.LoginResponse;
+import ai.deepcode.jbplugin.ui.myTodoView;
 import ai.deepcode.jbplugin.utils.DeepCodeParams;
 import ai.deepcode.jbplugin.utils.DeepCodeUtils;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent;
 import com.intellij.openapi.fileEditor.FileEditorManagerListener;
 import com.intellij.openapi.project.Project;
@@ -45,9 +47,11 @@ public class DeepCodeStartupActivity implements StartupActivity {
     @Override
     public void selectionChanged(@NotNull final FileEditorManagerEvent event){
       final VirtualFile virtualFile = event.getNewFile();
-      final PsiFile psiFile = PsiManager.getInstance(event.getManager().getProject()).findFile(virtualFile);
+      final Project project = event.getManager().getProject();
+      final PsiFile psiFile = PsiManager.getInstance(project).findFile(virtualFile);
 //      System.out.println(virtualFile);
       DeepCodeUtils.asyncUpdateCurrentFilePanel(psiFile);
+      ServiceManager.getService(project, myTodoView.class).refresh();
     }
   }
 }

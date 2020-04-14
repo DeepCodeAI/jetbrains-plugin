@@ -1,6 +1,7 @@
 // Copyright 2000-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
 package ai.deepcode.jbplugin.ui;
 
+import ai.deepcode.jbplugin.ui.utils.DeepCodeUIUtils;
 import com.intellij.ide.IdeBundle;
 import com.intellij.ide.todo.TodoConfiguration;
 import com.intellij.openapi.Disposable;
@@ -63,6 +64,8 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
   private Content myChangeListTodosContent;
 
   private final MyVcsListener myVcsListener = new MyVcsListener();
+
+  private ToolWindow myToolWindow;
 
   public myTodoView(@NotNull Project project) {
     myProject = project;
@@ -197,6 +200,8 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
     myPanels.add(myChangeListTodosPanel);
     myPanels.add(myCurrentFileTodosPanel);
     myPanels.add(myScopeBasedTodosPanel);
+    toolWindow.setIcon(DeepCodeUIUtils.EMPTY_EWI_ICON);
+    myToolWindow = toolWindow;
   }
 
   @NotNull
@@ -278,6 +283,7 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
           panel.updateTree();
           notifyUpdateFinished();
         }
+        myToolWindow.setIcon(DeepCodeUIUtils.getSummaryIcon(myProject));
       })
       .inSmartMode(myProject)
       .submit(NonUrgentExecutor.getInstance());
