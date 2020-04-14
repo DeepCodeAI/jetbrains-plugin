@@ -3,14 +3,14 @@
 
 package ai.deepcode.jbplugin.ui.nodes;
 
+import ai.deepcode.jbplugin.ui.DeepCodeDirAndModuleComparator;
 import ai.deepcode.jbplugin.ui.HighlightedRegionProvider;
+import ai.deepcode.jbplugin.ui.ToDoSummary;
+import ai.deepcode.jbplugin.ui.TodoTreeBuilder;
 import ai.deepcode.jbplugin.ui.utils.DeepCodeUIUtils;
 import ai.deepcode.jbplugin.utils.AnalysisData;
 import com.intellij.ide.IdeBundle;
 import com.intellij.ide.projectView.PresentationData;
-import ai.deepcode.jbplugin.ui.ToDoSummary;
-import ai.deepcode.jbplugin.ui.DeepCodeDirAndModuleComparator;
-import ai.deepcode.jbplugin.ui.TodoTreeBuilder;
 import com.intellij.ide.util.treeView.AbstractTreeNode;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.module.Module;
@@ -115,7 +115,7 @@ public class SummaryNode extends BaseToDoNode<ToDoSummary> implements Highlighte
     message = DeepCodeUIUtils.addErrWarnInfoCounts(
             AnalysisData.getAllFilesWithSuggestions(myProject),
             message,
-            true,
+            false,
             myHighlightedRegions
             );
     presentation.setPresentableText(message);

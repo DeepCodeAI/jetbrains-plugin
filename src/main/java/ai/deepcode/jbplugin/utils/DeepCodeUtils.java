@@ -9,6 +9,7 @@ import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.wm.impl.status.StatusBarUtil;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
@@ -46,6 +47,7 @@ public final class DeepCodeUtils {
     return () -> {
       AnalysisData.getAnalysis(DeepCodeUtils.getAllSupportedFilesInProject(project));
       ServiceManager.getService(project, myTodoView.class).refresh();
+//      StatusBarUtil.setStatusBarInfo(project, message);
     };
   }
 

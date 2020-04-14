@@ -16,6 +16,7 @@ import com.intellij.ui.RowIcon;
 import com.intellij.ui.scale.JBUIScale;
 import com.intellij.util.IconUtil;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Set;
 
 public class DeepCodeUIUtils {
+
   private DeepCodeUIUtils() {}
 
   private static final TextAttributes ERROR_ATTRIBUTES = createAttributes(ConsoleHighlighter.RED);
@@ -81,14 +83,27 @@ public class DeepCodeUIUtils {
     return result;
   }
 
+  private static final float fontToScale = JBUIScale.scale(12f);
+
+  private static Icon scaleIcon(Icon sourceIcon) {
+    return IconUtil.scaleByFont(sourceIcon, null, fontToScale - 2);
+  }
+
+  private static final Icon errorGray = scaleIcon(AllIcons.Nodes.WarningIntroduction);
+  private static final Icon errorColor = scaleIcon(AllIcons.General.Error);
+  private static final Icon warningGray = scaleIcon(AllIcons.General.ShowWarning);
+  private static final Icon warningColor = scaleIcon(AllIcons.General.Warning);
+  private static final Icon infoGray = scaleIcon(AllIcons.General.ShowInfos);
+  private static final Icon infoColor = scaleIcon(AllIcons.General.Information);
+
   public static final Icon EMPTY_EWI_ICON =
       new RowIcon(
-          AllIcons.Nodes.WarningIntroduction,
-          IconUtil.textToIcon("0", new JLabel(), JBUIScale.scale(12f)),
-          AllIcons.General.ShowWarning,
-          IconUtil.textToIcon("0", new JLabel(), JBUIScale.scale(12f)),
-          AllIcons.General.ShowInfos,
-          IconUtil.textToIcon("0", new JLabel(), JBUIScale.scale(12f)));
+          errorGray,
+          IconUtil.textToIcon("0", new JLabel(), fontToScale),
+          warningGray,
+          IconUtil.textToIcon("0", new JLabel(), fontToScale),
+          infoGray,
+          IconUtil.textToIcon("0", new JLabel(), fontToScale));
 
   public static Icon getSummaryIcon(@NotNull Project project) {
     DeepCodeUtils.ErrorsWarningsInfos ewi =
@@ -98,16 +113,18 @@ public class DeepCodeUIUtils {
     int infos = ewi.getInfos();
     if (errors == 0 && infos == 0 && warnings == 0) return EMPTY_EWI_ICON;
 
-    Icon errorIcon = (errors != 0) ? AllIcons.General.Error : AllIcons.Nodes.WarningIntroduction;
-    Icon warningIcon = (warnings != 0) ? AllIcons.General.Warning : AllIcons.General.ShowWarning;
-    Icon infoIcon = (infos != 0) ? AllIcons.General.Information : AllIcons.General.ShowInfos;
-
     return new RowIcon(
-        errorIcon,
-        IconUtil.textToIcon(String.valueOf(errors), new JLabel(), JBUIScale.scale(12f)),
-        warningIcon,
-        IconUtil.textToIcon(String.valueOf(warnings), new JLabel(), JBUIScale.scale(12f)),
-        infoIcon,
-        IconUtil.textToIcon(String.valueOf(infos), new JLabel(), JBUIScale.scale(12f)));
+        (errors != 0) ? errorColor : errorGray,
+        number2ColoredIcon(errors, (errors != 0) ? ERROR_ATTRIBUTES.getForegroundColor() : null),
+        (warnings != 0) ? warningColor : warningGray,
+        number2ColoredIcon(
+            warnings, (warnings != 0) ? WARNING_ATTRIBUTES.getForegroundColor() : null),
+        (infos != 0) ? infoColor : infoGray,
+        number2ColoredIcon(infos, (infos != 0) ? INFO_ATTRIBUTES.getForegroundColor() : null));
+  }
+
+  private static Icon number2ColoredIcon(int number, @Nullable Color color) {
+    Icon greyIcon = IconUtil.textToIcon(String.valueOf(number), new JLabel(), fontToScale);
+    return greyIcon; //(color == null) ? greyIcon : IconUtil.colorize(greyIcon, color);
   }
 }
