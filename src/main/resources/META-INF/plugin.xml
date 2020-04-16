@@ -22,6 +22,7 @@
                     canCloseContents="true"/>
         <projectService serviceImplementation="ai.deepcode.jbplugin.ui.myTodoView"/>
         <projectService serviceImplementation="ai.deepcode.jbplugin.ui.nodes.TodoTreeHelper"/>
+        <applicationConfigurable instance="ai.deepcode.jbplugin.ui.config.DeepCodeConfigEntry"/>
 
         <!--        For Idea CE and those that doesn't include corresponding plugin-->
         <externalAnnotator language="TEXT"
