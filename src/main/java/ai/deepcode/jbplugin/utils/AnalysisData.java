@@ -12,6 +12,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.*;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -133,7 +134,7 @@ public final class AnalysisData {
   @NotNull
   private static Map<PsiFile, List<SuggestionForFile>> retrieveSuggestions(
       @NotNull Set<PsiFile> psiFiles) {
-    if (psiFiles.isEmpty()) return Collections.emptyMap();
+    if (psiFiles.isEmpty() || DeepCodeUtils.isNotLogged(null)) return Collections.emptyMap();
     Map<PsiFile, List<SuggestionForFile>> result = new HashMap<>();
     long bundleSize = 0;
     List<PsiFile> filesChunk = new ArrayList<>();
@@ -159,12 +160,12 @@ public final class AnalysisData {
   private static Map<PsiFile, List<SuggestionForFile>> doRetrieveSuggestions(
       @NotNull Collection<PsiFile> psiFiles) {
     ProgressIndicator progress = new StatusBarProgress();
-//    progress.setIndeterminate(false);
+    //    progress.setIndeterminate(false);
     progress.start();
 
     ProgressManager.checkCanceled();
     progress.setText("Preparing files for upload...");
-    //fixme if not logged?
+    // fixme if not logged?
     String loggedToken = DeepCodeParams.getSessionToken();
     FileContentRequest files =
         new FileContentRequest(
@@ -179,7 +180,7 @@ public final class AnalysisData {
     GetAnalysisResponse response;
     int counter = 0;
     do {
-//      progress.setFraction(((double) counter) / 10);
+      //      progress.setFraction(((double) counter) / 10);
       response = DeepCodeRestApi.getAnalysis(loggedToken, createBundleResponse.getBundleId());
 
       // todo: show progress notification
@@ -271,9 +272,13 @@ public final class AnalysisData {
         .collect(Collectors.toSet());
   }
 
-  public static void clearCache(@NotNull final Project project) {
-    mapFile2Suggestions.keySet().stream()
-            .filter(file -> file.getProject().equals(project))
-            .forEach(mapFile2Suggestions::remove);
+  public static void clearCache(@Nullable final Project project) {
+    if (project == null) {
+      mapFile2Suggestions.clear();
+    } else {
+      mapFile2Suggestions.keySet().stream()
+          .filter(file -> file.getProject().equals(project))
+          .forEach(mapFile2Suggestions::remove);
+    }
   }
 }

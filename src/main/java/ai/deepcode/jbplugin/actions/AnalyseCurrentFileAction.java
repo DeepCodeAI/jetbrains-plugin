@@ -1,12 +1,13 @@
 package ai.deepcode.jbplugin.actions;
 
 import ai.deepcode.jbplugin.DeepCodeNotifications;
-import ai.deepcode.jbplugin.utils.DeepCodeParams;
+import ai.deepcode.jbplugin.ui.myTodoView;
 import ai.deepcode.jbplugin.utils.DeepCodeUtils;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
@@ -29,12 +30,12 @@ public class AnalyseCurrentFileAction extends AnAction {
     final PsiFile psiFile = event.getRequiredData(PlatformDataKeys.PSI_FILE);
     Project project = psiFile.getProject();
 
-    if (!DeepCodeParams.isLogged()) {
+    if (DeepCodeUtils.isNotLogged(project)) {
       DeepCodeNotifications.showLoginLink(project);
       return;
     }
 
-    if (!DeepCodeParams.isSupportedFileFormat(psiFile)) {
+    if (!DeepCodeUtils.isSupportedFileFormat(psiFile)) {
       DeepCodeNotifications.showInfo(
               String.format(
                       "Files with `%1$s` extension are not supported yet.",
@@ -42,33 +43,7 @@ public class AnalyseCurrentFileAction extends AnAction {
               project);
       return;
     }
-    /*
-        String loggedToken = DeepCodeParams.getSessionToken();
-        //            "aeedc7d1c2656ea4b0adb1e215999f588b457cedf415c832a0209c9429c7636e";
-        printMessage(project, "tokenId = " + loggedToken);
-
-        //    Document doc = event.getRequiredData(CommonDataKeys.EDITOR).getDocument();
-        String fileText = event.getRequiredData(PlatformDataKeys.FILE_TEXT);
-
-        final String filePath = "/" + virtualFile.getPath();
-        FileContent fileContent = new FileContent(filePath, fileText);
-        FileContentRequest files = new FileContentRequest(Collections.singletonList(fileContent));
-        CreateBundleResponse createBundleResponse;
-        createBundleResponse = DeepCodeRestApi.createBundle(loggedToken, files);
-
-        String bundleId = createBundleResponse.getBundleId();
-        printMessage(
-            project,
-            String.format(
-                "Create Bundle call return:\nStatus code [%1$d] %3$s \nBundleId: [%2$s]\n",
-                createBundleResponse.getStatusCode(),
-                createBundleResponse.getBundleId(),
-                createBundleResponse.getStatusDescription()));
-
-        GetAnalysisResponse getAnalysisResponse;
-        getAnalysisResponse = DeepCodeRestApi.getAnalysis(loggedToken, bundleId);
-        DeepCodeUtils.putAnalysisResponse(filePath, getAnalysisResponse);
-    */
     DeepCodeUtils.asyncUpdateCurrentFilePanel(psiFile);
+    ServiceManager.getService(project, myTodoView.class).refresh();
   }
 }

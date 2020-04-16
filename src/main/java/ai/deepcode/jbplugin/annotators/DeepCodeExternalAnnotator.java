@@ -2,8 +2,8 @@ package ai.deepcode.jbplugin.annotators;
 
 import ai.deepcode.jbplugin.actions.DeepCodeIntentionAction;
 import ai.deepcode.jbplugin.ui.myTodoView;
-import ai.deepcode.jbplugin.utils.DeepCodeParams;
 import ai.deepcode.jbplugin.utils.AnalysisData;
+import ai.deepcode.jbplugin.utils.DeepCodeUtils;
 import com.intellij.lang.annotation.Annotation;
 import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.ExternalAnnotator;
@@ -40,7 +40,7 @@ public class DeepCodeExternalAnnotator
   @Nullable
   @Override
   public List<AnalysisData.SuggestionForFile> doAnnotate(PsiFile psiFile) {
-    if (!DeepCodeParams.isSupportedFileFormat(psiFile)) return Collections.emptyList();
+    if (!DeepCodeUtils.isSupportedFileFormat(psiFile)) return Collections.emptyList();
     return AnalysisData.getAnalysis(psiFile);
   }
 

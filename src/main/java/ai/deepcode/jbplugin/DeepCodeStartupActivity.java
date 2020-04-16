@@ -1,9 +1,6 @@
 package ai.deepcode.jbplugin;
 
-import ai.deepcode.javaclient.DeepCodeRestApi;
-import ai.deepcode.javaclient.responses.LoginResponse;
 import ai.deepcode.jbplugin.ui.myTodoView;
-import ai.deepcode.jbplugin.utils.DeepCodeParams;
 import ai.deepcode.jbplugin.utils.DeepCodeUtils;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent;
@@ -16,28 +13,18 @@ import com.intellij.psi.PsiManager;
 import com.intellij.util.messages.MessageBusConnection;
 import org.jetbrains.annotations.NotNull;
 
-import static ai.deepcode.jbplugin.utils.DeepCodeParams.setLoginUrl;
-import static ai.deepcode.jbplugin.utils.DeepCodeParams.setSessionToken;
-
 public class DeepCodeStartupActivity implements StartupActivity {
 
   @Override
   public void runActivity(@NotNull Project project) {
-    if (!DeepCodeParams.isLogged()) {
-      LoginResponse response = DeepCodeRestApi.newLogin();
-      if (response.getStatusCode() == 200) {
-        setSessionToken(response.getSessionToken());
-        setLoginUrl(response.getLoginURL());
-        DeepCodeNotifications.showLoginLink(project);
-      } else {
-        DeepCodeNotifications.showError(response.getStatusDescription(), project);
-      }
+    // Initial logging if needed.
+    if (DeepCodeUtils.isNotLogged(project)) {
+      DeepCodeNotifications.showLoginLink(project);
     }
     // Fixme Analyse all project files and update project Panel
 //    DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(project);
 
     // Update CurrentFile Panel if file Tab was changed in Editor
-    //TODO Remove it?
     MessageBusConnection connection = project.getMessageBus().connect();
     connection.subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, new MyEditorManagerListener());
   }

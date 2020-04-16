@@ -1,5 +1,9 @@
 package ai.deepcode.jbplugin.utils;
 
+import ai.deepcode.javaclient.DeepCodeRestApi;
+import ai.deepcode.javaclient.responses.GetFiltersResponse;
+import ai.deepcode.javaclient.responses.LoginResponse;
+import ai.deepcode.jbplugin.DeepCodeNotifications;
 import ai.deepcode.jbplugin.DeepCodeToolWindowFactory;
 import ai.deepcode.jbplugin.ui.myTodoView;
 import com.intellij.openapi.application.ApplicationManager;
@@ -9,17 +13,21 @@ import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.wm.impl.status.StatusBarUtil;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
-import com.intellij.util.concurrency.NonUrgentExecutor;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static ai.deepcode.jbplugin.utils.DeepCodeParams.setLoginUrl;
+import static ai.deepcode.jbplugin.utils.DeepCodeParams.setSessionToken;
+
 public final class DeepCodeUtils {
+  private static Set<String> supportedExtensions = Collections.emptySet();
+
   private DeepCodeUtils() {}
 
   public static void asyncUpdateCurrentFilePanel(PsiFile psiFile) {
@@ -32,14 +40,16 @@ public final class DeepCodeUtils {
   }
 
   public static void asyncAnalyseProjectAndUpdatePanel(@NotNull Project project) {
-    ProgressManager.getInstance().run(new Task.Backgroundable(project, "Analysing all project files...") {
-      @Override
-      public void run(@NotNull ProgressIndicator indicator) {
-        ApplicationManager.getApplication().runReadAction(doUpdate(project));
-//        ServiceManager.getService(project, myTodoView.class).refresh();
-      }
-    });
-//    ReadAction.nonBlocking(doUpdate(project)).submit(NonUrgentExecutor.getInstance());
+    ProgressManager.getInstance()
+        .run(
+            new Task.Backgroundable(project, "Analysing all project files...") {
+              @Override
+              public void run(@NotNull ProgressIndicator indicator) {
+                ApplicationManager.getApplication().runReadAction(doUpdate(project));
+                //        ServiceManager.getService(project, myTodoView.class).refresh();
+              }
+            });
+    //    ReadAction.nonBlocking(doUpdate(project)).submit(NonUrgentExecutor.getInstance());
   }
 
   @NotNull
@@ -47,14 +57,13 @@ public final class DeepCodeUtils {
     return () -> {
       AnalysisData.getAnalysis(DeepCodeUtils.getAllSupportedFilesInProject(project));
       ServiceManager.getService(project, myTodoView.class).refresh();
-//      StatusBarUtil.setStatusBarInfo(project, message);
+      //      StatusBarUtil.setStatusBarInfo(project, message);
     };
   }
 
   public static List<PsiFile> getAllSupportedFilesInProject(@NotNull Project project) {
-    return allProjectFiles(project)
-        .stream()
-        .filter(DeepCodeParams::isSupportedFileFormat)
+    return allProjectFiles(project).stream()
+        .filter(DeepCodeUtils::isSupportedFileFormat)
         .collect(Collectors.toList());
   }
 
@@ -92,10 +101,84 @@ public final class DeepCodeUtils {
     return new ErrorsWarningsInfos(errors, warnings, infos);
   }
 
+  /** Potentially <b>Heavy</b> network request! */
+  public static boolean isNotLogged(@Nullable Project project) {
+    final String sessionToken = DeepCodeParams.getSessionToken();
+    boolean isNotLogged =
+        sessionToken.isEmpty() || DeepCodeRestApi.checkSession(sessionToken).getStatusCode() != 200;
+    if (isNotLogged) {
+      // fixme debug only
+      System.out.println("Logging check fails!");
+
+      // new logging was not requested during current session of withing previous IDE start.
+      if (!DeepCodeParams.loggingRequested && sessionToken.isEmpty()) {
+        requestNewLogin(project);
+      }
+    } else {
+      // fixme debug only
+      System.out.println("Logging check succeed.");
+    }
+    return isNotLogged;
+  }
+
+  private static boolean wasErrorShown = false;
+
+  private static void requestNewLogin(@Nullable Project project) {
+    DeepCodeParams.clearLoginParams();
+    LoginResponse response = DeepCodeRestApi.newLogin();
+    if (response.getStatusCode() == 200) {
+      setSessionToken(response.getSessionToken());
+      setLoginUrl(response.getLoginURL());
+      DeepCodeNotifications.showLoginLink(project);
+      wasErrorShown = false;
+    } else {
+      if (!wasErrorShown) {
+        DeepCodeNotifications.showError(response.getStatusDescription(), project);
+      }
+      wasErrorShown = true;
+    }
+  }
+
+  public static boolean isSupportedFileFormat(PsiFile psiFile) {
+    String fileExtension = psiFile.getVirtualFile().getExtension();
+    return getSupportedExtensions(psiFile.getProject()).contains(fileExtension);
+  }
+
+  /** Potentially <b>Heavy</b> network request! */
+  private static Set<String> getSupportedExtensions(Project project) {
+    if (supportedExtensions.isEmpty()) {
+      GetFiltersResponse filtersResponse =
+          DeepCodeRestApi.getFilters(DeepCodeParams.getSessionToken());
+      if (filtersResponse.getStatusCode() == 200) {
+        supportedExtensions =
+            filtersResponse.getExtensions().stream()
+                .map(s -> s.substring(1)) // remove preceding `.` (`.js` -> `js`)
+                .collect(Collectors.toSet());
+        // fixme debug only
+        System.out.println(supportedExtensions);
+        /*
+              } else if (filtersResponse.getStatusCode() == 401) {
+                DeepCodeNotifications.showLoginLink(project);
+        */
+      } else {
+        // fixme debug only
+        System.out.println(
+            "Can't retrieve supported file extensions list from the server. Fallback to default set.\n"
+                + filtersResponse.getStatusCode() + " " + filtersResponse.getStatusDescription());
+        supportedExtensions =
+            new HashSet<>(
+                Arrays.asList(
+                    "cc", "htm", "cpp", "c", "vue", "h", "hpp", "es6", "js", "py", "es", "jsx",
+                    "java", "tsx", "html", "ts"));
+      }
+    }
+    return supportedExtensions;
+  }
+
   public static class ErrorsWarningsInfos {
-    private int errors;
-    private int warnings;
-    private int infos;
+    private final int errors;
+    private final int warnings;
+    private final int infos;
 
     public ErrorsWarningsInfos(int errors, int warnings, int infos) {
       this.errors = errors;

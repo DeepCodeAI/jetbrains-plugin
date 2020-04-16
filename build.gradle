@@ -44,4 +44,8 @@ task runIC_201(type: RunIdeTask){
     ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-1\\201.6487.11'
 }
 
+task runIC_193(type: RunIdeTask){
+    ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-0\\193.6911.18'
+}
+
 tasks.withType(RunIdeTask).forEach {task -> task.dependsOn(prepareSandbox)}

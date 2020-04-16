@@ -3,9 +3,13 @@ package ai.deepcode.jbplugin.utils;
 import ai.deepcode.javaclient.DeepCodeRestApi;
 import ai.deepcode.javaclient.responses.GetFiltersResponse;
 import ai.deepcode.jbplugin.DeepCodeNotifications;
+import ai.deepcode.jbplugin.ui.myTodoView;
 import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectManager;
 import com.intellij.psi.PsiFile;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
 import java.util.Set;
@@ -13,14 +17,28 @@ import java.util.stream.Collectors;
 
 public class DeepCodeParams {
 
-  // ----- Persistent data -----
+  // Settings
+  private static String apiUrl;
+  private static boolean useLinter;
+  private static int minSeverity;
   private static String sessionToken;
+
+  // Inner params
   private static String loginUrl;
+  public static boolean loggingRequested = false; // indicate that notification to login shown withing current session
+
   // TODO https://www.jetbrains.org/intellij/sdk/docs/basics/persisting_sensitive_data.html
-  private static PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
+  private static final PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
 
-  private static Set<String> supportedExtensions = Collections.emptySet();
+  private DeepCodeParams() {}
 
+  public static void clearLoginParams(){
+    setSessionToken("");
+    setLoginUrl("");
+    loggingRequested = false;
+  }
+
+  @NotNull
   public static String getSessionToken() {
     return sessionToken;
   }
@@ -30,6 +48,7 @@ public class DeepCodeParams {
     propertiesComponent.setValue("sessionToken", sessionToken);
   }
 
+  @NotNull
   public static String getLoginUrl() {
     return loginUrl;
   }
@@ -39,38 +58,47 @@ public class DeepCodeParams {
     propertiesComponent.setValue("loginUrl", loginUrl);
   }
 
-  public static boolean isLogged() {
-    return (getSessionToken() != null)
-        && DeepCodeRestApi.checkSession(getSessionToken()).getStatusCode() == 200;
+  public static boolean useLinter() {
+    return useLinter;
   }
 
-  public static boolean isSupportedFileFormat(PsiFile psiFile) {
-    String fileExtension = psiFile.getVirtualFile().getExtension();
-    return getSupportedExtensions(psiFile.getProject()).contains(fileExtension);
+  public static void setUseLinter(boolean useLinter) {
+    DeepCodeParams.useLinter = useLinter;
+    propertiesComponent.setValue("useLinter", useLinter);
   }
 
-  private static Set<String> getSupportedExtensions(Project project) {
-    if (supportedExtensions.isEmpty()) {
-      GetFiltersResponse filtersResponse = DeepCodeRestApi.getFilters(getSessionToken());
-      if (filtersResponse.getStatusCode() == 200) {
-        supportedExtensions =
-            filtersResponse.getExtensions().stream()
-                .map(s -> s.substring(1)) // remove preceding `.` (`.js` -> `js`)
-                .collect(Collectors.toSet());
-        System.out.println(supportedExtensions);
-/*
-      } else if (filtersResponse.getStatusCode() == 401) {
-        DeepCodeNotifications.showLoginLink(project);
-      } else {
-        DeepCodeNotifications.showError(filtersResponse.getStatusDescription(), project);
-*/
-      }
+  public static int getMinSeverity() {
+    return minSeverity;
+  }
+
+  public static void setMinSeverity(int minSeverity) {
+    DeepCodeParams.minSeverity = minSeverity;
+    propertiesComponent.setValue("minSeverity", String.valueOf(minSeverity));
+  }
+
+  @NotNull
+  public static String getApiUrl() {
+    return apiUrl;
+  }
+
+  public static void setApiUrl(String apiUrl) {
+//    if (apiUrl == null || apiUrl.isEmpty()) apiUrl = "https://www.deepcode.ai/";
+    DeepCodeParams.apiUrl = apiUrl;
+    propertiesComponent.setValue("apiUrl", apiUrl);
+    DeepCodeRestApi.setBaseUrl(apiUrl);
+    clearLoginParams();
+    AnalysisData.clearCache(null);
+    for (Project project : ProjectManager.getInstance().getOpenProjects()) {
+      ServiceManager.getService(project, myTodoView.class).refresh();
     }
-    return supportedExtensions;
   }
 
   static {
-    sessionToken = propertiesComponent.getValue("sessionToken");
-    loginUrl = propertiesComponent.getValue("loginUrl");
+    apiUrl = propertiesComponent.getValue("apiUrl", "");
+    DeepCodeRestApi.setBaseUrl(apiUrl);
+    sessionToken = propertiesComponent.getValue("sessionToken", "");
+    loginUrl = propertiesComponent.getValue("loginUrl", "");
+    useLinter = propertiesComponent.getBoolean("useLinter", false);
+    minSeverity = propertiesComponent.getInt("minSeverity", 1);
   }
 }

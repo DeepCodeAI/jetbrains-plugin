@@ -1,7 +1,6 @@
 package ai.deepcode.jbplugin.actions;
 
 import ai.deepcode.jbplugin.DeepCodeNotifications;
-import ai.deepcode.jbplugin.utils.DeepCodeParams;
 import ai.deepcode.jbplugin.utils.DeepCodeUtils;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -14,7 +13,7 @@ public class AnalyseProjectAction extends AnAction {
   @Override
   public void actionPerformed(@NotNull AnActionEvent e) {
     final Project project = e.getRequiredData(PlatformDataKeys.PROJECT);
-    if (!DeepCodeParams.isLogged()) {
+    if (DeepCodeUtils.isNotLogged(project)) {
       DeepCodeNotifications.showLoginLink(project);
       return;
     }

@@ -1,7 +1,7 @@
 package ai.deepcode.jbplugin;
 
 import ai.deepcode.jbplugin.utils.AnalysisData;
-import ai.deepcode.jbplugin.utils.DeepCodeParams;
+import ai.deepcode.jbplugin.utils.DeepCodeUtils;
 import com.intellij.execution.impl.ConsoleViewUtil;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.editor.Document;
@@ -121,7 +121,7 @@ public class DeepCodeToolWindowFactory implements ToolWindowFactory, Disposable 
     myCurrentFile = psiFile;
     Project project = psiFile.getProject();
     cleanMessages(project);
-    if (!DeepCodeParams.isSupportedFileFormat(psiFile)) return;
+    if (!DeepCodeUtils.isSupportedFileFormat(psiFile)) return;
     List<AnalysisData.SuggestionForFile> suggestions = AnalysisData.getAnalysis(psiFile);
     for (AnalysisData.SuggestionForFile suggestion : suggestions) {
       printMessage(project, suggestion.getMessage());
