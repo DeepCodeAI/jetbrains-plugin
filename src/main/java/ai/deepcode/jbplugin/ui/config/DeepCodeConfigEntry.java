@@ -1,5 +1,6 @@
 package ai.deepcode.jbplugin.ui.config;
 
+import ai.deepcode.jbplugin.DeepCodeNotifications;
 import ai.deepcode.jbplugin.utils.DeepCodeParams;
 import ai.deepcode.jbplugin.utils.DeepCodeUtils;
 import com.intellij.openapi.options.Configurable;
@@ -68,8 +69,10 @@ public class DeepCodeConfigEntry implements Configurable {
     DeepCodeParams.setUseLinter(myForm.isLintersEnabled());
     DeepCodeParams.setEnable(myForm.isPluginEnabled());
     DeepCodeParams.setApiUrl(myForm.getBaseURL());
-    // Initiate new Login
-    DeepCodeUtils.isNotLogged(null);
+    // Initiate new Login if needed
+    if (DeepCodeUtils.isNotLogged(null)) {
+//      DeepCodeNotifications.reShowLastNotification();
+    }
   }
 
   @Override

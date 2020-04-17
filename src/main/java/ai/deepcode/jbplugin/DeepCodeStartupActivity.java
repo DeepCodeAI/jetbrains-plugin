@@ -19,7 +19,7 @@ public class DeepCodeStartupActivity implements StartupActivity {
   public void runActivity(@NotNull Project project) {
     // Initial logging if needed.
     if (DeepCodeUtils.isNotLogged(project)) {
-      DeepCodeNotifications.showLoginLink(project);
+//      DeepCodeNotifications.reShowLastNotification();
     }
     // Fixme Analyse all project files and update project Panel
 //    DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(project);

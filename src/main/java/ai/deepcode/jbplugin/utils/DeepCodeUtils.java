@@ -13,6 +13,7 @@ import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectManager;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
@@ -103,40 +104,47 @@ public final class DeepCodeUtils {
 
   /** Potentially <b>Heavy</b> network request! */
   public static boolean isNotLogged(@Nullable Project project) {
+    boolean result;
     final String sessionToken = DeepCodeParams.getSessionToken();
-    boolean isNotLogged =
-        sessionToken.isEmpty() || DeepCodeRestApi.checkSession(sessionToken).getStatusCode() != 200;
-    if (isNotLogged) {
-      // fixme debug only
-      System.out.println("Logging check fails!");
-
-      // new logging was not requested during current session of withing previous IDE start.
-      if (!DeepCodeParams.loggingRequested && sessionToken.isEmpty()) {
-        requestNewLogin(project);
-      }
+    if (sessionToken.isEmpty()) {
+      requestNewLogin(project);
+      result = true;
     } else {
-      // fixme debug only
-      System.out.println("Logging check succeed.");
+      final int statusCode = DeepCodeRestApi.checkSession(sessionToken).getStatusCode();
+      if (statusCode == 401) {
+        requestNewLogin(project);
+        result = true;
+      } else if (statusCode == 304) {
+        if (!DeepCodeParams.loggingRequested) {
+          DeepCodeNotifications.showLoginLink(project);
+          DeepCodeParams.loggingRequested = true;
+        }
+        result = true;
+      } else result = statusCode != 200;
     }
-    return isNotLogged;
+    // fixme debug only
+    System.out.println((result) ? "Logging check fails!" : "Logging check succeed.");
+    return result;
   }
 
-  private static boolean wasErrorShown = false;
-
-  private static void requestNewLogin(@Nullable Project project) {
+  public static void requestNewLogin(@Nullable Project project) {
+    Project[] projects =
+        (project != null)
+            ? new Project[] {project}
+            : ProjectManager.getInstance().getOpenProjects();
     DeepCodeParams.clearLoginParams();
     LoginResponse response = DeepCodeRestApi.newLogin();
     if (response.getStatusCode() == 200) {
       setSessionToken(response.getSessionToken());
       setLoginUrl(response.getLoginURL());
-      DeepCodeNotifications.showLoginLink(project);
-      DeepCodeParams.loggingRequested = true;
-      wasErrorShown = false;
-    } else {
-      if (!wasErrorShown) {
-        DeepCodeNotifications.showError(response.getStatusDescription(), project);
+      for (Project prj : projects) {
+        DeepCodeNotifications.showLoginLink(prj);
       }
-      wasErrorShown = true;
+      DeepCodeParams.loggingRequested = true;
+    } else {
+      for (Project prj : projects) {
+        DeepCodeNotifications.showError(response.getStatusDescription(), prj);
+      }
     }
   }
 
@@ -165,7 +173,9 @@ public final class DeepCodeUtils {
         // fixme debug only
         System.out.println(
             "Can't retrieve supported file extensions list from the server. Fallback to default set.\n"
-                + filtersResponse.getStatusCode() + " " + filtersResponse.getStatusDescription());
+                + filtersResponse.getStatusCode()
+                + " "
+                + filtersResponse.getStatusDescription());
         supportedExtensions =
             new HashSet<>(
                 Arrays.asList(

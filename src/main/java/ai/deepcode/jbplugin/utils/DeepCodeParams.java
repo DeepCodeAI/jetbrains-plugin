@@ -86,6 +86,7 @@ public class DeepCodeParams {
 
   public static void setApiUrl(String apiUrl) {
 //    if (apiUrl == null || apiUrl.isEmpty()) apiUrl = "https://www.deepcode.ai/";
+    if (!apiUrl.endsWith("/")) apiUrl += "/";
     if (apiUrl.equals(DeepCodeParams.apiUrl)) return;
     DeepCodeParams.apiUrl = apiUrl;
     propertiesComponent.setValue("apiUrl", apiUrl);

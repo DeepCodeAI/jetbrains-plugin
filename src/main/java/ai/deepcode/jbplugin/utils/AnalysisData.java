@@ -174,12 +174,25 @@ public final class AnalysisData {
     ProgressManager.checkCanceled();
     progress.setText("Uploading files to the server...");
     CreateBundleResponse createBundleResponse = DeepCodeRestApi.createBundle(loggedToken, files);
+    if (createBundleResponse.getStatusCode() == 401) {
+      // new logging was not requested during current session.
+      if (!DeepCodeParams.loggingRequested) {
+        DeepCodeUtils.requestNewLogin(null);
+      }
+      return EMPTY_MAP;
+    }
 
     ProgressManager.checkCanceled();
     progress.setText("Waiting for analysis from server...");
     GetAnalysisResponse response;
     int counter = 0;
     do {
+      try {
+        if (counter > 0) Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+        Thread.currentThread().interrupt();
+      }
       //      progress.setFraction(((double) counter) / 10);
       response =
           DeepCodeRestApi.getAnalysis(
@@ -192,13 +205,14 @@ public final class AnalysisData {
       // fixme: debug only
       System.out.println("    " + response);
 
-      ProgressManager.checkCanceled();
-      try {
-        Thread.sleep(1000);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-        Thread.currentThread().interrupt();
+      if (response.getStatusCode() == 401) {
+        // new logging was not requested during current session.
+        if (!DeepCodeParams.loggingRequested) {
+          DeepCodeUtils.requestNewLogin(null);
+        }
+        return EMPTY_MAP;
       }
+      ProgressManager.checkCanceled();
       // fixme
       if (counter == 10) break;
       counter++;
