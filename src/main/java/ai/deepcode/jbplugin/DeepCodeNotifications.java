@@ -1,6 +1,5 @@
 package ai.deepcode.jbplugin;
 
-import ai.deepcode.jbplugin.utils.DeepCodeParams;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
@@ -16,9 +15,14 @@ public class DeepCodeNotifications {
 
   static final String title = "DeepCode";
   static final String groupDisplayId = "DeepCode";
+  static Runnable lastNotification = () -> {};
+
+  public static void reShowLastNotification(){
+    lastNotification.run();
+  }
 
   public static void showLoginLink(@Nullable Project project) {
-    DeepCodeParams.loggingRequested = true;
+    lastNotification = () -> showLoginLink(project);
     new Notification(
             groupDisplayId,
             title,
@@ -41,14 +45,17 @@ public class DeepCodeNotifications {
   }
 
   public static void showError(String message, Project project) {
+    lastNotification = () -> showError(message, project);
     new Notification(groupDisplayId, title, message, NotificationType.ERROR).notify(project);
   }
 
   public static void showInfo(String message, Project project) {
+    lastNotification = () -> showInfo(message, project);
     new Notification(groupDisplayId, title, message, NotificationType.INFORMATION).notify(project);
   }
 
   public static void showWarn(String message, Project project) {
+    lastNotification = () -> showWarn(message, project);
     new Notification(groupDisplayId, title, message, NotificationType.WARNING).notify(project);
   }
 }

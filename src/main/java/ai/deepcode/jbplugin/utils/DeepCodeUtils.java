@@ -130,6 +130,7 @@ public final class DeepCodeUtils {
       setSessionToken(response.getSessionToken());
       setLoginUrl(response.getLoginURL());
       DeepCodeNotifications.showLoginLink(project);
+      DeepCodeParams.loggingRequested = true;
       wasErrorShown = false;
     } else {
       if (!wasErrorShown) {

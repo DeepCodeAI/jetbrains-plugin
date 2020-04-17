@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 public class DeepCodeParams {
 
   // Settings
+  private static boolean isEnable;
   private static String apiUrl;
   private static boolean useLinter;
   private static int minSeverity;
@@ -25,7 +26,7 @@ public class DeepCodeParams {
 
   // Inner params
   private static String loginUrl;
-  public static boolean loggingRequested = false; // indicate that notification to login shown withing current session
+  public static boolean loggingRequested = false; // indicate that new login was requested withing current session
 
   // TODO https://www.jetbrains.org/intellij/sdk/docs/basics/persisting_sensitive_data.html
   private static final PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
@@ -46,6 +47,7 @@ public class DeepCodeParams {
   public static void setSessionToken(String sessionToken) {
     DeepCodeParams.sessionToken = sessionToken;
     propertiesComponent.setValue("sessionToken", sessionToken);
+    loggingRequested = false;
   }
 
   @NotNull
@@ -56,6 +58,7 @@ public class DeepCodeParams {
   public static void setLoginUrl(String loginUrl) {
     DeepCodeParams.loginUrl = loginUrl;
     propertiesComponent.setValue("loginUrl", loginUrl);
+    loggingRequested = false;
   }
 
   public static boolean useLinter() {
@@ -83,6 +86,7 @@ public class DeepCodeParams {
 
   public static void setApiUrl(String apiUrl) {
 //    if (apiUrl == null || apiUrl.isEmpty()) apiUrl = "https://www.deepcode.ai/";
+    if (apiUrl.equals(DeepCodeParams.apiUrl)) return;
     DeepCodeParams.apiUrl = apiUrl;
     propertiesComponent.setValue("apiUrl", apiUrl);
     DeepCodeRestApi.setBaseUrl(apiUrl);
@@ -93,7 +97,17 @@ public class DeepCodeParams {
     }
   }
 
+  public static boolean isEnable() {
+    return isEnable;
+  }
+
+  public static void setEnable(boolean isEnable) {
+    DeepCodeParams.isEnable = isEnable;
+    propertiesComponent.setValue("isEnable", isEnable);
+  }
+
   static {
+    isEnable = propertiesComponent.getBoolean("isEnable", true);
     apiUrl = propertiesComponent.getValue("apiUrl", "");
     DeepCodeRestApi.setBaseUrl(apiUrl);
     sessionToken = propertiesComponent.getValue("sessionToken", "");
@@ -101,4 +115,5 @@ public class DeepCodeParams {
     useLinter = propertiesComponent.getBoolean("useLinter", false);
     minSeverity = propertiesComponent.getInt("minSeverity", 1);
   }
+
 }

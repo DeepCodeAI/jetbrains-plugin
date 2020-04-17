@@ -14,7 +14,7 @@ public class AnalyseProjectAction extends AnAction {
   public void actionPerformed(@NotNull AnActionEvent e) {
     final Project project = e.getRequiredData(PlatformDataKeys.PROJECT);
     if (DeepCodeUtils.isNotLogged(project)) {
-      DeepCodeNotifications.showLoginLink(project);
+      DeepCodeNotifications.reShowLastNotification();
       return;
     }
     DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(project);

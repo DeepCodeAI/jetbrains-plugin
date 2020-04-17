@@ -181,7 +181,12 @@ public final class AnalysisData {
     int counter = 0;
     do {
       //      progress.setFraction(((double) counter) / 10);
-      response = DeepCodeRestApi.getAnalysis(loggedToken, createBundleResponse.getBundleId());
+      response =
+          DeepCodeRestApi.getAnalysis(
+              loggedToken,
+              createBundleResponse.getBundleId(),
+              DeepCodeParams.getMinSeverity(),
+              DeepCodeParams.useLinter());
 
       // todo: show progress notification
       // fixme: debug only

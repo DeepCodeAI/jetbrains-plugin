@@ -248,8 +248,11 @@ abstract class TodoPanel extends SimpleToolWindowPanel implements OccurenceNavig
     }
 */
     toolbarGroup.add(new MyPreviewAction());
-    toolbarGroup.add(ActionManager.getInstance().getAction("ai.deepcode.jbplugin.ToolsMenu.InvalidateCachesAction"));
+    toolbarGroup.add(ActionManager.getInstance().getAction("ai.deepcode.jbplugin.ToolsMenu.ShowSettingsAction"));
     toolbarGroup.add(ActionManager.getInstance().getAction("ai.deepcode.jbplugin.ToolsMenu.AnalyseProjectAction"));
+    toolbarGroup.addSeparator();
+    toolbarGroup.add(ActionManager.getInstance().getAction("ai.deepcode.jbplugin.ToolsMenu.AnalyseCurrentFileAction"));
+    toolbarGroup.add(ActionManager.getInstance().getAction("ai.deepcode.jbplugin.ToolsMenu.InvalidateCachesAction"));
 
     setToolbar(ActionManager.getInstance().createActionToolbar(ActionPlaces.TODO_VIEW_TOOLBAR, toolbarGroup, false).getComponent());
   }

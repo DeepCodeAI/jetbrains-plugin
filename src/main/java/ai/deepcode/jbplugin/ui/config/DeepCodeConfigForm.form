@@ -53,12 +53,12 @@
           <text value="Add Linters analysis"/>
         </properties>
       </component>
-      <component id="d5c32" class="javax.swing.JCheckBox" binding="enableDeepCodePluginCheckBox" default-binding="true">
+      <component id="d5c32" class="javax.swing.JCheckBox" binding="enableDeepCodePlugin">
         <constraints>
           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
         </constraints>
         <properties>
-          <selected value="true"/>
+          <selected value="false"/>
           <text value="Enable DeepCode plugin."/>
         </properties>
       </component>
@@ -78,7 +78,7 @@
         </constraints>
         <properties>
           <labelFor value="acbd2"/>
-          <text value="Min Severity level:"/>
+          <text value="Min Severity level to show:"/>
         </properties>
       </component>
       <component id="acbd2" class="javax.swing.JComboBox" binding="minSeverityLevel">

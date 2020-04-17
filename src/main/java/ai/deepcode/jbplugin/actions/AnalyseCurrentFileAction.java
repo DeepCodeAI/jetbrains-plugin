@@ -31,7 +31,7 @@ public class AnalyseCurrentFileAction extends AnAction {
     Project project = psiFile.getProject();
 
     if (DeepCodeUtils.isNotLogged(project)) {
-      DeepCodeNotifications.showLoginLink(project);
+      DeepCodeNotifications.reShowLastNotification();
       return;
     }
 

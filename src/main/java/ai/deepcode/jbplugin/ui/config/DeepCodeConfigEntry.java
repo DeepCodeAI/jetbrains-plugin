@@ -1,6 +1,7 @@
 package ai.deepcode.jbplugin.ui.config;
 
 import ai.deepcode.jbplugin.utils.DeepCodeParams;
+import ai.deepcode.jbplugin.utils.DeepCodeUtils;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
 import org.jetbrains.annotations.Nls;
@@ -11,10 +12,18 @@ import javax.swing.*;
 public class DeepCodeConfigEntry implements Configurable {
   private DeepCodeConfigForm myForm;
 
+  // Default values
+  private final String defaultBaseUrl = "https://www.deepcode.ai/";
+  private final String defaultTokenId = "";
 
   @Override
   public @Nls(capitalization = Nls.Capitalization.Title) String getDisplayName() {
     return "DeepCode Settings";
+  }
+
+  @Override
+  public @Nullable String getHelpTopic() {
+    return "Configuration for the DeepCode plugin";
   }
 
   @Override
@@ -32,7 +41,12 @@ public class DeepCodeConfigEntry implements Configurable {
    */
   @Override
   public boolean isModified() {
-    return (myForm != null) && (!DeepCodeParams.getApiUrl().equals(myForm.getBaseURL()));
+    return (myForm != null)
+        && (!myForm.getBaseURL().equals(DeepCodeParams.getApiUrl())
+            || !myForm.getTokenID().equals(DeepCodeParams.getSessionToken())
+            || !(myForm.isPluginEnabled() == DeepCodeParams.isEnable())
+            || !(myForm.isLintersEnabled() == DeepCodeParams.useLinter())
+            || myForm.getMinSeverityLevel() != DeepCodeParams.getMinSeverity());
   }
 
   @Override
@@ -49,12 +63,22 @@ public class DeepCodeConfigEntry implements Configurable {
   @Override
   public void apply() throws ConfigurationException {
     if (myForm == null) return;
+    DeepCodeParams.setSessionToken(myForm.getTokenID());
+    DeepCodeParams.setMinSeverity(myForm.getMinSeverityLevel());
+    DeepCodeParams.setUseLinter(myForm.isLintersEnabled());
+    DeepCodeParams.setEnable(myForm.isPluginEnabled());
     DeepCodeParams.setApiUrl(myForm.getBaseURL());
+    // Initiate new Login
+    DeepCodeUtils.isNotLogged(null);
   }
 
   @Override
   public void reset() {
     if (myForm == null) return;
     myForm.setBaseURL(DeepCodeParams.getApiUrl());
+    myForm.setTokenID(DeepCodeParams.getSessionToken());
+    myForm.setAddLinters(DeepCodeParams.useLinter());
+    myForm.setMinSeverityLevel(DeepCodeParams.getMinSeverity());
+    myForm.enablePlugin(DeepCodeParams.isEnable());
   }
 }
