@@ -2,7 +2,8 @@ package ai.deepcode.jbplugin.utils;
 
 import ai.deepcode.javaclient.DeepCodeRestApi;
 import ai.deepcode.javaclient.requests.FileContent;
-import ai.deepcode.javaclient.requests.FileContentRequest;
+import ai.deepcode.javaclient.requests.FileHash2ContentRequest;
+import ai.deepcode.javaclient.requests.FileHashRequest;
 import ai.deepcode.javaclient.responses.*;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -16,6 +17,12 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -129,6 +136,8 @@ public final class AnalysisData {
   }
 
   static final int MAX_BUNDLE_SIZE = 4000000; // bytes
+  private static final Map<PsiFile, String> mapPsiFile2Hash = new HashMap<>();
+  private static final Map<PsiFile, String> mapPsiFile2Content = new HashMap<>();
 
   /** Perform costly network request. <b>No cache checks!</b> */
   @NotNull
@@ -136,52 +145,157 @@ public final class AnalysisData {
       @NotNull Set<PsiFile> psiFiles) {
     if (psiFiles.isEmpty() || DeepCodeUtils.isNotLogged(null)) return Collections.emptyMap();
     Map<PsiFile, List<SuggestionForFile>> result = new HashMap<>();
-    long bundleSize = 0;
-    List<PsiFile> filesChunk = new ArrayList<>();
-    for (PsiFile psiFile : psiFiles) {
-      final long fileSize = psiFile.getVirtualFile().getLength();
-      if (bundleSize + fileSize > MAX_BUNDLE_SIZE) {
-        // fixme: debug only
-        System.out.println("Bundle size: " + bundleSize);
-        result.putAll(doRetrieveSuggestions(filesChunk));
-        bundleSize = 0;
-        filesChunk.clear();
-      }
-      bundleSize += fileSize;
-      filesChunk.add(psiFile);
-    }
-    // fixme: debug only
-    System.out.println("Bundle size: " + bundleSize);
-    result.putAll(doRetrieveSuggestions(filesChunk));
-    return result;
-  }
-
-  @NotNull
-  private static Map<PsiFile, List<SuggestionForFile>> doRetrieveSuggestions(
-      @NotNull Collection<PsiFile> psiFiles) {
     ProgressIndicator progress = new StatusBarProgress();
     //    progress.setIndeterminate(false);
     progress.start();
 
+    // Create Bundle
     ProgressManager.checkCanceled();
     progress.setText("Preparing files for upload...");
-    // fixme if not logged?
-    String loggedToken = DeepCodeParams.getSessionToken();
-    FileContentRequest files =
-        new FileContentRequest(
-            psiFiles.stream().map(AnalysisData::createFileContent).collect(Collectors.toList()));
-
-    ProgressManager.checkCanceled();
-    progress.setText("Uploading files to the server...");
-    CreateBundleResponse createBundleResponse = DeepCodeRestApi.createBundle(loggedToken, files);
-    if (createBundleResponse.getStatusCode() == 401) {
+    mapPsiFile2Hash.clear();
+    mapPsiFile2Content.clear();
+    FileHashRequest fileHashRequest =
+        new FileHashRequest(
+            psiFiles.stream()
+                .collect(
+                    Collectors.toMap(AnalysisData::getDeepCodedFilePath, AnalysisData::getHash)));
+    CreateBundleResponse createBundleResponse =
+        DeepCodeRestApi.createBundle(DeepCodeParams.getSessionToken(), fileHashRequest);
+    if (createBundleResponse.getStatusCode() != 200) {
       // new logging was not requested during current session.
-      if (!DeepCodeParams.loggingRequested) {
+      if ((createBundleResponse.getStatusCode() == 401) && !DeepCodeParams.loggingRequested) {
         DeepCodeUtils.requestNewLogin(null);
       }
+      // fixme: debug only
+      System.out.println(
+          "Bad CreateBundle request: "
+              + createBundleResponse.getStatusCode()
+              + createBundleResponse.getStatusDescription());
       return EMPTY_MAP;
     }
+    final String bundleId = createBundleResponse.getBundleId();
 
+    // Upload Files
+    ProgressManager.checkCanceled();
+    progress.setText("Uploading files to the server...");
+
+    long fileChunkSize = 0;
+    List<PsiFile> filesChunk = new ArrayList<>();
+    for (PsiFile psiFile : psiFiles) {
+      final long fileSize = psiFile.getVirtualFile().getLength();
+      if (fileChunkSize + fileSize > MAX_BUNDLE_SIZE) {
+        // fixme: debug only
+        System.out.println("File chunk size: " + fileChunkSize);
+        uploadFiles(filesChunk, bundleId, createBundleResponse.getMissingFiles(), progress);
+        fileChunkSize = 0;
+        filesChunk.clear();
+      }
+      fileChunkSize += fileSize;
+      filesChunk.add(psiFile);
+    }
+    // fixme: debug only
+    System.out.println("Last file chunk size: " + fileChunkSize);
+    uploadFiles(filesChunk, bundleId, createBundleResponse.getMissingFiles(), progress);
+
+    mapPsiFile2Hash.clear();
+    mapPsiFile2Content.clear();
+
+    // Get Analysis
+    GetAnalysisResponse getAnalysisResponse = retrieveSuggestions(bundleId, progress);
+    result = parseGetAnalysisResponse(psiFiles, getAnalysisResponse);
+    progress.stop();
+    return result;
+  }
+
+  private static String getDeepCodedFilePath(PsiFile psiFile) {
+    return "/" + getPath(psiFile);
+  }
+
+  private static String getPath(PsiFile psiFile) {
+    return psiFile.getVirtualFile().getPath(); // .replace('/', '\\');
+  }
+
+  // https://www.baeldung.com/sha-256-hashing-java#message-digest
+  private static String bytesToHex(byte[] hash) {
+    StringBuilder hexString = new StringBuilder();
+    for (byte b : hash) {
+      String hex = Integer.toHexString(0xff & b);
+      if (hex.length() == 1) hexString.append('0');
+      hexString.append(hex);
+    }
+    return hexString.toString();
+  }
+
+  private static String getHash(PsiFile psiFile) {
+    return mapPsiFile2Hash.computeIfAbsent(psiFile, AnalysisData::doGetHash);
+  }
+
+  private static String doGetHash(PsiFile psiFile) {
+    MessageDigest messageDigest;
+    try {
+      messageDigest = MessageDigest.getInstance("SHA-256");
+    } catch (NoSuchAlgorithmException e) {
+      throw new RuntimeException(e);
+    }
+    String fileText = getFileContent(psiFile);
+    byte[] encodedHash = messageDigest.digest(fileText.getBytes(StandardCharsets.UTF_8));
+    return bytesToHex(encodedHash);
+  }
+
+  @NotNull
+  private static String getFileContent(PsiFile psiFile) {
+    return mapPsiFile2Content.computeIfAbsent(psiFile, AnalysisData::doGetFileContent);
+  }
+
+  private static String doGetFileContent(PsiFile psiFile) {
+    return psiFile.getText();
+/*
+    try {
+      // psiFile.getText() might be too expensive (or not?)
+      return new String(Files.readAllBytes(Paths.get(getPath(psiFile))), StandardCharsets.UTF_8);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+*/
+  }
+
+  private static void uploadFiles(
+      @NotNull Collection<PsiFile> psiFiles,
+      @NotNull String bundleId,
+      @NotNull Collection<String> missingFiles,
+      @NotNull ProgressIndicator progress) {
+
+    List<FileHash2ContentRequest> listHash2Content = new ArrayList<>(psiFiles.size());
+    for (PsiFile psiFile : psiFiles) {
+      final String filePath = getDeepCodedFilePath(psiFile);
+      if (missingFiles.contains(filePath)) {
+        listHash2Content.add(
+            new FileHash2ContentRequest(getHash(psiFile), getFileContent(psiFile)));
+      } else {
+        // fixme: debug only
+        System.out.println("File skipped to upload (not in missingFiles): " + filePath);
+      }
+    }
+    if (listHash2Content.isEmpty()) return;
+
+    EmptyResponse uploadFilesResponse =
+        DeepCodeRestApi.UploadFiles(DeepCodeParams.getSessionToken(), bundleId, listHash2Content);
+    if (uploadFilesResponse.getStatusCode() != 200) {
+      // new logging was not requested during current session.
+      if ((uploadFilesResponse.getStatusCode() == 401) && !DeepCodeParams.loggingRequested) {
+        DeepCodeUtils.requestNewLogin(null);
+      }
+      // fixme: debug only
+      System.out.println(
+          "Bad UploadFiles request: "
+              + uploadFilesResponse.getStatusCode()
+              + uploadFilesResponse.getStatusDescription());
+    }
+  }
+
+  @NotNull
+  private static GetAnalysisResponse retrieveSuggestions(
+      @NotNull String bundleId, @NotNull ProgressIndicator progress) {
     ProgressManager.checkCanceled();
     progress.setText("Waiting for analysis from server...");
     GetAnalysisResponse response;
@@ -196,8 +310,8 @@ public final class AnalysisData {
       //      progress.setFraction(((double) counter) / 10);
       response =
           DeepCodeRestApi.getAnalysis(
-              loggedToken,
-              createBundleResponse.getBundleId(),
+              DeepCodeParams.getSessionToken(),
+              bundleId,
               DeepCodeParams.getMinSeverity(),
               DeepCodeParams.useLinter());
 
@@ -210,16 +324,14 @@ public final class AnalysisData {
         if (!DeepCodeParams.loggingRequested) {
           DeepCodeUtils.requestNewLogin(null);
         }
-        return EMPTY_MAP;
+        return new GetAnalysisResponse();
       }
       ProgressManager.checkCanceled();
       // fixme
       if (counter == 10) break;
       counter++;
     } while (!response.getStatus().equals("DONE"));
-    progress.stop();
-
-    return parseGetAnalysisResponse(psiFiles, response);
+    return response;
   }
 
   @NotNull
