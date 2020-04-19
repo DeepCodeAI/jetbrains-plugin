@@ -34,6 +34,7 @@ public class DeepCodeStartupActivity implements StartupActivity {
     @Override
     public void selectionChanged(@NotNull final FileEditorManagerEvent event){
       final VirtualFile virtualFile = event.getNewFile();
+      if (virtualFile == null) return;
       final Project project = event.getManager().getProject();
       final PsiFile psiFile = PsiManager.getInstance(project).findFile(virtualFile);
 //      System.out.println(virtualFile);
