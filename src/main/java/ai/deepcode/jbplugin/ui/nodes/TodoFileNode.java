@@ -39,23 +39,23 @@ public final class TodoFileNode extends PsiFileNode implements HighlightedRegion
   }
 
   @Override
-  public Collection<AbstractTreeNode<?>> getChildrenImpl() {
+  public Collection<AbstractTreeNode> getChildrenImpl() {
     try {
       if (!mySingleFileMode) {
-        return (Collection<AbstractTreeNode<?>>) createGeneralList();
+        return createGeneralList();
       }
-      return (Collection<AbstractTreeNode<?>>) createListForSingleFile();
+      return createListForSingleFile();
     } catch (IndexNotReadyException e) {
       return Collections.emptyList();
     }
   }
 
   // fixme: same as createGeneralList
-  private Collection<? extends AbstractTreeNode<?>> createListForSingleFile() {
+  private Collection<AbstractTreeNode> createListForSingleFile() {
     return createGeneralList();
   }
 
-  private Collection<? extends AbstractTreeNode<?>> createGeneralList() {
+  private Collection<AbstractTreeNode> createGeneralList() {
     PsiFile psiFile = getValue();
     return AnalysisData.getAnalysis(psiFile).stream()
         .map(suggestion -> new SuggestionNode(getProject(), psiFile, myBuilder, suggestion))

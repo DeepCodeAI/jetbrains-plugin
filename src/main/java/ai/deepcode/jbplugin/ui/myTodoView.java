@@ -117,7 +117,7 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
   public void initToolWindow(@NotNull ToolWindow toolWindow) {
     // Create panels
     ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
-    Content allTodosContent = contentFactory.createContent(null, IdeUICustomization.getInstance().projectMessage("tab.title.project"), false);
+    Content allTodosContent = contentFactory.createContent(null, IdeUICustomization.getInstance().getProjectDisplayName(), false);
     toolWindow.setHelpId("find.todoList");
     myAllTodos = new TodoPanel(myProject, state.all, false, allTodosContent) {
       @Override
@@ -133,7 +133,7 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
     if (toolWindow instanceof ToolWindowEx) {
       DefaultActionGroup group = new DefaultActionGroup() {
         {
-          getTemplatePresentation().setText(IdeBundle.messagePointer("group.view.options"));
+          getTemplatePresentation().setText(IdeBundle.message("group.view.options"));
           setPopup(true);
           add(myAllTodos.createAutoScrollToSourceAction());
           addSeparator();
@@ -153,7 +153,7 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
       }
     };
     Disposer.register(this, myCurrentFileTodosPanel);
-    currentFileTodosContent.setComponent(wrapWithDumbModeSpoiler(myCurrentFileTodosPanel));
+    currentFileTodosContent.setComponent(myCurrentFileTodosPanel);//wrapWithDumbModeSpoiler(myCurrentFileTodosPanel));
     currentFileTodosContent.setPreferredFocusableComponent(myCurrentFileTodosPanel.getTree());
 
     String tabName = getTabNameForChangeList(ChangeListManager.getInstance(myProject).getDefaultChangeList().getName());
@@ -319,9 +319,12 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
 
   @NotNull
   private JComponent wrapWithDumbModeSpoiler(@NotNull TodoPanel panel) {
+    return panel;
+/*
     return DumbService.getInstance(myProject).wrapWithSpoiler(panel, () -> ApplicationManager.getApplication().invokeLater(() -> {
       panel.rebuildCache();
       panel.updateTree();
     }, myProject.getDisposed()), panel);
+*/
   }
 }

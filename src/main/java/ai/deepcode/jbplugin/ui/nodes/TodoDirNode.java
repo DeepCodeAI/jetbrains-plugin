@@ -66,7 +66,7 @@ public final class TodoDirNode extends PsiDirectoryNode  {
   }
 
   @Override
-  public Collection<AbstractTreeNode<?>> getChildrenImpl() {
+  public Collection<AbstractTreeNode> getChildrenImpl() {
     return TodoTreeHelper.getInstance(getProject()).getDirectoryChildren(getValue(), myBuilder, getSettings().isFlattenPackages());
   }
 

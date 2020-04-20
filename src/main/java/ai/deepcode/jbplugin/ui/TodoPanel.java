@@ -5,7 +5,6 @@ import com.intellij.find.FindModel;
 import com.intellij.find.impl.FindInProjectUtil;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.*;
-import com.intellij.ide.actions.ExpandAllAction;
 import com.intellij.ide.actions.NextOccurenceToolbarAction;
 import com.intellij.ide.actions.PreviousOccurenceToolbarAction;
 import ai.deepcode.jbplugin.ui.nodes.TodoFileNode;
@@ -19,16 +18,15 @@ import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ModalityState;
-import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.RangeMarker;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.ui.Splitter;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.Disposer;
-import com.intellij.openapi.vcs.VcsBundle;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.impl.VisibilityWatcher;
 import com.intellij.psi.PsiDocumentManager;
@@ -113,7 +111,8 @@ abstract class TodoPanel extends SimpleToolWindowPanel implements OccurenceNavig
   private TodoTreeBuilder setupTreeStructure() {
     TodoTreeBuilder todoTreeBuilder = createTreeBuilder(myTree, myProject);
     TodoTreeStructure structure = todoTreeBuilder.getTodoTreeStructure();
-    StructureTreeModel structureTreeModel = new StructureTreeModel<>(structure, TodoTreeBuilder.NODE_DESCRIPTOR_COMPARATOR, myProject);
+    StructureTreeModel<TodoTreeStructure> structureTreeModel =
+            new StructureTreeModel<TodoTreeStructure>(structure, TodoTreeBuilder.NODE_DESCRIPTOR_COMPARATOR, myProject);
     AsyncTreeModel asyncTreeModel = new AsyncTreeModel(structureTreeModel, myProject);
     myTree.setModel(asyncTreeModel);
     asyncTreeModel.addTreeModelListener(new MyExpandListener(todoTreeBuilder));
@@ -128,7 +127,7 @@ abstract class TodoPanel extends SimpleToolWindowPanel implements OccurenceNavig
   public static class GroupByActionGroup extends DefaultActionGroup {
     {
       getTemplatePresentation().setIcon(AllIcons.Actions.GroupBy);
-      getTemplatePresentation().setText(IdeBundle.messagePointer("group.group.by"));
+      getTemplatePresentation().setText(IdeBundle.message("group.group.by"));
       setPopup(true);
     }
 
@@ -478,8 +477,8 @@ abstract class TodoPanel extends SimpleToolWindowPanel implements OccurenceNavig
   protected void rebuildWithAlarm(final Alarm alarm) {
     alarm.cancelAllRequests();
     alarm.addRequest(() -> {
-      ReadAction.nonBlocking(() -> {
-        final Set<VirtualFile> files = new HashSet<>();
+      final Set<VirtualFile> files = new HashSet<>();
+      DumbService.getInstance(myProject).runReadActionInSmartMode(() -> {
         if (myTodoTreeBuilder.isDisposed()) return;
         myTodoTreeBuilder.collectFiles(virtualFile -> {
           files.add(virtualFile);
@@ -490,7 +489,7 @@ abstract class TodoPanel extends SimpleToolWindowPanel implements OccurenceNavig
           myTodoTreeBuilder.rebuildCache(files);
           updateTree();
         });
-      }).executeSynchronously();
+      });
     }, 300);
   }
 
@@ -665,7 +664,7 @@ abstract class TodoPanel extends SimpleToolWindowPanel implements OccurenceNavig
 
   public static final class MyShowPackagesAction extends ToggleAction {
     public MyShowPackagesAction() {
-      super(IdeBundle.messagePointer("action.group.by.packages"), PlatformIcons.GROUP_BY_PACKAGES);
+      super(IdeBundle.message("action.group.by.packages"), "", PlatformIcons.GROUP_BY_PACKAGES);
     }
 
     @Override
@@ -692,7 +691,7 @@ abstract class TodoPanel extends SimpleToolWindowPanel implements OccurenceNavig
 
   public static final class MyShowModulesAction extends ToggleAction {
     public MyShowModulesAction() {
-      super(IdeBundle.messagePointer("action.group.by.modules"), AllIcons.Actions.GroupByModule);
+      super(IdeBundle.message("action.group.by.modules"), "", AllIcons.Actions.GroupByModule);
     }
 
     @Override
@@ -720,7 +719,7 @@ abstract class TodoPanel extends SimpleToolWindowPanel implements OccurenceNavig
 
   public static final class MyFlattenPackagesAction extends ToggleAction {
     public MyFlattenPackagesAction() {
-      super(IdeBundle.messagePointer("action.flatten.view"), PlatformIcons.FLATTEN_PACKAGES_ICON);
+      super(IdeBundle.message("action.flatten.view"), "", PlatformIcons.FLATTEN_PACKAGES_ICON);
     }
 
     @Override
@@ -760,7 +759,7 @@ abstract class TodoPanel extends SimpleToolWindowPanel implements OccurenceNavig
   private final class MyPreviewAction extends ToggleAction {
 
     MyPreviewAction() {
-      super(VcsBundle.messagePointer("action.ToggleAction.text.preview.source"), Presentation.NULL_STRING, AllIcons.Actions.PreviewDetails);
+      super("Preview", "", AllIcons.Actions.PreviewDetails);
     }
 
     @Override

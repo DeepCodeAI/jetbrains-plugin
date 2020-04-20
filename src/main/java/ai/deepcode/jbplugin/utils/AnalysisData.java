@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -33,7 +34,8 @@ public final class AnalysisData {
 
   // todo: keep few latest file versions (Guava com.google.common.cache.CacheBuilder ?)
   private static final Map<PsiFile, List<SuggestionForFile>> mapFile2Suggestions =
-      new ConcurrentHashMap<>();
+      new Hashtable<>(); // we need read and write full data lock
+  //      new ConcurrentHashMap<>();
 
   public static class SuggestionForFile {
     private final String id;
@@ -105,34 +107,40 @@ public final class AnalysisData {
   @NotNull
   public static Map<PsiFile, List<SuggestionForFile>> getAnalysis(
       @NotNull Collection<PsiFile> psiFiles) {
-
-    // fixme: debug only
-    /*
-        System.out.println(
-            "--------------\n"
-                + "Analysis requested for "
-                + psiFiles.size()
-                + " files: "
-                // + psiFiles
-                + " at "
-                + new SimpleDateFormat("m:s,S").format(System.currentTimeMillis()));
-    */
-
     Map<PsiFile, List<SuggestionForFile>> result = new HashMap<>();
     psiFiles.stream().map(PsiElement::getProject).distinct().forEach(AnalysisData::addFileListener);
-    mapFile2Suggestions.putAll(
-        retrieveSuggestions(
-            psiFiles.stream()
-                .filter(file -> !mapFile2Suggestions.containsKey(file))
-                .collect(Collectors.toSet())));
+    Collection<PsiFile> filesToProcced = new HashSet<>();
+    for (PsiFile file : psiFiles) {
+      if (!mapFile2Suggestions.containsKey(file)) {
+        filesToProcced.add(file);
+      }
+    }
+    // fixme: debug only
+    if (!filesToProcced.isEmpty()) {
+      System.out.println(
+          "--------------\n"
+              + "Analysis requested for "
+              + psiFiles.size()
+              + " files: "
+              + psiFiles
+              + " at "
+              + new SimpleDateFormat("m:s,S").format(System.currentTimeMillis()));
+      System.out.println("Files to proceed (not found in cache): " + filesToProcced.size());
+    }
+
+    mapFile2Suggestions.putAll(retrieveSuggestions(filesToProcced));
+
+    final Collection<PsiFile> brokenKeys = new ArrayList<>();
     for (PsiFile psiFile : psiFiles) {
       List<SuggestionForFile> suggestions = mapFile2Suggestions.get(psiFile);
       if (suggestions != null) {
         result.put(psiFile, suggestions);
       } else {
-        LOG.error("Suggestions not found for file: {}", psiFile);
+        brokenKeys.add(psiFile);
       }
     }
+    if (!brokenKeys.isEmpty())
+      LOG.error("Suggestions not found for {} files: {}", brokenKeys.size(), brokenKeys);
     return result;
   }
 
@@ -154,7 +162,7 @@ public final class AnalysisData {
   /** Perform costly network request. <b>No cache checks!</b> */
   @NotNull
   private static Map<PsiFile, List<SuggestionForFile>> retrieveSuggestions(
-      @NotNull Set<PsiFile> psiFiles) {
+      @NotNull Collection<PsiFile> psiFiles) {
     if (psiFiles.isEmpty() || DeepCodeUtils.isNotLogged(null)) return Collections.emptyMap();
     Map<PsiFile, List<SuggestionForFile>> result = new HashMap<>();
     ProgressIndicator progress = new StatusBarProgress();
@@ -194,6 +202,8 @@ public final class AnalysisData {
 
     long fileChunkSize = 0;
     List<PsiFile> filesChunk = new ArrayList<>();
+    // fixme: debug only
+    System.out.println("Files requested as missingFiles: " + missingFiles.size());
     for (String filePath : missingFiles) {
       PsiFile psiFile =
           psiFiles.stream()
@@ -347,7 +357,7 @@ public final class AnalysisData {
 
       ProgressManager.checkCanceled();
       // fixme
-      if (counter == 10) break;
+      if (counter == 100) break;
       counter++;
     } while (!response.getStatus().equals("DONE"));
     return response;

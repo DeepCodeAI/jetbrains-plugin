@@ -4,7 +4,7 @@ import ai.deepcode.javaclient.DeepCodeRestApi;
 import ai.deepcode.javaclient.responses.GetFiltersResponse;
 import ai.deepcode.javaclient.responses.LoginResponse;
 import ai.deepcode.jbplugin.DeepCodeNotifications;
-import ai.deepcode.jbplugin.DeepCodeToolWindowFactory;
+import ai.deepcode.jbplugin.DeepCodeConsoleToolWindowFactory;
 import ai.deepcode.jbplugin.ui.myTodoView;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.WriteCommandAction;
@@ -37,7 +37,7 @@ public final class DeepCodeUtils {
             () ->
                 WriteCommandAction.runWriteCommandAction(
                     psiFile.getProject(),
-                    () -> DeepCodeToolWindowFactory.updateCurrentFilePanel(psiFile)));
+                    () -> DeepCodeConsoleToolWindowFactory.updateCurrentFilePanel(psiFile)));
   }
 
   public static void asyncAnalyseProjectAndUpdatePanel(@NotNull Project project) {

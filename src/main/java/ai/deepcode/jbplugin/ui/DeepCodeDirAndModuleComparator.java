@@ -13,7 +13,7 @@ import com.intellij.psi.PsiFile;
 import java.util.Collections;
 import java.util.Comparator;
 
-public final class DeepCodeDirAndModuleComparator implements Comparator<NodeDescriptor<?>> {
+public final class DeepCodeDirAndModuleComparator implements Comparator<NodeDescriptor> {
   public static final DeepCodeDirAndModuleComparator INSTANCE =
       new DeepCodeDirAndModuleComparator();
 

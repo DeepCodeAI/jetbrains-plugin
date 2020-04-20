@@ -93,7 +93,7 @@ public class DeepCodeUIUtils {
   private static final Icon errorColor = scaleIcon(AllIcons.General.Error);
   private static final Icon warningGray = scaleIcon(AllIcons.General.ShowWarning);
   private static final Icon warningColor = scaleIcon(AllIcons.General.Warning);
-  private static final Icon infoGray = scaleIcon(AllIcons.General.ShowInfos);
+  private static final Icon infoGray = scaleIcon(AllIcons.General.Note);
   private static final Icon infoColor = scaleIcon(AllIcons.General.Information);
 
   public static final Icon EMPTY_EWI_ICON =

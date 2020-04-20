@@ -16,9 +16,9 @@
         <!-- Add your extensions here -->
         <annotator language="JAVA" implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
         <postStartupActivity implementation="ai.deepcode.jbplugin.DeepCodeStartupActivity"/>
-        <toolWindow id="DeepCode(console)" anchor="bottom" factoryClass="ai.deepcode.jbplugin.DeepCodeToolWindowFactory"/>
+        <toolWindow id="DeepCode(console)" anchor="bottom" factoryClass="ai.deepcode.jbplugin.DeepCodeConsoleToolWindowFactory"/>
 
-        <toolWindow id="DeepCode" anchor="bottom" factoryClass="ai.deepcode.jbplugin.DeepCodeTestToolWindowFactory"
+        <toolWindow id="DeepCode" anchor="bottom" factoryClass="ai.deepcode.jbplugin.DeepCodeToolWindowFactory"
                     canCloseContents="true"/>
         <projectService serviceImplementation="ai.deepcode.jbplugin.ui.myTodoView"/>
         <projectService serviceImplementation="ai.deepcode.jbplugin.ui.nodes.TodoTreeHelper"/>

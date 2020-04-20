@@ -67,8 +67,8 @@ public class TodoTreeHelper {
     }
   }
 
-  public Collection<AbstractTreeNode<?>> getDirectoryChildren(PsiDirectory psiDirectory, TodoTreeBuilder builder, boolean isFlatten) {
-    ArrayList<AbstractTreeNode<?>> children = new ArrayList<>();
+  public Collection<AbstractTreeNode> getDirectoryChildren(PsiDirectory psiDirectory, TodoTreeBuilder builder, boolean isFlatten) {
+    ArrayList<AbstractTreeNode> children = new ArrayList<>();
     if (!isFlatten || !skipDirectory(psiDirectory)) {
       final Iterator<PsiFile> iterator = builder.getFiles(psiDirectory);
       while (iterator.hasNext()) {
@@ -135,7 +135,7 @@ public class TodoTreeHelper {
         }
       }
     }
-   Collections.sort(children, DeepCodeDirAndModuleComparator.INSTANCE);
+   children.sort(DeepCodeDirAndModuleComparator.INSTANCE);
    return children;
   }
 
