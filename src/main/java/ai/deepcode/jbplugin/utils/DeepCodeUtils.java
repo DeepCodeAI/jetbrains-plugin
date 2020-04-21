@@ -20,6 +20,7 @@ import com.intellij.psi.PsiManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -28,8 +29,15 @@ import static ai.deepcode.jbplugin.utils.DeepCodeParams.setSessionToken;
 
 public final class DeepCodeUtils {
   private static Set<String> supportedExtensions = Collections.emptySet();
+  private static final SimpleDateFormat HMSS = new SimpleDateFormat("h:m:s,S");
 
   private DeepCodeUtils() {}
+
+  public static void logDeepCode(String message) {
+    // fixme: made DeepCode console
+    String currentTime = "[" + HMSS.format(System.currentTimeMillis()) + "] ";
+    System.out.println(currentTime + message);
+  }
 
   public static void asyncUpdateCurrentFilePanel(PsiFile psiFile) {
     ApplicationManager.getApplication()
@@ -122,8 +130,8 @@ public final class DeepCodeUtils {
         result = true;
       } else result = statusCode != 200;
     }
-    // fixme debug only
-    System.out.println((result) ? "Logging check fails!" : "Logging check succeed.");
+    logDeepCode(
+        ((result) ? "Logging check fails!" : "Logging check succeed.") + " Token: " + sessionToken);
     return result;
   }
 
@@ -163,15 +171,13 @@ public final class DeepCodeUtils {
             filtersResponse.getExtensions().stream()
                 .map(s -> s.substring(1)) // remove preceding `.` (`.js` -> `js`)
                 .collect(Collectors.toSet());
-        // fixme debug only
-        System.out.println(supportedExtensions);
+        logDeepCode("Supported extensions: " + supportedExtensions);
         /*
               } else if (filtersResponse.getStatusCode() == 401) {
                 DeepCodeNotifications.showLoginLink(project);
         */
       } else {
-        // fixme debug only
-        System.out.println(
+        logDeepCode(
             "Can't retrieve supported file extensions list from the server. Fallback to default set.\n"
                 + filtersResponse.getStatusCode()
                 + " "

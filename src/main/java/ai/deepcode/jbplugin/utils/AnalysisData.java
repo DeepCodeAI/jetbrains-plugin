@@ -26,6 +26,8 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import static ai.deepcode.jbplugin.utils.DeepCodeUtils.logDeepCode;
+
 public final class AnalysisData {
   private static final Logger LOG = LoggerFactory.getLogger("DeepCode.AnalysisData");
   private static final Map<PsiFile, List<SuggestionForFile>> EMPTY_MAP = Collections.emptyMap();
@@ -79,9 +81,7 @@ public final class AnalysisData {
                 public void beforeChildrenChange(@NotNull PsiTreeChangeEvent event) {
                   PsiFile file = event.getFile();
                   if (file != null && mapFile2Suggestions.remove(file) != null) {
-
-                    // fixme: debug only
-                    System.out.println("Removed from cache: " + file);
+                    logDeepCode("Removed from cache: " + file);
                   }
                 }
               });
@@ -115,17 +115,12 @@ public final class AnalysisData {
         filesToProcced.add(file);
       }
     }
-    // fixme: debug only
     if (!filesToProcced.isEmpty()) {
-      System.out.println(
-          "--------------\n"
-              + "Analysis requested for "
-              + psiFiles.size()
-              + " files: "
-              + psiFiles
-              + " at "
-              + new SimpleDateFormat("m:s,S").format(System.currentTimeMillis()));
-      System.out.println("Files to proceed (not found in cache): " + filesToProcced.size());
+      String filesRepresentation = psiFiles.toString();
+      if (filesRepresentation.length() > 1000)
+        filesRepresentation = filesRepresentation.substring(0, 1000);
+      logDeepCode("Analysis requested for " + psiFiles.size() + " files: " + filesRepresentation);
+      logDeepCode("Files to proceed (not found in cache): " + filesToProcced.size());
     }
 
     mapFile2Suggestions.putAll(retrieveSuggestions(filesToProcced));
@@ -140,7 +135,7 @@ public final class AnalysisData {
       }
     }
     if (!brokenKeys.isEmpty())
-      LOG.error("Suggestions not found for {} files: {}", brokenKeys.size(), brokenKeys);
+      logDeepCode("Suggestions not found for " + brokenKeys.size() + " files: " + brokenKeys);
     return result;
   }
 
@@ -150,8 +145,7 @@ public final class AnalysisData {
     if ((response.getStatusCode() == 401) && !DeepCodeParams.loggingRequested) {
       DeepCodeUtils.requestNewLogin(null);
     }
-    // fixme: debug only
-    System.out.println(message + response.getStatusCode() + " " + response.getStatusDescription());
+    logDeepCode(message + response.getStatusCode() + " " + response.getStatusDescription());
     return true;
   }
 
@@ -169,7 +163,9 @@ public final class AnalysisData {
     //    progress.setIndeterminate(false);
     progress.start();
 
+    long startTime;
     // Create Bundle
+    startTime = System.currentTimeMillis();
     ProgressManager.checkCanceled();
     progress.setText("Preparing files for upload...");
     mapPsiFile2Hash.clear();
@@ -192,18 +188,25 @@ public final class AnalysisData {
     }
     CreateBundleResponse createBundleResponse = doGetBundleResponse(project, mapPath2Hash);
     if (isNotSucceed(createBundleResponse, "Bad Create/Extend Bundle request: ")) return EMPTY_MAP;
+    logDeepCode(
+        "--- Create/Extend Bundle took: "
+            + (System.currentTimeMillis() - startTime)
+            + " milliseconds");
 
     final String bundleId = createBundleResponse.getBundleId();
+    logDeepCode("bundleId: " + bundleId);
+
     final List<String> missingFiles = createBundleResponse.getMissingFiles();
+    logDeepCode("missingFiles: " + missingFiles.size());
 
     // Upload Files
+    startTime = System.currentTimeMillis();
     ProgressManager.checkCanceled();
     progress.setText("Uploading files to the server...");
 
     long fileChunkSize = 0;
     List<PsiFile> filesChunk = new ArrayList<>();
-    // fixme: debug only
-    System.out.println("Files requested as missingFiles: " + missingFiles.size());
+    logDeepCode("Files requested as missingFiles: " + missingFiles.size());
     for (String filePath : missingFiles) {
       PsiFile psiFile =
           psiFiles.stream()
@@ -211,16 +214,14 @@ public final class AnalysisData {
               .findAny()
               .orElse(null);
       if (psiFile == null) {
-        // fixme: debug only
-        System.out.println(
+        logDeepCode(
             "File requested in missingFiles not found in psiFiles (skipped to upload): "
                 + filePath);
         continue;
       }
       final long fileSize = psiFile.getVirtualFile().getLength();
       if (fileChunkSize + fileSize > MAX_BUNDLE_SIZE) {
-        // fixme: debug only
-        System.out.println("File chunk size: " + fileChunkSize);
+        logDeepCode("Files chunk size: " + fileChunkSize);
         uploadFiles(filesChunk, bundleId, progress);
         fileChunkSize = 0;
         filesChunk.clear();
@@ -228,16 +229,20 @@ public final class AnalysisData {
       fileChunkSize += fileSize;
       filesChunk.add(psiFile);
     }
-    // fixme: debug only
-    System.out.println("Last file chunk size: " + fileChunkSize);
+    logDeepCode("Last file chunk size: " + fileChunkSize);
     uploadFiles(filesChunk, bundleId, progress);
 
     mapPsiFile2Hash.clear();
     mapPsiFile2Content.clear();
+    logDeepCode(
+        "--- Upload Files took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
 
     // Get Analysis
+    startTime = System.currentTimeMillis();
     GetAnalysisResponse getAnalysisResponse = retrieveSuggestions(bundleId, progress);
     result = parseGetAnalysisResponse(psiFiles, getAnalysisResponse);
+    logDeepCode(
+        "--- Get Analysis took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
     progress.stop();
     return result;
   }
@@ -295,6 +300,7 @@ public final class AnalysisData {
 
   @NotNull
   private static String getFileContent(PsiFile psiFile) {
+    // potential OutOfMemoryException for too large projects
     return mapPsiFile2Content.computeIfAbsent(psiFile, AnalysisData::doGetFileContent);
   }
 
@@ -317,8 +323,7 @@ public final class AnalysisData {
     List<FileHash2ContentRequest> listHash2Content = new ArrayList<>(psiFiles.size());
     for (PsiFile psiFile : psiFiles) {
       listHash2Content.add(new FileHash2ContentRequest(getHash(psiFile), getFileContent(psiFile)));
-      // fixme: debug only
-      System.out.println("Uploading file: " + getPath(psiFile));
+      logDeepCode("Uploading file: " + getPath(psiFile));
     }
     if (listHash2Content.isEmpty()) return;
 
@@ -341,7 +346,6 @@ public final class AnalysisData {
         e.printStackTrace();
         Thread.currentThread().interrupt();
       }
-      //      progress.setFraction(((double) counter) / 10);
       response =
           DeepCodeRestApi.getAnalysis(
               DeepCodeParams.getSessionToken(),
@@ -349,12 +353,10 @@ public final class AnalysisData {
               DeepCodeParams.getMinSeverity(),
               DeepCodeParams.useLinter());
 
+      //      progress.setFraction(((double) counter) / 10);
       // todo: show progress notification
-      // fixme: debug only
-      System.out.println("    " + response);
-
+      logDeepCode(response.toString());
       if (isNotSucceed(response, "Bad GetAnalysis request: ")) return new GetAnalysisResponse();
-
       ProgressManager.checkCanceled();
       // fixme
       if (counter == 100) break;
