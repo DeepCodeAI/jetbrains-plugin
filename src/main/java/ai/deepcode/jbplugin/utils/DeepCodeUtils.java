@@ -14,6 +14,7 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
@@ -29,6 +30,7 @@ import static ai.deepcode.jbplugin.utils.DeepCodeParams.setSessionToken;
 
 public final class DeepCodeUtils {
   private static Set<String> supportedExtensions = Collections.emptySet();
+  private static Set<String> supportedConfigFiles = Collections.emptySet();
   private static final SimpleDateFormat HMSS = new SimpleDateFormat("h:m:s,S");
 
   private DeepCodeUtils() {}
@@ -37,7 +39,10 @@ public final class DeepCodeUtils {
     String currentTime = "[" + HMSS.format(System.currentTimeMillis()) + "] ";
     if (message.length() > 500) {
       message =
-          message.substring(0, 500) + " ... [" + (message.length() - 500) + " more symbols were cut]";
+          message.substring(0, 500)
+              + " ... ["
+              + (message.length() - 500)
+              + " more symbols were cut]";
     }
     // fixme: made DeepCode console
     System.out.println(currentTime + message);
@@ -161,39 +166,50 @@ public final class DeepCodeUtils {
   }
 
   public static boolean isSupportedFileFormat(PsiFile psiFile) {
-    String fileExtension = psiFile.getVirtualFile().getExtension();
-    return getSupportedExtensions(psiFile.getProject()).contains(fileExtension);
+    if (supportedExtensions.isEmpty() || supportedConfigFiles.isEmpty()) {
+      initSupportedExtentionsAndConfigFiles(psiFile.getProject());
+    }
+    final VirtualFile file = psiFile.getVirtualFile();
+    return supportedExtensions.contains(file.getExtension())
+        || supportedConfigFiles.contains(file.getName());
   }
 
   /** Potentially <b>Heavy</b> network request! */
-  private static Set<String> getSupportedExtensions(Project project) {
-    if (supportedExtensions.isEmpty()) {
-      GetFiltersResponse filtersResponse =
-          DeepCodeRestApi.getFilters(DeepCodeParams.getSessionToken());
-      if (filtersResponse.getStatusCode() == 200) {
-        supportedExtensions =
-            filtersResponse.getExtensions().stream()
-                .map(s -> s.substring(1)) // remove preceding `.` (`.js` -> `js`)
-                .collect(Collectors.toSet());
-        logDeepCode("Supported extensions: " + supportedExtensions);
-        /*
-              } else if (filtersResponse.getStatusCode() == 401) {
-                DeepCodeNotifications.showLoginLink(project);
-        */
-      } else {
-        logDeepCode(
-            "Can't retrieve supported file extensions list from the server. Fallback to default set.\n"
-                + filtersResponse.getStatusCode()
-                + " "
-                + filtersResponse.getStatusDescription());
-        supportedExtensions =
-            new HashSet<>(
-                Arrays.asList(
-                    "cc", "htm", "cpp", "c", "vue", "h", "hpp", "es6", "js", "py", "es", "jsx",
-                    "java", "tsx", "html", "ts"));
-      }
+  private static void initSupportedExtentionsAndConfigFiles(Project project) {
+    GetFiltersResponse filtersResponse =
+        DeepCodeRestApi.getFilters(DeepCodeParams.getSessionToken());
+    if (filtersResponse.getStatusCode() == 200) {
+      supportedExtensions =
+          filtersResponse.getExtensions().stream()
+              .map(s -> s.substring(1)) // remove preceding `.` (`.js` -> `js`)
+              .collect(Collectors.toSet());
+      supportedConfigFiles = new HashSet<>(filtersResponse.getConfigFiles());
+      logDeepCode("Supported extensions: " + supportedExtensions);
+      logDeepCode("Supported configFiles: " + supportedConfigFiles);
+    } else {
+      logDeepCode(
+          "Can't retrieve supported file extensions and config files from the server. Fallback to default set.\n"
+              + filtersResponse.getStatusCode()
+              + " "
+              + filtersResponse.getStatusDescription());
+      supportedExtensions =
+          new HashSet<>(
+              Arrays.asList(
+                  "cc", "htm", "cpp", "c", "vue", "h", "hpp", "es6", "js", "py", "es", "jsx",
+                  "java", "tsx", "html", "ts"));
+      supportedConfigFiles =
+          new HashSet<>(
+              Arrays.asList(
+                  "pylintrc",
+                  "ruleset.xml",
+                  ".eslintrc.json",
+                  ".pylintrc",
+                  ".eslintrc.js",
+                  "tslint.json",
+                  ".pmdrc.xml",
+                  ".ruleset.xml",
+                  ".eslintrc.yml"));
     }
-    return supportedExtensions;
   }
 
   public static class ErrorsWarningsInfos {
