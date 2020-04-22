@@ -189,7 +189,7 @@ abstract class TodoPanel extends SimpleToolWindowPanel implements OccurenceNavig
     group.add(collapseAllAction);
     group.addSeparator();
 //    group.add(ActionManager.getInstance().getAction(IdeActions.GROUP_VERSION_CONTROLS));
-    PopupHandler.installPopupHandler(myTree, group, ActionPlaces.TODO_VIEW_POPUP, ActionManager.getInstance());
+//    PopupHandler.installPopupHandler(myTree, group, ActionPlaces.TODO_VIEW_POPUP, ActionManager.getInstance());
 
     myTree.addKeyListener(
       new KeyAdapter() {
@@ -250,8 +250,8 @@ abstract class TodoPanel extends SimpleToolWindowPanel implements OccurenceNavig
     toolbarGroup.add(ActionManager.getInstance().getAction("ai.deepcode.jbplugin.ToolsMenu.ShowSettingsAction"));
     toolbarGroup.add(ActionManager.getInstance().getAction("ai.deepcode.jbplugin.ToolsMenu.AnalyseProjectAction"));
     toolbarGroup.addSeparator();
-    toolbarGroup.add(ActionManager.getInstance().getAction("ai.deepcode.jbplugin.ToolsMenu.AnalyseCurrentFileAction"));
-    toolbarGroup.add(ActionManager.getInstance().getAction("ai.deepcode.jbplugin.ToolsMenu.InvalidateCachesAction"));
+//    toolbarGroup.add(ActionManager.getInstance().getAction("ai.deepcode.jbplugin.ToolsMenu.AnalyseCurrentFileAction"));
+//    toolbarGroup.add(ActionManager.getInstance().getAction("ai.deepcode.jbplugin.ToolsMenu.InvalidateCachesAction"));
 
     setToolbar(ActionManager.getInstance().createActionToolbar(ActionPlaces.TODO_VIEW_TOOLBAR, toolbarGroup, false).getComponent());
   }

@@ -16,7 +16,9 @@
         <!-- Add your extensions here -->
         <annotator language="JAVA" implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
         <postStartupActivity implementation="ai.deepcode.jbplugin.DeepCodeStartupActivity"/>
+<!--
         <toolWindow id="DeepCode(console)" anchor="bottom" factoryClass="ai.deepcode.jbplugin.DeepCodeConsoleToolWindowFactory"/>
+-->
 
         <toolWindow id="DeepCode" anchor="bottom" factoryClass="ai.deepcode.jbplugin.DeepCodeToolWindowFactory"
                     canCloseContents="true"/>
@@ -44,7 +46,7 @@
         <!-- Add your actions here -->
         <group id="ai.deepcode.jbplugin.DeepCodeGroup" text="DeepCode.ai" popup="true">
             <action id="ai.deepcode.jbplugin.ToolsMenu.AnalyseProjectAction" class="ai.deepcode.jbplugin.actions.AnalyseProjectAction"
-                    text="Analyse All Project Files" description="Analyse all files in the Project with DeepCode.ai"
+                    text="Re-Analyse Project" description="Re-analyse all files in the Project with DeepCode.ai"
                     icon="AllIcons.Actions.Show">
                 <keyboard-shortcut keymap="$default" first-keystroke="shift alt Y"/>
             </action>
@@ -52,16 +54,12 @@
                     text="DeepCode Settings" description="Configuration for the DeepCode plugin"
                     icon="AllIcons.General.Settings">
             </action>
-            <separator/>
-            <action id="ai.deepcode.jbplugin.ToolsMenu.AnalyseCurrentFileAction" class="ai.deepcode.jbplugin.actions.AnalyseCurrentFileAction"
-                    icon="AllIcons.Actions.ShowHiddens"
-                    text="Analyse Current File" description="Analyse current file with DeepCode.ai">
-                <keyboard-shortcut keymap="$default" first-keystroke="shift alt T"/>
-            </action>
+<!--
             <action id="ai.deepcode.jbplugin.ToolsMenu.InvalidateCachesAction" class="ai.deepcode.jbplugin.actions.InvalidateCachesAction"
                     text="Clear Results" description="Invalidate caches for all current Project files"
                     icon="AllIcons.Actions.GC">
             </action>
+-->
 
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </group>
@@ -77,11 +75,13 @@
             </group>
         </group>
 
+<!--
         <action id="ai.deepcode.jbplugin.EditorPopupMenu.AnalyseCurrentFileAction" class="ai.deepcode.jbplugin.actions.AnalyseCurrentFileAction"
                 icon="AllIcons.Actions.ShowHiddens"
                 text="DeepCode Analyse Current File" description="Analyse current file with DeepCode.ai">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
             <keyboard-shortcut keymap="$default" first-keystroke="shift alt T"/>
         </action>
+-->
     </actions>
 </idea-plugin>

@@ -49,12 +49,14 @@ public final class DeepCodeUtils {
   }
 
   public static void asyncUpdateCurrentFilePanel(PsiFile psiFile) {
+/*
     ApplicationManager.getApplication()
         .invokeLater(
             () ->
                 WriteCommandAction.runWriteCommandAction(
                     psiFile.getProject(),
                     () -> DeepCodeConsoleToolWindowFactory.updateCurrentFilePanel(psiFile)));
+*/
   }
 
   public static void asyncAnalyseProjectAndUpdatePanel(@NotNull Project project) {

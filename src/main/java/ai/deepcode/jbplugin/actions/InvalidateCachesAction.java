@@ -11,11 +11,7 @@ import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
 public class InvalidateCachesAction extends AnAction {
-  /**
-   * Implement this method to provide your action handler.
-   *
-   * @param e Carries information on the invocation place
-   */
+
   @Override
   public void actionPerformed(@NotNull AnActionEvent e) {
     final Project project = e.getRequiredData(PlatformDataKeys.PROJECT);

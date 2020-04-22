@@ -21,12 +21,13 @@ public class DeepCodeStartupActivity implements StartupActivity {
     if (DeepCodeUtils.isNotLogged(project)) {
 //      DeepCodeNotifications.reShowLastNotification();
     }
-    // Fixme Analyse all project files and update project Panel
-//    DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(project);
+    DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(project);
 
+/*
     // Update CurrentFile Panel if file Tab was changed in Editor
     MessageBusConnection connection = project.getMessageBus().connect();
     connection.subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, new MyEditorManagerListener());
+*/
   }
 
   private static final class MyEditorManagerListener implements FileEditorManagerListener {

@@ -442,9 +442,11 @@ public final class AnalysisData {
       mapFile2Suggestions.clear();
       mapProject2BundleId.clear();
     } else {
-      mapFile2Suggestions.keySet().stream()
-          .filter(file -> file.getProject().equals(project))
-          .forEach(mapFile2Suggestions::remove);
+      List<PsiFile> filesToRemove =
+          mapFile2Suggestions.keySet().stream()
+              .filter(file -> file.getProject().equals(project))
+              .collect(Collectors.toList());
+      filesToRemove.forEach(mapFile2Suggestions::remove);
       mapProject2BundleId.remove(project);
     }
   }
