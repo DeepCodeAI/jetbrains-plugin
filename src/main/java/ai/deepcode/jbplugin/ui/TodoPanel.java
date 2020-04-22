@@ -234,8 +234,8 @@ abstract class TodoPanel extends SimpleToolWindowPanel implements OccurenceNavig
     // Create tool bars and register custom shortcuts
 
     DefaultActionGroup toolbarGroup = new DefaultActionGroup();
-    toolbarGroup.add(new PreviousOccurenceToolbarAction(myOccurenceNavigator));
-    toolbarGroup.add(new NextOccurenceToolbarAction(myOccurenceNavigator));
+//    toolbarGroup.add(new PreviousOccurenceToolbarAction(myOccurenceNavigator));
+//    toolbarGroup.add(new NextOccurenceToolbarAction(myOccurenceNavigator));
 //    toolbarGroup.add(new SetTodoFilterAction(myProject, mySettings, todoFilter -> setTodoFilter(todoFilter)));
     toolbarGroup.add(createAutoScrollToSourceAction());
     toolbarGroup.add(expandAllAction);

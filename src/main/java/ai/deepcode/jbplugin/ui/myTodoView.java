@@ -178,7 +178,7 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
     myContentManager = toolWindow.getContentManager();
 
     myContentManager.addContent(allTodosContent);
-    myContentManager.addContent(currentFileTodosContent);
+//    myContentManager.addContent(currentFileTodosContent);
 //    myContentManager.addContent(scopeBasedTodoContent);
 
     if (ProjectLevelVcsManager.getInstance(myProject).hasActiveVcss()) {

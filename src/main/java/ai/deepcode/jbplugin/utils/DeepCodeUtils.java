@@ -34,8 +34,12 @@ public final class DeepCodeUtils {
   private DeepCodeUtils() {}
 
   public static void logDeepCode(String message) {
-    // fixme: made DeepCode console
     String currentTime = "[" + HMSS.format(System.currentTimeMillis()) + "] ";
+    if (message.length() > 500) {
+      message =
+          message.substring(0, 500) + " ... [" + (message.length() - 500) + " more symbols were cut]";
+    }
+    // fixme: made DeepCode console
     System.out.println(currentTime + message);
   }
 

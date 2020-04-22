@@ -21,7 +21,6 @@ import org.slf4j.LoggerFactory;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -116,10 +115,7 @@ public final class AnalysisData {
       }
     }
     if (!filesToProcced.isEmpty()) {
-      String filesRepresentation = psiFiles.toString();
-      if (filesRepresentation.length() > 1000)
-        filesRepresentation = filesRepresentation.substring(0, 1000);
-      logDeepCode("Analysis requested for " + psiFiles.size() + " files: " + filesRepresentation);
+      logDeepCode("Analysis requested for " + psiFiles.size() + " files: " + psiFiles.toString());
       logDeepCode("Files to proceed (not found in cache): " + filesToProcced.size());
     }
 
@@ -134,8 +130,10 @@ public final class AnalysisData {
         brokenKeys.add(psiFile);
       }
     }
-    if (!brokenKeys.isEmpty())
-      logDeepCode("Suggestions not found for " + brokenKeys.size() + " files: " + brokenKeys);
+    if (!brokenKeys.isEmpty()) {
+      logDeepCode(
+          "Suggestions not found for " + brokenKeys.size() + " files: " + brokenKeys.toString());
+    }
     return result;
   }
 
@@ -206,7 +204,6 @@ public final class AnalysisData {
 
     long fileChunkSize = 0;
     List<PsiFile> filesChunk = new ArrayList<>();
-    logDeepCode("Files requested as missingFiles: " + missingFiles.size());
     for (String filePath : missingFiles) {
       PsiFile psiFile =
           psiFiles.stream()
@@ -221,7 +218,7 @@ public final class AnalysisData {
       }
       final long fileSize = psiFile.getVirtualFile().getLength();
       if (fileChunkSize + fileSize > MAX_BUNDLE_SIZE) {
-        logDeepCode("Files chunk size: " + fileChunkSize);
+        logDeepCode("Files-chunk size: " + fileChunkSize);
         uploadFiles(filesChunk, bundleId, progress);
         fileChunkSize = 0;
         filesChunk.clear();
@@ -229,7 +226,7 @@ public final class AnalysisData {
       fileChunkSize += fileSize;
       filesChunk.add(psiFile);
     }
-    logDeepCode("Last file chunk size: " + fileChunkSize);
+    logDeepCode("Last files-chunk size: " + fileChunkSize);
     uploadFiles(filesChunk, bundleId, progress);
 
     mapPsiFile2Hash.clear();
@@ -251,6 +248,11 @@ public final class AnalysisData {
       Project project, Map<String, String> mapPath2Hash) {
     final FileHashRequest fileHashRequest = new FileHashRequest(mapPath2Hash);
     final String parentBundleId = mapProject2BundleId.getOrDefault(project, "");
+    String message =
+        (parentBundleId.isEmpty())
+            ? "Creating new Bundle with "
+            : "Extending existing Bundle [" + parentBundleId + "] with ";
+    logDeepCode(message + mapPath2Hash.size() + " files");
     final CreateBundleResponse bundleResponse =
         (parentBundleId.isEmpty())
             // check if bundleID for the project already been created
@@ -321,9 +323,10 @@ public final class AnalysisData {
       @NotNull String bundleId,
       @NotNull ProgressIndicator progress) {
     List<FileHash2ContentRequest> listHash2Content = new ArrayList<>(psiFiles.size());
+    logDeepCode("Uploading " + psiFiles.size() + " files... ");
     for (PsiFile psiFile : psiFiles) {
       listHash2Content.add(new FileHash2ContentRequest(getHash(psiFile), getFileContent(psiFile)));
-      logDeepCode("Uploading file: " + getPath(psiFile));
+      //      logDeepCode("Uploading file: " + getPath(psiFile));
     }
     if (listHash2Content.isEmpty()) return;
 

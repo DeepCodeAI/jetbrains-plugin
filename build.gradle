@@ -44,6 +44,7 @@ patchPluginXml {
 }
 
 task runIC_201(type: RunIdeTask){
+    jvmArgs '-Xmx2G'
     ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-1\\201.6487.11'
 }
 
