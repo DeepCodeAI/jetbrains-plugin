@@ -66,13 +66,19 @@ public final class TodoFileNode extends PsiFileNode implements HighlightedRegion
   @Override
   protected void updateImpl(@NotNull PresentationData data) {
     super.updateImpl(data);
-    String newName;
+    String newName = getValue().getVirtualFile().getPresentableUrl();
+    final int length = newName.length();
+    if (length > 100) {
+      newName = newName.substring(0, 20) + " ... " + newName.substring(length - 75, length);
+    }
+/*
     if (myBuilder.getTodoTreeStructure().isPackagesShown()) {
       newName = getValue().getName();
     } else {
       newName =
           mySingleFileMode ? getValue().getName() : getValue().getVirtualFile().getPresentableUrl();
     }
+*/
 
     PsiFile psiFile = getValue();
     String message =
