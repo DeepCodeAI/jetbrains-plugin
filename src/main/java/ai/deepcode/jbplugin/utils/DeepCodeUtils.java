@@ -165,13 +165,16 @@ public final class DeepCodeUtils {
     }
   }
 
+  private static final long MAX_FILE_SIZE = 5242880; // 5MB in bytes
+
   public static boolean isSupportedFileFormat(PsiFile psiFile) {
     if (supportedExtensions.isEmpty() || supportedConfigFiles.isEmpty()) {
       initSupportedExtentionsAndConfigFiles(psiFile.getProject());
     }
     final VirtualFile file = psiFile.getVirtualFile();
-    return supportedExtensions.contains(file.getExtension())
-        || supportedConfigFiles.contains(file.getName());
+    return file.getLength() < MAX_FILE_SIZE
+        && (supportedExtensions.contains(file.getExtension())
+            || supportedConfigFiles.contains(file.getName()));
   }
 
   /** Potentially <b>Heavy</b> network request! */
