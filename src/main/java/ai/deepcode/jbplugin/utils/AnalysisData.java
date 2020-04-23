@@ -6,11 +6,15 @@ import ai.deepcode.javaclient.requests.FileContent;
 import ai.deepcode.javaclient.requests.FileHash2ContentRequest;
 import ai.deepcode.javaclient.requests.FileHashRequest;
 import ai.deepcode.javaclient.responses.*;
+import ai.deepcode.jbplugin.ui.myTodoView;
+import ai.deepcode.jbplugin.ui.utils.DeepCodeUIUtils;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.util.StatusBarProgress;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.*;
 import org.jetbrains.annotations.NotNull;
@@ -441,6 +445,9 @@ public final class AnalysisData {
     if (project == null) {
       mapFile2Suggestions.clear();
       mapProject2BundleId.clear();
+      for (Project prj : ProjectManager.getInstance().getOpenProjects()) {
+        ServiceManager.getService(prj, myTodoView.class).refresh(DeepCodeUIUtils.EMPTY_EWI_ICON);
+      }
     } else {
       List<PsiFile> filesToRemove =
           mapFile2Suggestions.keySet().stream()
@@ -448,6 +455,7 @@ public final class AnalysisData {
               .collect(Collectors.toList());
       filesToRemove.forEach(mapFile2Suggestions::remove);
       mapProject2BundleId.remove(project);
+      ServiceManager.getService(project, myTodoView.class).refresh(DeepCodeUIUtils.EMPTY_EWI_ICON);
     }
   }
 }

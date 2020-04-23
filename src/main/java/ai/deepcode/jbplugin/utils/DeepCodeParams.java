@@ -93,9 +93,6 @@ public class DeepCodeParams {
     DeepCodeRestApi.setBaseUrl(apiUrl);
     clearLoginParams();
     AnalysisData.clearCache(null);
-    for (Project project : ProjectManager.getInstance().getOpenProjects()) {
-      ServiceManager.getService(project, myTodoView.class).refresh();
-    }
   }
 
   public static boolean isEnable() {

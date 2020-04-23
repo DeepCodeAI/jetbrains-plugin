@@ -37,6 +37,7 @@ import com.intellij.util.messages.MessageBusConnection;
 import com.intellij.util.xmlb.annotations.Attribute;
 import com.intellij.util.xmlb.annotations.OptionTag;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.TestOnly;
 
 import javax.swing.*;
@@ -202,8 +203,8 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
     myPanels.add(myChangeListTodosPanel);
     myPanels.add(myCurrentFileTodosPanel);
     myPanels.add(myScopeBasedTodosPanel);
-    toolWindow.setIcon(DeepCodeUIUtils.EMPTY_EWI_ICON);
     myToolWindow = toolWindow;
+    myToolWindow.setIcon(DeepCodeUIUtils.getSummaryIcon(myProject));
   }
 
   @NotNull
@@ -267,6 +268,10 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
   }
 
   public void refresh() {
+    refresh(null);
+  }
+
+  public void refresh(@Nullable Icon icon) {
     Map<TodoPanel, Set<VirtualFile>> files = new HashMap<>();
     ReadAction.nonBlocking(() -> {
       if (myAllTodos == null) {
@@ -285,7 +290,8 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
           panel.updateTree();
           notifyUpdateFinished();
         }
-        if (myToolWindow != null) myToolWindow.setIcon(DeepCodeUIUtils.getSummaryIcon(myProject));
+        if (myToolWindow != null)
+          myToolWindow.setIcon( (icon != null) ? icon : DeepCodeUIUtils.getSummaryIcon(myProject));
       })
       .inSmartMode(myProject)
       .submit(NonUrgentExecutor.getInstance());

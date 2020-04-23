@@ -99,11 +99,11 @@ public class DeepCodeUIUtils {
   public static final Icon EMPTY_EWI_ICON =
       new RowIcon(
           errorGray,
-          IconUtil.textToIcon("0", new JLabel(), fontToScale),
+          IconUtil.textToIcon("?", new JLabel(), fontToScale),
           warningGray,
-          IconUtil.textToIcon("0", new JLabel(), fontToScale),
+          IconUtil.textToIcon("?", new JLabel(), fontToScale),
           infoGray,
-          IconUtil.textToIcon("0", new JLabel(), fontToScale));
+          IconUtil.textToIcon("?", new JLabel(), fontToScale));
 
   public static Icon getSummaryIcon(@NotNull Project project) {
     DeepCodeUtils.ErrorsWarningsInfos ewi =
@@ -111,7 +111,6 @@ public class DeepCodeUIUtils {
     int errors = ewi.getErrors();
     int warnings = ewi.getWarnings();
     int infos = ewi.getInfos();
-    if (errors == 0 && infos == 0 && warnings == 0) return EMPTY_EWI_ICON;
 
     return new RowIcon(
         (errors != 0) ? errorColor : errorGray,
