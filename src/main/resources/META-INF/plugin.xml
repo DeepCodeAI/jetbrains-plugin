@@ -21,7 +21,7 @@
 -->
 
         <toolWindow id="DeepCode" anchor="bottom" factoryClass="ai.deepcode.jbplugin.DeepCodeToolWindowFactory"
-                    canCloseContents="true"/>
+                    canCloseContents="true" icon="/icons/DeepCodeLogo.svg"/>
         <projectService serviceImplementation="ai.deepcode.jbplugin.ui.myTodoView"/>
         <projectService serviceImplementation="ai.deepcode.jbplugin.ui.nodes.TodoTreeHelper"/>
         <applicationConfigurable instance="ai.deepcode.jbplugin.ui.config.DeepCodeConfigEntry"/>
@@ -44,7 +44,7 @@
 
     <actions>
         <!-- Add your actions here -->
-        <group id="ai.deepcode.jbplugin.DeepCodeGroup" text="DeepCode.ai" popup="true">
+        <group id="ai.deepcode.jbplugin.DeepCodeGroup" text="DeepCode.ai" popup="true" icon="/icons/DeepCodeLogo.svg">
             <action id="ai.deepcode.jbplugin.ToolsMenu.AnalyseProjectAction" class="ai.deepcode.jbplugin.actions.AnalyseProjectAction"
                     text="Re-Analyse Project" description="Re-analyse all files in the Project with DeepCode.ai"
                     icon="AllIcons.Actions.Show">

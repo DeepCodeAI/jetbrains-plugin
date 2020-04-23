@@ -108,10 +108,10 @@ public final class AnalysisData {
    * @return
    */
   @NotNull
-  public static Map<PsiFile, List<SuggestionForFile>> getAnalysis(
+  public static synchronized Map<PsiFile, List<SuggestionForFile>> getAnalysis(
       @NotNull Collection<PsiFile> psiFiles) {
     Map<PsiFile, List<SuggestionForFile>> result = new HashMap<>();
-    psiFiles.stream().map(PsiElement::getProject).distinct().forEach(AnalysisData::addFileListener);
+    addFileListener(psiFiles.stream().findFirst().get().getProject());
     Collection<PsiFile> filesToProcced = new HashSet<>();
     for (PsiFile file : psiFiles) {
       if (!mapFile2Suggestions.containsKey(file)) {

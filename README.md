@@ -1,8 +1,6 @@
 # jetbrains-plugin
 Deepcode plugin for JetBrains IDE
 
-### Build
+For developers information see [Developer Guide](DeveloperGuide.md)
 
-- Place `java-client-{X.X.X}-all.jar` into `..\libs` dir;
-- Run `gradlew buildPlugin`
-- Look for resulting ZIP file at `..\build\distributions`
+For using information see [User Guide](UserGuide.md)

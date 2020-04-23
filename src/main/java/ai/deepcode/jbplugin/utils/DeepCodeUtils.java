@@ -6,18 +6,23 @@ import ai.deepcode.javaclient.responses.LoginResponse;
 import ai.deepcode.jbplugin.DeepCodeNotifications;
 import ai.deepcode.jbplugin.DeepCodeConsoleToolWindowFactory;
 import ai.deepcode.jbplugin.ui.myTodoView;
+import com.intellij.find.FindBundle;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.components.ServiceManager;
+import com.intellij.openapi.progress.PerformInBackgroundOption;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
+import com.intellij.openapi.progress.impl.BackgroundableProcessIndicator;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
+import com.intellij.util.concurrency.NonUrgentExecutor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -49,14 +54,14 @@ public final class DeepCodeUtils {
   }
 
   public static void asyncUpdateCurrentFilePanel(PsiFile psiFile) {
-/*
-    ApplicationManager.getApplication()
-        .invokeLater(
-            () ->
-                WriteCommandAction.runWriteCommandAction(
-                    psiFile.getProject(),
-                    () -> DeepCodeConsoleToolWindowFactory.updateCurrentFilePanel(psiFile)));
-*/
+    /*
+        ApplicationManager.getApplication()
+            .invokeLater(
+                () ->
+                    WriteCommandAction.runWriteCommandAction(
+                        psiFile.getProject(),
+                        () -> DeepCodeConsoleToolWindowFactory.updateCurrentFilePanel(psiFile)));
+    */
   }
 
   public static void asyncAnalyseProjectAndUpdatePanel(@NotNull Project project) {
@@ -65,20 +70,32 @@ public final class DeepCodeUtils {
             new Task.Backgroundable(project, "Analysing all project files...") {
               @Override
               public void run(@NotNull ProgressIndicator indicator) {
-                ApplicationManager.getApplication().runReadAction(doUpdate(project));
-                //        ServiceManager.getService(project, myTodoView.class).refresh();
+                ApplicationManager.getApplication().runReadAction(() -> doUpdate(project));
               }
             });
-    //    ReadAction.nonBlocking(doUpdate(project)).submit(NonUrgentExecutor.getInstance());
+    //    ReadAction.nonBlocking(() -> doUpdate(project)).submit(NonUrgentExecutor.getInstance());
   }
 
-  @NotNull
-  private static Runnable doUpdate(Project project) {
-    return () -> {
-      AnalysisData.getAnalysis(DeepCodeUtils.getAllSupportedFilesInProject(project));
-      ServiceManager.getService(project, myTodoView.class).refresh();
-      //      StatusBarUtil.setStatusBarInfo(project, message);
-    };
+  private static void doUpdate(Project project) {
+    AnalysisData.getAnalysis(DeepCodeUtils.getAllSupportedFilesInProject(project));
+    ServiceManager.getService(project, myTodoView.class).refresh();
+    //      StatusBarUtil.setStatusBarInfo(project, message);
+  }
+
+  private static void doUpdateData(Project project) {
+    ProgressIndicator indicator =
+        new BackgroundableProcessIndicator(
+            project,
+            "Analysing all project files...",
+            new PerformInBackgroundOption() {
+              @Override
+              public boolean shouldStartInBackground() {
+                return true;
+              }
+            },
+            "Stop",
+            "Stop project files analysis",
+            true);
   }
 
   public static List<PsiFile> getAllSupportedFilesInProject(@NotNull Project project) {
