@@ -26,6 +26,7 @@ import com.intellij.openapi.vcs.VcsListener;
 import com.intellij.openapi.vcs.changes.ChangeListManager;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
+import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.openapi.wm.ex.ToolWindowEx;
 import com.intellij.ui.IdeUICustomization;
 import com.intellij.ui.content.Content;
@@ -65,8 +66,6 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
   private Content myChangeListTodosContent;
 
   private final MyVcsListener myVcsListener = new MyVcsListener();
-
-  private ToolWindow myToolWindow;
 
   public myTodoView(@NotNull Project project) {
     myProject = project;
@@ -203,8 +202,7 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
     myPanels.add(myChangeListTodosPanel);
     myPanels.add(myCurrentFileTodosPanel);
     myPanels.add(myScopeBasedTodosPanel);
-    myToolWindow = toolWindow;
-    myToolWindow.setIcon(DeepCodeUIUtils.getSummaryIcon(myProject));
+    toolWindow.setIcon(DeepCodeUIUtils.getSummaryIcon(myProject));
   }
 
   @NotNull
@@ -268,10 +266,6 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
   }
 
   public void refresh() {
-    refresh(null);
-  }
-
-  public void refresh(@Nullable Icon icon) {
     Map<TodoPanel, Set<VirtualFile>> files = new HashMap<>();
     ReadAction.nonBlocking(() -> {
       if (myAllTodos == null) {
@@ -290,8 +284,8 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
           panel.updateTree();
           notifyUpdateFinished();
         }
-        if (myToolWindow != null)
-          myToolWindow.setIcon( (icon != null) ? icon : DeepCodeUIUtils.getSummaryIcon(myProject));
+        ToolWindow myToolWindow = ToolWindowManager.getInstance(myProject).getToolWindow("DeepCode");
+        if (myToolWindow != null) myToolWindow.setIcon(DeepCodeUIUtils.getSummaryIcon(myProject));
       })
       .inSmartMode(myProject)
       .submit(NonUrgentExecutor.getInstance());

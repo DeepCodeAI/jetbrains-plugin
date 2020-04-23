@@ -84,8 +84,8 @@ public class DeepCodeParams {
     return apiUrl;
   }
 
-  public static void setApiUrl(String apiUrl) {
-//    if (apiUrl == null || apiUrl.isEmpty()) apiUrl = "https://www.deepcode.ai/";
+  public static void setApiUrl(@NotNull String apiUrl) {
+    if (apiUrl.isEmpty()) apiUrl = "https://www.deepcode.ai/";
     if (!apiUrl.endsWith("/")) apiUrl += "/";
     if (apiUrl.equals(DeepCodeParams.apiUrl)) return;
     DeepCodeParams.apiUrl = apiUrl;
@@ -106,7 +106,7 @@ public class DeepCodeParams {
 
   static {
     isEnable = propertiesComponent.getBoolean("isEnable", true);
-    apiUrl = propertiesComponent.getValue("apiUrl", "");
+    apiUrl = propertiesComponent.getValue("apiUrl", "https://www.deepcode.ai/");
     DeepCodeRestApi.setBaseUrl(apiUrl);
     sessionToken = propertiesComponent.getValue("sessionToken", "");
     loginUrl = propertiesComponent.getValue("loginUrl", "");

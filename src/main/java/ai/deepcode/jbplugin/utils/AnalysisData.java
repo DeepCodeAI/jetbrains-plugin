@@ -441,12 +441,18 @@ public final class AnalysisData {
         .collect(Collectors.toSet());
   }
 
+  public static Set<PsiFile> getAllAnalysedFiles(@NotNull final Project project) {
+    return mapFile2Suggestions.keySet().stream()
+        .filter(s -> s.getProject().equals(project))
+        .collect(Collectors.toSet());
+  }
+
   public static void clearCache(@Nullable final Project project) {
     if (project == null) {
       mapFile2Suggestions.clear();
       mapProject2BundleId.clear();
       for (Project prj : ProjectManager.getInstance().getOpenProjects()) {
-        ServiceManager.getService(prj, myTodoView.class).refresh(DeepCodeUIUtils.EMPTY_EWI_ICON);
+        ServiceManager.getService(prj, myTodoView.class).refresh();
       }
     } else {
       List<PsiFile> filesToRemove =
@@ -455,7 +461,7 @@ public final class AnalysisData {
               .collect(Collectors.toList());
       filesToRemove.forEach(mapFile2Suggestions::remove);
       mapProject2BundleId.remove(project);
-      ServiceManager.getService(project, myTodoView.class).refresh(DeepCodeUIUtils.EMPTY_EWI_ICON);
+      ServiceManager.getService(project, myTodoView.class).refresh();
     }
   }
 }
