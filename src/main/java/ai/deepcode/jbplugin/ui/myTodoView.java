@@ -117,7 +117,9 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
   public void initToolWindow(@NotNull ToolWindow toolWindow) {
     // Create panels
     ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
-    Content allTodosContent = contentFactory.createContent(null, IdeUICustomization.getInstance().getProjectDisplayName(), false);
+    final String projectDisplayName =
+            IdeUICustomization.getInstance().getProjectDisplayName() + " [ " + myProject.getName() + " ]";
+    Content allTodosContent = contentFactory.createContent(null, projectDisplayName, false);
     toolWindow.setHelpId("find.todoList");
     myAllTodos = new TodoPanel(myProject, state.all, false, allTodosContent) {
       @Override
@@ -283,7 +285,7 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
           panel.updateTree();
           notifyUpdateFinished();
         }
-        myToolWindow.setIcon(DeepCodeUIUtils.getSummaryIcon(myProject));
+        if (myToolWindow != null) myToolWindow.setIcon(DeepCodeUIUtils.getSummaryIcon(myProject));
       })
       .inSmartMode(myProject)
       .submit(NonUrgentExecutor.getInstance());

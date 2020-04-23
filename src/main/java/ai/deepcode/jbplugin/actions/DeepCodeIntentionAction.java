@@ -4,6 +4,7 @@ import ai.deepcode.jbplugin.utils.AnalysisData;
 import com.intellij.codeInsight.intention.IntentionAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.EditorKind;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiFile;
@@ -68,7 +69,9 @@ public class DeepCodeIntentionAction implements IntentionAction {
    */
   @Override
   public boolean isAvailable(@NotNull Project project, Editor editor, PsiFile file) {
-    return file.equals(myPsiFile)
+    return editor.getEditorKind() != EditorKind.PREVIEW
+        // otherwise preview editor will close (no suggestion found) before description entered.
+        && file.equals(myPsiFile)
         && AnalysisData.getAnalysis(file).stream()
             .flatMap(s -> s.getRanges().stream())
             .anyMatch(r -> r.contains(myRange));
