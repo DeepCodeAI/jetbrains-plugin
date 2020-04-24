@@ -1,8 +1,10 @@
 ### Build
 
+- Clone this repository: `git clone https://github.com/DeepCodeAI/jetbrains-plugin.git` 
+- Switch to the dev branch: `git checkout origin/dev`
 - Install Java 11 or higher (https://adoptopenjdk.net/) and/or make sure JAVA_HOME is pointing to Java 11 installation path of the JDK;
 - Check if java is correctly installed (and your java version) with `java -version` command;
-- Place `java-client-{X.X.X}-all.jar` into `..\libs` dir (see deepcode/java-client repository for instruction how to build it);
+- Place `java-client-{X.X.X}-all.jar` into `..\libs` dir (see [java-client](https://github.com/DeepCodeAI/java-client) repository for instruction how to build it);
 - At `build.gradle` file inside `intellij` block: uncomment `version` line and comment `localPath` line (or change `localPath` to pointing your locally installed Intellij Idea instance);
 - Run `gradlew buildPlugin`
 - Look for resulting ZIP file at `..\build\distributions`

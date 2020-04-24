@@ -31,6 +31,8 @@
                            implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
         <externalAnnotator language=""
                            implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <externalAnnotator language="textmate"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
 
         <externalAnnotator language="JAVA"
                            implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
