@@ -34,6 +34,7 @@ import static ai.deepcode.jbplugin.utils.DeepCodeUtils.logDeepCode;
 public final class AnalysisData {
   private static final Logger LOG = LoggerFactory.getLogger("DeepCode.AnalysisData");
   private static final Map<PsiFile, List<SuggestionForFile>> EMPTY_MAP = Collections.emptyMap();
+  private static String analysisUrl = "";
 
   private AnalysisData() {}
 
@@ -41,6 +42,10 @@ public final class AnalysisData {
   private static final Map<PsiFile, List<SuggestionForFile>> mapFile2Suggestions =
       new Hashtable<>(); // we need read and write full data lock
   //      new ConcurrentHashMap<>();
+
+  public static String getAnalysisUrl() {
+    return analysisUrl;
+  }
 
   public static class SuggestionForFile {
     private final String id;
@@ -168,8 +173,8 @@ public final class AnalysisData {
     long startTime;
     // Create Bundle
     startTime = System.currentTimeMillis();
-    ProgressManager.checkCanceled();
     progress.setText("Preparing files for upload...");
+    ProgressManager.checkCanceled();
     mapPsiFile2Hash.clear();
     mapPsiFile2Content.clear();
     Project project = psiFiles.stream().findFirst().get().getProject();
@@ -203,8 +208,8 @@ public final class AnalysisData {
 
     // Upload Files
     startTime = System.currentTimeMillis();
-    ProgressManager.checkCanceled();
     progress.setText("Uploading files to the server...");
+    ProgressManager.checkCanceled();
 
     long fileChunkSize = 0;
     List<PsiFile> filesChunk = new ArrayList<>();
@@ -240,6 +245,8 @@ public final class AnalysisData {
 
     // Get Analysis
     startTime = System.currentTimeMillis();
+    progress.setText("Waiting for analysis from server...");
+    ProgressManager.checkCanceled();
     GetAnalysisResponse getAnalysisResponse = retrieveSuggestions(bundleId, progress);
     result = parseGetAnalysisResponse(psiFiles, getAnalysisResponse);
     logDeepCode(
@@ -264,6 +271,7 @@ public final class AnalysisData {
             : DeepCodeRestApi.extendBundle(
                 DeepCodeParams.getSessionToken(),
                 parentBundleId,
+                //fixme removedFiles
                 new ExtendBundleRequest(fileHashRequest.getFiles(), Collections.emptyList()));
     mapProject2BundleId.put(project, bundleResponse.getBundleId());
     return bundleResponse;
@@ -342,8 +350,6 @@ public final class AnalysisData {
   @NotNull
   private static GetAnalysisResponse retrieveSuggestions(
       @NotNull String bundleId, @NotNull ProgressIndicator progress) {
-    ProgressManager.checkCanceled();
-    progress.setText("Waiting for analysis from server...");
     GetAnalysisResponse response;
     int counter = 0;
     do {
@@ -378,6 +384,7 @@ public final class AnalysisData {
     Map<PsiFile, List<SuggestionForFile>> result = new HashMap<>();
     if (!response.getStatus().equals("DONE")) return EMPTY_MAP;
     AnalysisResults analysisResults = response.getAnalysisResults();
+    analysisUrl = response.getAnalysisURL();
     if (analysisResults == null) {
       LOG.error("AnalysisResults is null for: {}", response);
       return EMPTY_MAP;
@@ -463,5 +470,6 @@ public final class AnalysisData {
       mapProject2BundleId.remove(project);
       ServiceManager.getService(project, myTodoView.class).refresh();
     }
+    analysisUrl = "";
   }
 }

@@ -7,7 +7,7 @@ plugins {
 
 //group 'org.example'
 
-version '0.0.1-alpha'
+version '0.0.2-alpha'
 sourceCompatibility = 1.8
 
 repositories {
@@ -40,7 +40,9 @@ patchPluginXml {
     untilBuild 202
 
     changeNotes """
-      0.0.1-alpha - initial alpha release for inner testing.<br>"""
+      0.0.2-alpha - see commits history for changes.<br>
+      0.0.1-alpha - initial alpha release for inner testing.<br>      
+    """
 }
 
 task runIC_201(type: RunIdeTask){

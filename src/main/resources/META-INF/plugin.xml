@@ -56,6 +56,10 @@
                     text="DeepCode Settings" description="Configuration for the DeepCode plugin"
                     icon="AllIcons.General.Settings">
             </action>
+           <action id="ai.deepcode.jbplugin.ToolsMenu.SeeResultsInBrowserAction" class="ai.deepcode.jbplugin.actions.SeeResultsInBrowserAction"
+                    text="Open Results in Browser" description="Open analysis results in browser"
+                    icon="AllIcons.General.Web">
+            </action>
 <!--
             <action id="ai.deepcode.jbplugin.ToolsMenu.InvalidateCachesAction" class="ai.deepcode.jbplugin.actions.InvalidateCachesAction"
                     text="Clear Results" description="Invalidate caches for all current Project files"
