@@ -1,6 +1,5 @@
 package ai.deepcode.jbplugin.actions;
 
-import ai.deepcode.jbplugin.DeepCodeNotifications;
 import ai.deepcode.jbplugin.utils.AnalysisData;
 import ai.deepcode.jbplugin.utils.DeepCodeUtils;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -14,11 +13,9 @@ public class AnalyseProjectAction extends AnAction {
   @Override
   public void actionPerformed(@NotNull AnActionEvent e) {
     final Project project = e.getRequiredData(PlatformDataKeys.PROJECT);
-    if (DeepCodeUtils.isNotLogged(project)) {
-      DeepCodeNotifications.reShowLastNotification();
-      return;
-    }
     AnalysisData.clearCache(project);
-    DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(project);
+    if (DeepCodeUtils.isLogged(project, true)) {
+      DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(project);
+    }
   }
 }

@@ -162,11 +162,15 @@ public final class AnalysisData {
     return result;
   }
 
+  private static boolean loginRequested = false;
+
   private static boolean isNotSucceed(EmptyResponse response, String message) {
-    if (response.getStatusCode() == 200) return false;
-    // new logging was not requested during current session.
-    if ((response.getStatusCode() == 401) && !DeepCodeParams.loggingRequested) {
-      DeepCodeUtils.requestNewLogin(null);
+    if (response.getStatusCode() == 200) {
+      loginRequested = false;
+      return false;
+    } else if (response.getStatusCode() == 401) {
+      DeepCodeUtils.isLogged(null, !loginRequested);
+      loginRequested = true;
     }
     logDeepCode(message + response.getStatusCode() + " " + response.getStatusDescription());
     return true;
@@ -180,7 +184,7 @@ public final class AnalysisData {
   @NotNull
   private static Map<PsiFile, List<SuggestionForFile>> retrieveSuggestions(
       @NotNull Collection<PsiFile> psiFiles) {
-    if (psiFiles.isEmpty() || DeepCodeUtils.isNotLogged(null)) return Collections.emptyMap();
+    if (psiFiles.isEmpty() || !DeepCodeUtils.isLogged(null, false)) return Collections.emptyMap();
     Map<PsiFile, List<SuggestionForFile>> result = new HashMap<>();
     ProgressIndicator progress = new StatusBarProgress();
     //    progress.setIndeterminate(false);

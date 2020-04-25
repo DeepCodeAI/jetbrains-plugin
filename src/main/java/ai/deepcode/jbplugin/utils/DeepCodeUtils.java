@@ -1,15 +1,13 @@
 package ai.deepcode.jbplugin.utils;
 
 import ai.deepcode.javaclient.DeepCodeRestApi;
+import ai.deepcode.javaclient.responses.EmptyResponse;
 import ai.deepcode.javaclient.responses.GetFiltersResponse;
 import ai.deepcode.javaclient.responses.LoginResponse;
 import ai.deepcode.jbplugin.DeepCodeNotifications;
-import ai.deepcode.jbplugin.DeepCodeConsoleToolWindowFactory;
 import ai.deepcode.jbplugin.ui.myTodoView;
-import com.intellij.find.FindBundle;
+import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.application.ReadAction;
-import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.progress.PerformInBackgroundOption;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -22,16 +20,12 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
-import com.intellij.util.concurrency.NonUrgentExecutor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import static ai.deepcode.jbplugin.utils.DeepCodeParams.setLoginUrl;
-import static ai.deepcode.jbplugin.utils.DeepCodeParams.setSessionToken;
 
 public final class DeepCodeUtils {
   private static Set<String> supportedExtensions = Collections.emptySet();
@@ -64,7 +58,15 @@ public final class DeepCodeUtils {
     */
   }
 
-  public static void asyncAnalyseProjectAndUpdatePanel(@NotNull Project project) {
+  public static void asyncAnalyseProjectAndUpdatePanel(@Nullable Project project) {
+    if (project == null) {
+      for (Project prj : ProjectManager.getInstance().getOpenProjects()) {
+        doAsyncAnalyseProjectAndUpdatePanel(prj);
+      }
+    } else doAsyncAnalyseProjectAndUpdatePanel(project);
+  }
+
+  private static void doAsyncAnalyseProjectAndUpdatePanel(@NotNull Project project) {
     ProgressManager.getInstance()
         .run(
             new Task.Backgroundable(project, "Analysing all project files...") {
@@ -138,31 +140,23 @@ public final class DeepCodeUtils {
     return new ErrorsWarningsInfos(errors, warnings, infos);
   }
 
-  /** Potentially <b>Heavy</b> network request! */
-  public static boolean isNotLogged(@Nullable Project project) {
-    boolean result;
+  /** network request! */
+  public static boolean isLogged(@Nullable Project project, boolean showLoginLink) {
     final String sessionToken = DeepCodeParams.getSessionToken();
-    if (sessionToken.isEmpty()) {
-      requestNewLogin(project);
-      result = true;
-    } else {
-      final int statusCode = DeepCodeRestApi.checkSession(sessionToken).getStatusCode();
-      if (statusCode == 401) {
-        requestNewLogin(project);
-        result = true;
-      } else if (statusCode == 304) {
-        if (!DeepCodeParams.loggingRequested) {
-          DeepCodeNotifications.showLoginLink(project);
-          DeepCodeParams.loggingRequested = true;
-        }
-        result = true;
-      } else result = statusCode != 200;
+    final EmptyResponse response = DeepCodeRestApi.checkSession(sessionToken);
+    final boolean isLogged = response.getStatusCode() == 200;
+    String message = response.getStatusDescription();
+    if (!isLogged && showLoginLink) {
+      DeepCodeNotifications.showLoginLink(project, message);
     }
     logDeepCode(
-        ((result) ? "Logging check fails!" : "Logging check succeed.") + " Token: " + sessionToken);
-    return result;
+        ((isLogged) ? "Logging check succeed." : "Logging check fails: " + message)
+            + " Token: "
+            + sessionToken);
+    return isLogged;
   }
 
+  /** network request! */
   public static void requestNewLogin(@Nullable Project project) {
     Project[] projects =
         (project != null)
@@ -171,12 +165,9 @@ public final class DeepCodeUtils {
     DeepCodeParams.clearLoginParams();
     LoginResponse response = DeepCodeRestApi.newLogin();
     if (response.getStatusCode() == 200) {
-      setSessionToken(response.getSessionToken());
-      setLoginUrl(response.getLoginURL());
-      for (Project prj : projects) {
-        DeepCodeNotifications.showLoginLink(prj);
-      }
-      DeepCodeParams.loggingRequested = true;
+      DeepCodeParams.setSessionToken(response.getSessionToken());
+      DeepCodeParams.setLoginUrl(response.getLoginURL());
+      BrowserUtil.open(DeepCodeParams.getLoginUrl());
     } else {
       for (Project prj : projects) {
         DeepCodeNotifications.showError(response.getStatusDescription(), prj);

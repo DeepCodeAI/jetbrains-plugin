@@ -1,6 +1,6 @@
 package ai.deepcode.jbplugin.ui.config;
 
-import ai.deepcode.jbplugin.DeepCodeNotifications;
+import ai.deepcode.jbplugin.utils.AnalysisData;
 import ai.deepcode.jbplugin.utils.DeepCodeParams;
 import ai.deepcode.jbplugin.utils.DeepCodeUtils;
 import com.intellij.openapi.options.Configurable;
@@ -64,14 +64,24 @@ public class DeepCodeConfigEntry implements Configurable {
   @Override
   public void apply() throws ConfigurationException {
     if (myForm == null) return;
-    DeepCodeParams.setSessionToken(myForm.getTokenID());
+    boolean clearCachesAndRescan = false;
+    if (!myForm.getTokenID().equals(DeepCodeParams.getSessionToken())) {
+      DeepCodeParams.setSessionToken(myForm.getTokenID());
+      DeepCodeParams.setLoginUrl("");
+      clearCachesAndRescan = true;
+    }
+    if (!myForm.getBaseURL().equals(DeepCodeParams.getApiUrl())) {
+      DeepCodeParams.setApiUrl(myForm.getBaseURL());
+      clearCachesAndRescan = true;
+    }
     DeepCodeParams.setMinSeverity(myForm.getMinSeverityLevel());
     DeepCodeParams.setUseLinter(myForm.isLintersEnabled());
     DeepCodeParams.setEnable(myForm.isPluginEnabled());
-    DeepCodeParams.setApiUrl(myForm.getBaseURL());
-    // Initiate new Login if needed
-    if (DeepCodeUtils.isNotLogged(null)) {
-//      DeepCodeNotifications.reShowLastNotification();
+    if (clearCachesAndRescan) {
+      AnalysisData.clearCache(null);
+      if (DeepCodeUtils.isLogged(null, true)) {
+        DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(null);
+      }
     }
   }
 

@@ -26,7 +26,6 @@ public class DeepCodeParams {
 
   // Inner params
   private static String loginUrl;
-  public static boolean loggingRequested = false; // indicate that new login was requested withing current session
 
   // TODO https://www.jetbrains.org/intellij/sdk/docs/basics/persisting_sensitive_data.html
   private static final PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
@@ -36,7 +35,6 @@ public class DeepCodeParams {
   public static void clearLoginParams(){
     setSessionToken("");
     setLoginUrl("");
-    loggingRequested = false;
   }
 
   @NotNull
@@ -47,7 +45,6 @@ public class DeepCodeParams {
   public static void setSessionToken(String sessionToken) {
     DeepCodeParams.sessionToken = sessionToken;
     propertiesComponent.setValue("sessionToken", sessionToken);
-    loggingRequested = false;
   }
 
   @NotNull
@@ -58,7 +55,6 @@ public class DeepCodeParams {
   public static void setLoginUrl(String loginUrl) {
     DeepCodeParams.loginUrl = loginUrl;
     propertiesComponent.setValue("loginUrl", loginUrl);
-    loggingRequested = false;
   }
 
   public static boolean useLinter() {
@@ -91,8 +87,6 @@ public class DeepCodeParams {
     DeepCodeParams.apiUrl = apiUrl;
     propertiesComponent.setValue("apiUrl", apiUrl);
     DeepCodeRestApi.setBaseUrl(apiUrl);
-    clearLoginParams();
-    AnalysisData.clearCache(null);
   }
 
   public static boolean isEnable() {

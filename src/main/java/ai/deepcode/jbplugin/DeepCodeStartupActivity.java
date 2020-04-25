@@ -10,7 +10,6 @@ import com.intellij.openapi.startup.StartupActivity;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
-import com.intellij.util.messages.MessageBusConnection;
 import org.jetbrains.annotations.NotNull;
 
 public class DeepCodeStartupActivity implements StartupActivity {
@@ -18,11 +17,9 @@ public class DeepCodeStartupActivity implements StartupActivity {
   @Override
   public void runActivity(@NotNull Project project) {
     // Initial logging if needed.
-    if (DeepCodeUtils.isNotLogged(project)) {
-//      DeepCodeNotifications.reShowLastNotification();
+    if (DeepCodeUtils.isLogged(project, true)) {
+      DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(project);
     }
-    DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(project);
-
 /*
     // Update CurrentFile Panel if file Tab was changed in Editor
     MessageBusConnection connection = project.getMessageBus().connect();

@@ -1,5 +1,7 @@
 package ai.deepcode.jbplugin;
 
+import ai.deepcode.jbplugin.utils.DeepCodeParams;
+import ai.deepcode.jbplugin.utils.DeepCodeUtils;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
@@ -21,26 +23,29 @@ public class DeepCodeNotifications {
     lastNotification.run();
   }
 
-  public static void showLoginLink(@Nullable Project project) {
-    lastNotification = () -> showLoginLink(project);
+  public static void showLoginLink(@Nullable Project project, @NotNull String message) {
+    lastNotification = () -> showLoginLink(project, message);
     new Notification(
             groupDisplayId,
             title,
-            "Login to your DeepCode account, please: ",
+            message,
             NotificationType.INFORMATION)
-        .addAction(new ShowLoginAction())
+        .addAction(new ShowLoginAction(project))
         .notify(project);
   }
 
   private static class ShowLoginAction extends DumbAwareAction {
 
-    ShowLoginAction() {
-      super(getLoginUrl());
+    private final Project myProject;
+
+    ShowLoginAction(@Nullable Project project) {
+      super("Open web-browser to Login with new token");
+      myProject = project;
     }
 
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
-      BrowserUtil.open(getLoginUrl());
+      DeepCodeUtils.requestNewLogin(myProject);
     }
   }
 
