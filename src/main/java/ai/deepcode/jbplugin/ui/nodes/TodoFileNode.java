@@ -69,7 +69,7 @@ public final class TodoFileNode extends PsiFileNode implements HighlightedRegion
     String newName = getValue().getVirtualFile().getPresentableUrl();
     final int length = newName.length();
     if (length > 100) {
-      newName = newName.substring(0, 20) + " ... " + newName.substring(length - 75, length);
+      newName = "..." + newName.substring(length - 93, length);
     }
 /*
     if (myBuilder.getTodoTreeStructure().isPackagesShown()) {

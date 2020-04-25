@@ -7,7 +7,6 @@ import ai.deepcode.javaclient.requests.FileHash2ContentRequest;
 import ai.deepcode.javaclient.requests.FileHashRequest;
 import ai.deepcode.javaclient.responses.*;
 import ai.deepcode.jbplugin.ui.myTodoView;
-import ai.deepcode.jbplugin.ui.utils.DeepCodeUIUtils;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -16,7 +15,10 @@ import com.intellij.openapi.progress.util.StatusBarProgress;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.util.TextRange;
-import com.intellij.psi.*;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiManager;
+import com.intellij.psi.PsiTreeChangeAdapter;
+import com.intellij.psi.PsiTreeChangeEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -32,16 +34,19 @@ import java.util.stream.Collectors;
 import static ai.deepcode.jbplugin.utils.DeepCodeUtils.logDeepCode;
 
 public final class AnalysisData {
+  private AnalysisData() {}
+
   private static final Logger LOG = LoggerFactory.getLogger("DeepCode.AnalysisData");
   private static final Map<PsiFile, List<SuggestionForFile>> EMPTY_MAP = Collections.emptyMap();
   private static String analysisUrl = "";
 
-  private AnalysisData() {}
-
   // todo: keep few latest file versions (Guava com.google.common.cache.CacheBuilder ?)
   private static final Map<PsiFile, List<SuggestionForFile>> mapFile2Suggestions =
-      new Hashtable<>(); // we need read and write full data lock
-  //      new ConcurrentHashMap<>();
+// deepcode ignore ApiMigration~java.util.Hashtable: we need read and write full data lock
+      new Hashtable<>();  //new ConcurrentHashMap<>();
+
+  private static final Map<Project, String> mapProject2BundleId = new ConcurrentHashMap<>();
+  private static final Set<String> removedFiles = Collections.synchronizedSet(new HashSet<>());
 
   public static String getAnalysisUrl() {
     return analysisUrl;
@@ -77,8 +82,8 @@ public final class AnalysisData {
     }
   }
 
-  private static final Map<Project, String> mapProject2BundleId = new ConcurrentHashMap<>();
-
+  // todo listen to VFS events? See {@link PsiTreeChangeEvent} documentation for more details
+  // also problems with batch of files updates and out of IDE file update.
   /** Add File Listener to clear caches for file if it was changed. */
   private static void addFileListener(@NotNull final Project project) {
     if (!mapProject2BundleId.containsKey(project)) {
@@ -87,13 +92,24 @@ public final class AnalysisData {
               new PsiTreeChangeAdapter() {
                 @Override
                 public void beforeChildrenChange(@NotNull PsiTreeChangeEvent event) {
-                  PsiFile file = event.getFile();
-                  if (file != null && mapFile2Suggestions.remove(file) != null) {
-                    logDeepCode("Removed from cache: " + file);
-                  }
+                  removeFileFromCache(event.getFile());
+                }
+
+                @Override
+                public void beforeChildRemoval(@NotNull PsiTreeChangeEvent event) {
+                  PsiFile file = (event.getChild() instanceof PsiFile) ? (PsiFile)event.getChild() : null;
+                  removeFileFromCache(file);
+                  // todo remove file from bundle on server, otherwise inconsistent state
+                  if (file != null) removedFiles.add(getDeepCodedFilePath(file));
                 }
               });
       mapProject2BundleId.put(project, "");
+    }
+  }
+
+  private static void removeFileFromCache(PsiFile file) {
+    if (file != null && mapFile2Suggestions.remove(file) != null) {
+      logDeepCode("Removed from cache: " + file);
     }
   }
 
@@ -260,19 +276,28 @@ public final class AnalysisData {
     final FileHashRequest fileHashRequest = new FileHashRequest(mapPath2Hash);
     final String parentBundleId = mapProject2BundleId.getOrDefault(project, "");
     String message =
-        (parentBundleId.isEmpty())
-            ? "Creating new Bundle with "
-            : "Extending existing Bundle [" + parentBundleId + "] with ";
-    logDeepCode(message + mapPath2Hash.size() + " files");
-    final CreateBundleResponse bundleResponse =
-        (parentBundleId.isEmpty())
-            // check if bundleID for the project already been created
-            ? DeepCodeRestApi.createBundle(DeepCodeParams.getSessionToken(), fileHashRequest)
-            : DeepCodeRestApi.extendBundle(
-                DeepCodeParams.getSessionToken(),
-                parentBundleId,
-                //fixme removedFiles
-                new ExtendBundleRequest(fileHashRequest.getFiles(), Collections.emptyList()));
+        (parentBundleId.isEmpty()
+                ? "Creating new Bundle with "
+                : "Extending existing Bundle [" + parentBundleId + "] with ")
+            + mapPath2Hash.size()
+            + " files"
+            + (removedFiles.isEmpty() ? "" : " and remove " + removedFiles.size() + " files");
+    logDeepCode(message);
+    final CreateBundleResponse bundleResponse;
+    // check if bundleID for the project already been created
+    if (parentBundleId.isEmpty())
+      bundleResponse =
+          DeepCodeRestApi.createBundle(DeepCodeParams.getSessionToken(), fileHashRequest);
+    else {
+      final ArrayList<String> removedFilesList = new ArrayList<>(AnalysisData.removedFiles);
+      removedFiles.clear();
+      bundleResponse =
+          DeepCodeRestApi.extendBundle(
+              DeepCodeParams.getSessionToken(),
+              parentBundleId,
+              // fixme removedFiles
+              new ExtendBundleRequest(fileHashRequest.getFiles(), removedFilesList));
+    }
     mapProject2BundleId.put(project, bundleResponse.getBundleId());
     return bundleResponse;
   }
