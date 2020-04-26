@@ -19,7 +19,6 @@
 <!--
         <toolWindow id="DeepCode(console)" anchor="bottom" factoryClass="ai.deepcode.jbplugin.DeepCodeConsoleToolWindowFactory"/>
 -->
-
         <toolWindow id="DeepCode" anchor="bottom" factoryClass="ai.deepcode.jbplugin.DeepCodeToolWindowFactory"
                     canCloseContents="true" icon="/icons/DeepCodeLogo.svg"/>
         <projectService serviceImplementation="ai.deepcode.jbplugin.ui.myTodoView"/>
@@ -33,7 +32,6 @@
                            implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
         <externalAnnotator language="textmate"
                            implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
-
         <externalAnnotator language="JAVA"
                            implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
         <externalAnnotator language="JavaScript"
@@ -43,6 +41,11 @@
         <externalAnnotator language="Python"
                            implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
     </extensions>
+
+    <projectListeners>
+        <listener class="ai.deepcode.jbplugin.utils.AnalysisData$MyProjectManagerListener"
+                  topic="com.intellij.openapi.project.ProjectManagerListener"/>
+    </projectListeners>
 
     <actions>
         <!-- Add your actions here -->

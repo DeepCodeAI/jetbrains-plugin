@@ -14,6 +14,7 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.util.StatusBarProgress;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
+import com.intellij.openapi.project.ProjectManagerListener;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
@@ -42,8 +43,8 @@ public final class AnalysisData {
 
   // todo: keep few latest file versions (Guava com.google.common.cache.CacheBuilder ?)
   private static final Map<PsiFile, List<SuggestionForFile>> mapFile2Suggestions =
-// deepcode ignore ApiMigration~java.util.Hashtable: we need read and write full data lock
-      new Hashtable<>();  //new ConcurrentHashMap<>();
+      // deepcode ignore ApiMigration~java.util.Hashtable: we need read and write full data lock
+      new Hashtable<>(); // new ConcurrentHashMap<>();
 
   private static final Map<Project, String> mapProject2BundleId = new ConcurrentHashMap<>();
   private static final Set<String> removedFiles = Collections.synchronizedSet(new HashSet<>());
@@ -82,28 +83,38 @@ public final class AnalysisData {
     }
   }
 
-  // todo listen to VFS events? See {@link PsiTreeChangeEvent} documentation for more details
-  // also problems with batch of files updates and out of IDE file update.
   /** Add File Listener to clear caches for file if it was changed. */
-  private static void addFileListener(@NotNull final Project project) {
-    if (!mapProject2BundleId.containsKey(project)) {
-      PsiManager.getInstance(project)
-          .addPsiTreeChangeListener(
-              new PsiTreeChangeAdapter() {
-                @Override
-                public void beforeChildrenChange(@NotNull PsiTreeChangeEvent event) {
-                  removeFileFromCache(event.getFile());
-                }
+  private static class MyProjectManagerListener implements ProjectManagerListener {
+    @Override
+    public void projectOpened(@NotNull Project project) {
+      if (!mapProject2BundleId.containsKey(project)) {
+        PsiManager.getInstance(project).addPsiTreeChangeListener(new MyPsiTreeChangeAdapter());
+        mapProject2BundleId.put(project, "");
+      }
+    }
 
-                @Override
-                public void beforeChildRemoval(@NotNull PsiTreeChangeEvent event) {
-                  PsiFile file = (event.getChild() instanceof PsiFile) ? (PsiFile)event.getChild() : null;
-                  removeFileFromCache(file);
-                  // todo remove file from bundle on server, otherwise inconsistent state
-                  if (file != null) removedFiles.add(getDeepCodedFilePath(file));
-                }
-              });
-      mapProject2BundleId.put(project, "");
+    @Override
+    public void projectClosing(@NotNull Project project) {
+      if (mapProject2BundleId.remove(project) != null) {
+        logDeepCode("Removed from cache: " + project);
+      }
+    }
+
+    private static class MyPsiTreeChangeAdapter extends PsiTreeChangeAdapter {
+      @Override
+      public void beforeChildrenChange(@NotNull PsiTreeChangeEvent event) {
+        removeFileFromCache(event.getFile());
+      }
+
+      // todo listen to VFS events? See {@link PsiTreeChangeEvent} documentation for more details
+      // also problems with batch of files updates and out of IDE file update.
+      @Override
+      public void beforeChildRemoval(@NotNull PsiTreeChangeEvent event) {
+        PsiFile file = (event.getChild() instanceof PsiFile) ? (PsiFile) event.getChild() : null;
+        removeFileFromCache(file);
+        // todo remove file from bundle on server, otherwise inconsistent state
+        if (file != null) removedFiles.add(getDeepCodedFilePath(file));
+      }
     }
   }
 
@@ -132,7 +143,6 @@ public final class AnalysisData {
   public static synchronized Map<PsiFile, List<SuggestionForFile>> getAnalysis(
       @NotNull Collection<PsiFile> psiFiles) {
     Map<PsiFile, List<SuggestionForFile>> result = new HashMap<>();
-    addFileListener(psiFiles.stream().findFirst().get().getProject());
     Collection<PsiFile> filesToProcced = new HashSet<>();
     for (PsiFile file : psiFiles) {
       if (!mapFile2Suggestions.containsKey(file)) {
