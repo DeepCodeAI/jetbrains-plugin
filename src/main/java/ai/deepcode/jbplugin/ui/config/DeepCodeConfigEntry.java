@@ -64,20 +64,20 @@ public class DeepCodeConfigEntry implements Configurable {
   @Override
   public void apply() throws ConfigurationException {
     if (myForm == null) return;
-    boolean clearCachesAndRescan = false;
+    boolean needClearCachesAndRescan = false;
     if (!myForm.getTokenID().equals(DeepCodeParams.getSessionToken())) {
       DeepCodeParams.setSessionToken(myForm.getTokenID());
       DeepCodeParams.setLoginUrl("");
-      clearCachesAndRescan = true;
+      needClearCachesAndRescan = true;
     }
     if (!myForm.getBaseURL().equals(DeepCodeParams.getApiUrl())) {
       DeepCodeParams.setApiUrl(myForm.getBaseURL());
-      clearCachesAndRescan = true;
+      needClearCachesAndRescan = true;
     }
     DeepCodeParams.setMinSeverity(myForm.getMinSeverityLevel());
     DeepCodeParams.setUseLinter(myForm.isLintersEnabled());
     DeepCodeParams.setEnable(myForm.isPluginEnabled());
-    if (clearCachesAndRescan) {
+    if (needClearCachesAndRescan) {
       AnalysisData.clearCache(null);
       if (DeepCodeUtils.isLogged(null, true)) {
         DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(null);

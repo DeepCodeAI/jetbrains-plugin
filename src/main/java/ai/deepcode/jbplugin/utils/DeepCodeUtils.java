@@ -8,6 +8,7 @@ import ai.deepcode.jbplugin.DeepCodeNotifications;
 import ai.deepcode.jbplugin.ui.myTodoView;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.progress.PerformInBackgroundOption;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -20,6 +21,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
+import com.intellij.util.concurrency.NonUrgentExecutor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -168,11 +170,33 @@ public final class DeepCodeUtils {
       DeepCodeParams.setSessionToken(response.getSessionToken());
       DeepCodeParams.setLoginUrl(response.getLoginURL());
       BrowserUtil.open(DeepCodeParams.getLoginUrl());
+      if (!isLoginCheckLoopStarted) {
+        ReadAction.nonBlocking(() -> startLoginCheckLoop(project))
+            .submit(NonUrgentExecutor.getInstance());
+      }
     } else {
       for (Project prj : projects) {
         DeepCodeNotifications.showError(response.getStatusDescription(), prj);
       }
     }
+  }
+
+  private static boolean isLoginCheckLoopStarted = false;
+
+  private static void startLoginCheckLoop(@Nullable Project project) {
+    isLoginCheckLoopStarted = true;
+    do {
+      try {
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+        Thread.currentThread().interrupt();
+      }
+      ProgressManager.checkCanceled();
+    } while (!isLogged(project, false));
+    isLoginCheckLoopStarted = false;
+    AnalysisData.clearCache(project);
+    DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(project);
   }
 
   private static final long MAX_FILE_SIZE = 5242880; // 5MB in bytes

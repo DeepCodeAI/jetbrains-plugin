@@ -29,7 +29,7 @@ public class DeepCodeNotifications {
             groupDisplayId,
             title,
             message,
-            NotificationType.INFORMATION)
+            NotificationType.WARNING)
         .addAction(new ShowLoginAction(project))
         .notify(project);
   }
