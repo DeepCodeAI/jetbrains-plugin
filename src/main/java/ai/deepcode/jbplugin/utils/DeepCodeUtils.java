@@ -203,16 +203,28 @@ public final class DeepCodeUtils {
 
   public static boolean isSupportedFileFormat(PsiFile psiFile) {
     if (supportedExtensions.isEmpty() || supportedConfigFiles.isEmpty()) {
-      initSupportedExtentionsAndConfigFiles(psiFile.getProject());
+      initSupportedExtentionsAndConfigFiles();
     }
+    if (psiFile == null) return false;
     final VirtualFile file = psiFile.getVirtualFile();
+    if (file == null) return false;
+    return file.getLength() < MAX_FILE_SIZE
+        && (supportedExtensions.contains(file.getExtension())
+            || supportedConfigFiles.contains(file.getName()));
+  }
+
+  public static boolean isSupportedFileFormat(VirtualFile file) {
+    if (supportedExtensions.isEmpty() || supportedConfigFiles.isEmpty()) {
+      initSupportedExtentionsAndConfigFiles();
+    }
+    if (file == null) return false;
     return file.getLength() < MAX_FILE_SIZE
         && (supportedExtensions.contains(file.getExtension())
             || supportedConfigFiles.contains(file.getName()));
   }
 
   /** Potentially <b>Heavy</b> network request! */
-  private static void initSupportedExtentionsAndConfigFiles(Project project) {
+  private static void initSupportedExtentionsAndConfigFiles() {
     GetFiltersResponse filtersResponse =
         DeepCodeRestApi.getFilters(DeepCodeParams.getSessionToken());
     if (filtersResponse.getStatusCode() == 200) {

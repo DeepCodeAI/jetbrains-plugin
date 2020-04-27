@@ -16,9 +16,9 @@
         <!-- Add your extensions here -->
         <annotator language="JAVA" implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
         <postStartupActivity implementation="ai.deepcode.jbplugin.DeepCodeStartupActivity"/>
-<!--
-        <toolWindow id="DeepCode(console)" anchor="bottom" factoryClass="ai.deepcode.jbplugin.DeepCodeConsoleToolWindowFactory"/>
--->
+        <!--
+                <toolWindow id="DeepCode(console)" anchor="bottom" factoryClass="ai.deepcode.jbplugin.DeepCodeConsoleToolWindowFactory"/>
+        -->
         <toolWindow id="DeepCode" anchor="bottom" factoryClass="ai.deepcode.jbplugin.DeepCodeToolWindowFactory"
                     canCloseContents="true" icon="/icons/DeepCodeLogo.svg"/>
         <projectService serviceImplementation="ai.deepcode.jbplugin.ui.myTodoView"/>
@@ -47,28 +47,36 @@
                   topic="com.intellij.openapi.project.ProjectManagerListener"/>
     </projectListeners>
 
+    <applicationListeners>
+        <listener class="ai.deepcode.jbplugin.utils.AnalysisData$MyBulkFileListener"
+                  topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
+    </applicationListeners>
+
     <actions>
         <!-- Add your actions here -->
         <group id="ai.deepcode.jbplugin.DeepCodeGroup" text="DeepCode.ai" popup="true" icon="/icons/DeepCodeLogo.svg">
-            <action id="ai.deepcode.jbplugin.ToolsMenu.AnalyseProjectAction" class="ai.deepcode.jbplugin.actions.AnalyseProjectAction"
+            <action id="ai.deepcode.jbplugin.ToolsMenu.AnalyseProjectAction"
+                    class="ai.deepcode.jbplugin.actions.AnalyseProjectAction"
                     text="Re-Analyse Project" description="Re-analyse all files in the Project with DeepCode.ai"
                     icon="AllIcons.Actions.Show">
                 <keyboard-shortcut keymap="$default" first-keystroke="shift alt Y"/>
             </action>
-            <action id="ai.deepcode.jbplugin.ToolsMenu.ShowSettingsAction" class="ai.deepcode.jbplugin.actions.ShowSettingsAction"
+            <action id="ai.deepcode.jbplugin.ToolsMenu.ShowSettingsAction"
+                    class="ai.deepcode.jbplugin.actions.ShowSettingsAction"
                     text="DeepCode Settings" description="Configuration for the DeepCode plugin"
                     icon="AllIcons.General.Settings">
             </action>
-           <action id="ai.deepcode.jbplugin.ToolsMenu.SeeResultsInBrowserAction" class="ai.deepcode.jbplugin.actions.SeeResultsInBrowserAction"
+            <action id="ai.deepcode.jbplugin.ToolsMenu.SeeResultsInBrowserAction"
+                    class="ai.deepcode.jbplugin.actions.SeeResultsInBrowserAction"
                     text="Open Results in Browser" description="Open analysis results in browser"
                     icon="AllIcons.General.Web">
             </action>
-<!--
-            <action id="ai.deepcode.jbplugin.ToolsMenu.InvalidateCachesAction" class="ai.deepcode.jbplugin.actions.InvalidateCachesAction"
-                    text="Clear Results" description="Invalidate caches for all current Project files"
-                    icon="AllIcons.Actions.GC">
-            </action>
--->
+            <!--
+                        <action id="ai.deepcode.jbplugin.ToolsMenu.InvalidateCachesAction" class="ai.deepcode.jbplugin.actions.InvalidateCachesAction"
+                                text="Clear Results" description="Invalidate caches for all current Project files"
+                                icon="AllIcons.Actions.GC">
+                        </action>
+            -->
 
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </group>
@@ -76,21 +84,25 @@
         <!-- see TodoMainGroup and TodoViewGroupByGroup -->
         <group id="DeepCodeMainGroup">
             <add-to-group group-id="Other.KeymapGroup"/>
-            <group id="DeepCodeViewGroupByGroup" class="ai.deepcode.jbplugin.ui.TodoPanel$GroupByActionGroup" popup="true">
+            <group id="DeepCodeViewGroupByGroup" class="ai.deepcode.jbplugin.ui.TodoPanel$GroupByActionGroup"
+                   popup="true">
                 <separator text="Group By"/>
-                <action class="ai.deepcode.jbplugin.ui.TodoPanel$MyShowModulesAction" id="DeepCodeViewGroupByShowModules"/>
-                <action class="ai.deepcode.jbplugin.ui.TodoPanel$MyShowPackagesAction" id="DeepCodeViewGroupByShowPackages"/>
-                <action class="ai.deepcode.jbplugin.ui.TodoPanel$MyFlattenPackagesAction" id="DeepCodeViewGroupByFlattenPackage"/>
+                <action class="ai.deepcode.jbplugin.ui.TodoPanel$MyShowModulesAction"
+                        id="DeepCodeViewGroupByShowModules"/>
+                <action class="ai.deepcode.jbplugin.ui.TodoPanel$MyShowPackagesAction"
+                        id="DeepCodeViewGroupByShowPackages"/>
+                <action class="ai.deepcode.jbplugin.ui.TodoPanel$MyFlattenPackagesAction"
+                        id="DeepCodeViewGroupByFlattenPackage"/>
             </group>
         </group>
 
-<!--
-        <action id="ai.deepcode.jbplugin.EditorPopupMenu.AnalyseCurrentFileAction" class="ai.deepcode.jbplugin.actions.AnalyseCurrentFileAction"
-                icon="AllIcons.Actions.ShowHiddens"
-                text="DeepCode Analyse Current File" description="Analyse current file with DeepCode.ai">
-            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
-            <keyboard-shortcut keymap="$default" first-keystroke="shift alt T"/>
-        </action>
--->
+        <!--
+                <action id="ai.deepcode.jbplugin.EditorPopupMenu.AnalyseCurrentFileAction" class="ai.deepcode.jbplugin.actions.AnalyseCurrentFileAction"
+                        icon="AllIcons.Actions.ShowHiddens"
+                        text="DeepCode Analyse Current File" description="Analyse current file with DeepCode.ai">
+                    <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+                    <keyboard-shortcut keymap="$default" first-keystroke="shift alt T"/>
+                </action>
+        -->
     </actions>
 </idea-plugin>
