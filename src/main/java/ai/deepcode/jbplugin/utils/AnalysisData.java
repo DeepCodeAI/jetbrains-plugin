@@ -91,7 +91,12 @@ public final class AnalysisData {
   }
 
   /** Add PsiTree change Listener to clear caches for file if it was changed. */
-  private static class MyProjectManagerListener implements ProjectManagerListener {
+  public static class MyProjectManagerListener implements ProjectManagerListener {
+
+    public MyProjectManagerListener(@NotNull Project project) {
+      projectOpened(project);
+    }
+
     @Override
     public void projectOpened(@NotNull Project project) {
       if (!mapProject2BundleId.containsKey(project)) {
@@ -135,7 +140,7 @@ public final class AnalysisData {
    * Add VFS File Listener to clear/update caches (and update Panel) for files if it was changed
    * outside of IDE.
    */
-  private static class MyBulkFileListener implements BulkFileListener {
+  public static class MyBulkFileListener implements BulkFileListener {
     @Override
     public void after(@NotNull List<? extends VFileEvent> events) {
       for (Project project : mapProject2BundleId.keySet()) {

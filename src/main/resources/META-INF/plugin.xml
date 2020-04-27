@@ -42,16 +42,6 @@
                            implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
     </extensions>
 
-    <projectListeners>
-        <listener class="ai.deepcode.jbplugin.utils.AnalysisData$MyProjectManagerListener"
-                  topic="com.intellij.openapi.project.ProjectManagerListener"/>
-    </projectListeners>
-
-    <applicationListeners>
-        <listener class="ai.deepcode.jbplugin.utils.AnalysisData$MyBulkFileListener"
-                  topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
-    </applicationListeners>
-
     <actions>
         <!-- Add your actions here -->
         <group id="ai.deepcode.jbplugin.DeepCodeGroup" text="DeepCode.ai" popup="true" icon="/icons/DeepCodeLogo.svg">
