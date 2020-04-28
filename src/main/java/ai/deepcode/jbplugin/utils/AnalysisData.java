@@ -43,6 +43,12 @@ import java.util.stream.Collectors;
 import static ai.deepcode.jbplugin.utils.DeepCodeUtils.logDeepCode;
 
 public final class AnalysisData {
+
+  private static final String UPLOADING_FILES_TEXT = "DeepCode: Uploading files to the server... ";
+  private static final String PREPARE_FILES_TEXT = "DeepCode: Preparing files for upload... ";
+  private static final String WAITING_FOR_ANALYSIS_TEXT =
+      "DeepCode: Waiting for analysis from server... ";
+
   private AnalysisData() {}
 
   private static final Logger LOG = LoggerFactory.getLogger("DeepCode.AnalysisData");
@@ -159,12 +165,7 @@ public final class AnalysisData {
                 .collect(Collectors.toSet());
         if (!filesChangedOrCreated.isEmpty()) {
           removeFilesFromCache(filesChangedOrCreated);
-          ReadAction.nonBlocking(
-                  () -> {
-                    getAnalysis(filesChangedOrCreated);
-                    ServiceManager.getService(project, myTodoView.class).refresh();
-                  })
-              .submit(NonUrgentExecutor.getInstance());
+          DeepCodeUtils.asyncAnalyseAndUpdatePanel(project, filesChangedOrCreated);
         }
       }
     }
@@ -214,18 +215,20 @@ public final class AnalysisData {
   public static synchronized Map<PsiFile, List<SuggestionForFile>> getAnalysis(
       @NotNull Collection<PsiFile> psiFiles) {
     Map<PsiFile, List<SuggestionForFile>> result = new HashMap<>();
-    Collection<PsiFile> filesToProcced = new HashSet<>();
-    for (PsiFile file : psiFiles) {
-      if (file != null && file.isValid() && !mapFile2Suggestions.containsKey(file)) {
-        filesToProcced.add(file);
-      }
-    }
-    if (!filesToProcced.isEmpty()) {
+    Collection<PsiFile> filesToProceed =
+        ReadAction.compute(
+            () ->
+                psiFiles.stream()
+                    .filter(Objects::nonNull)
+                    .filter(PsiFile::isValid)
+                    .filter(file -> !mapFile2Suggestions.containsKey(file))
+                    .collect(Collectors.toSet()));
+    if (!filesToProceed.isEmpty()) {
       logDeepCode("Analysis requested for " + psiFiles.size() + " files: " + psiFiles.toString());
-      logDeepCode("Files to proceed (not found in cache): " + filesToProcced.size());
+      logDeepCode("Files to proceed (not found in cache): " + filesToProceed.size());
     }
 
-    mapFile2Suggestions.putAll(retrieveSuggestions(filesToProcced, Collections.emptyList()));
+    mapFile2Suggestions.putAll(retrieveSuggestions(filesToProceed, Collections.emptyList()));
 
     final Collection<PsiFile> brokenKeys = new ArrayList<>();
     for (PsiFile psiFile : psiFiles) {
@@ -269,14 +272,15 @@ public final class AnalysisData {
       return Collections.emptyMap();
     }
     Map<PsiFile, List<SuggestionForFile>> result;
-    ProgressIndicator progress = new StatusBarProgress();
-    //    progress.setIndeterminate(false);
-    progress.start();
+    ProgressIndicator progress =
+        ProgressManager.getInstance().getProgressIndicator(); // new StatusBarProgress();
+    progress.setIndeterminate(false);
+    //    progress.start();
 
     long startTime;
     // Create Bundle
     startTime = System.currentTimeMillis();
-    progress.setText("Preparing files for upload...");
+    progress.setText(PREPARE_FILES_TEXT);
     ProgressManager.checkCanceled();
     mapPsiFile2Hash.clear();
     mapPsiFile2Content.clear();
@@ -287,20 +291,26 @@ public final class AnalysisData {
         filesToRemove.stream().map(AnalysisData::getDeepCodedFilePath).collect(Collectors.toList());
     Map<String, String> mapPath2Hash = new HashMap<>();
     long sizePath2Hash = 0;
+    int fileCounter = 0;
+    int totalFiles = psiFiles.size();
     for (PsiFile file : psiFiles) {
+      ProgressManager.checkCanceled();
+      progress.setFraction(((double) fileCounter++) / totalFiles);
+      progress.setText(PREPARE_FILES_TEXT + fileCounter + " of " + totalFiles + " files done.");
       final String path = getDeepCodedFilePath(file);
       final String hash = getHash(file);
       mapPath2Hash.put(path, hash);
       sizePath2Hash += (path.length() + hash.length()) * 2; // rough estimation of bytes occupied
       if (sizePath2Hash > MAX_BUNDLE_SIZE) {
         CreateBundleResponse tempBundleResponse =
-            makeNewBundle(project, mapPath2Hash, removedFiles);
+            makeNewBundle(project, mapPath2Hash, Collections.emptyList());
         if (isNotSucceed(tempBundleResponse, "Bad Create/Extend Bundle request: "))
           return EMPTY_MAP;
         sizePath2Hash = 0;
         mapPath2Hash.clear();
       }
     }
+    // todo break removeFiles in chunks less then MAX_BANDLE_SIZE
     CreateBundleResponse createBundleResponse = makeNewBundle(project, mapPath2Hash, removedFiles);
     if (isNotSucceed(createBundleResponse, "Bad Create/Extend Bundle request: ")) return EMPTY_MAP;
     logDeepCode(
@@ -316,12 +326,17 @@ public final class AnalysisData {
 
     // Upload Files
     startTime = System.currentTimeMillis();
-    progress.setText("Uploading files to the server...");
+    progress.setText(UPLOADING_FILES_TEXT);
     ProgressManager.checkCanceled();
 
+    fileCounter = 0;
+    totalFiles = missingFiles.size();
     long fileChunkSize = 0;
     List<PsiFile> filesChunk = new ArrayList<>();
     for (String filePath : missingFiles) {
+      ProgressManager.checkCanceled();
+      progress.setFraction(((double) fileCounter++) / totalFiles);
+      progress.setText(UPLOADING_FILES_TEXT + fileCounter + " of " + totalFiles + " files done.");
       PsiFile psiFile =
           psiFiles.stream()
               .filter(f -> getDeepCodedFilePath(f).equals(filePath))
@@ -353,13 +368,13 @@ public final class AnalysisData {
 
     // Get Analysis
     startTime = System.currentTimeMillis();
-    progress.setText("Waiting for analysis from server...");
+    progress.setText(WAITING_FOR_ANALYSIS_TEXT);
     ProgressManager.checkCanceled();
     GetAnalysisResponse getAnalysisResponse = retrieveSuggestions(bundleId, progress);
     result = parseGetAnalysisResponse(psiFiles, getAnalysisResponse);
     logDeepCode(
         "--- Get Analysis took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
-    progress.stop();
+    //    progress.stop();
     return result;
   }
 
@@ -435,8 +450,8 @@ public final class AnalysisData {
   }
 
   private static String doGetFileContent(PsiFile psiFile) {
-    // psiFile.getText() might be too expensive (or not?)
-    return psiFile.getText();
+    // psiFile.getText() is NOT expensive as it's goes to VirtualFileContent.getText()
+    return ReadAction.compute(psiFile::getText);
     /*
         try {
           return new String(Files.readAllBytes(Paths.get(getPath(psiFile))), StandardCharsets.UTF_8);
@@ -465,7 +480,7 @@ public final class AnalysisData {
 
   @NotNull
   private static GetAnalysisResponse retrieveSuggestions(
-      @NotNull String bundleId, @NotNull ProgressIndicator progress) {
+      @NotNull String bundleId, @NotNull ProgressIndicator progressIndicator) {
     GetAnalysisResponse response;
     int counter = 0;
     do {
@@ -482,11 +497,13 @@ public final class AnalysisData {
               DeepCodeParams.getMinSeverity(),
               DeepCodeParams.useLinter());
 
-      //      progress.setFraction(((double) counter) / 10);
-      // todo: show progress notification
       logDeepCode(response.toString());
       if (isNotSucceed(response, "Bad GetAnalysis request: ")) return new GetAnalysisResponse();
       ProgressManager.checkCanceled();
+      double progress = response.getProgress();
+      if (progress == 0) progress = ((double) counter) / 100;
+      progressIndicator.setFraction(progress);
+      progressIndicator.setText(WAITING_FOR_ANALYSIS_TEXT + (int)(progress * 100) + "% done");
       // fixme
       if (counter == 100) break;
       counter++;
@@ -517,7 +534,7 @@ public final class AnalysisData {
         LOG.error("Suggestions is empty for: {}", response);
         return EMPTY_MAP;
       }
-      Document document = psiFile.getViewProvider().getDocument();
+      Document document = ReadAction.compute(() -> psiFile.getViewProvider().getDocument());
       if (document == null) {
         LOG.error("Document not found for file: {}  GetAnalysisResponse: {}", psiFile, response);
         return EMPTY_MAP;

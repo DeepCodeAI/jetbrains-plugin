@@ -7,14 +7,11 @@ import ai.deepcode.javaclient.responses.LoginResponse;
 import ai.deepcode.jbplugin.DeepCodeNotifications;
 import ai.deepcode.jbplugin.ui.myTodoView;
 import com.intellij.ide.BrowserUtil;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.components.ServiceManager;
-import com.intellij.openapi.progress.PerformInBackgroundOption;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
-import com.intellij.openapi.progress.impl.BackgroundableProcessIndicator;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -63,49 +60,44 @@ public final class DeepCodeUtils {
   public static void asyncAnalyseProjectAndUpdatePanel(@Nullable Project project) {
     if (project == null) {
       for (Project prj : ProjectManager.getInstance().getOpenProjects()) {
-        doAsyncAnalyseProjectAndUpdatePanel(prj);
+        asyncAnalyseAndUpdatePanel(prj, null);
       }
-    } else doAsyncAnalyseProjectAndUpdatePanel(project);
+    } else asyncAnalyseAndUpdatePanel(project, null);
   }
 
-  private static void doAsyncAnalyseProjectAndUpdatePanel(@NotNull Project project) {
+  public static void asyncAnalyseAndUpdatePanel(
+      @NotNull Project project, @Nullable Collection<PsiFile> psiFiles) {
+    //    DumbService.getInstance(project)
+    //        .runWhenSmart(
+    //            () ->
     ProgressManager.getInstance()
         .run(
-            new Task.Backgroundable(project, "Analysing all project files...") {
+            new Task.Backgroundable(project, "DeepCode: Analyse Files...") {
               @Override
               public void run(@NotNull ProgressIndicator indicator) {
-                ApplicationManager.getApplication().runReadAction(() -> doUpdate(project));
+                AnalysisData.getAnalysis(
+                    (psiFiles != null)
+                        ? psiFiles
+                        : getAllSupportedFilesInProject(project));
+                ServiceManager.getService(project, myTodoView.class).refresh();
+                //      StatusBarUtil.setStatusBarInfo(project, message);
               }
             });
     //    ReadAction.nonBlocking(() -> doUpdate(project)).submit(NonUrgentExecutor.getInstance());
   }
 
-  private static void doUpdate(Project project) {
-    AnalysisData.getAnalysis(DeepCodeUtils.getAllSupportedFilesInProject(project));
-    ServiceManager.getService(project, myTodoView.class).refresh();
-    //      StatusBarUtil.setStatusBarInfo(project, message);
-  }
-
-  private static void doUpdateData(Project project) {
-    ProgressIndicator indicator =
-        new BackgroundableProcessIndicator(
-            project,
-            "Analysing all project files...",
-            new PerformInBackgroundOption() {
-              @Override
-              public boolean shouldStartInBackground() {
-                return true;
-              }
-            },
-            "Stop",
-            "Stop project files analysis",
-            true);
-  }
-
   public static List<PsiFile> getAllSupportedFilesInProject(@NotNull Project project) {
-    return allProjectFiles(project).stream()
-        .filter(DeepCodeUtils::isSupportedFileFormat)
-        .collect(Collectors.toList());
+    // todo do we need indexes ready here?
+
+    //    final DumbService dumbService = ReadAction.compute(() -> project.isDisposed() ? null :
+    // DumbService.getInstance(project));
+    //    if (dumbService == null) return;
+    //    dumbService.runReadActionInSmartMode(() ->
+    return ReadAction.compute(
+        () ->
+            allProjectFiles(project).stream()
+                .filter(DeepCodeUtils::isSupportedFileFormat)
+                .collect(Collectors.toList()));
   }
 
   private static List<PsiFile> allProjectFiles(@NotNull Project project) {

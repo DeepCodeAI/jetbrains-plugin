@@ -17,6 +17,7 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.highlighter.EditorHighlighter;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleUtilCore;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.IndexNotReadyException;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ModuleRootManager;
@@ -764,7 +765,8 @@ public abstract class TodoTreeBuilder implements Disposable {
       String propertyName = e.getPropertyName();
       if (propertyName.equals(PsiTreeChangeEvent.PROP_ROOTS)) { // rebuild all tree when source roots were changed
         myModel.getInvoker().runOrInvokeLater(
-          () -> ApplicationManager.getApplication().invokeLater(() -> {
+//          () -> ApplicationManager.getApplication().invokeLater(() -> {
+          () -> DumbService.getInstance(myProject).runWhenSmart(() -> {
             rebuildCache();
             updateTree();
           })

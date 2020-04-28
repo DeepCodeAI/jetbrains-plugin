@@ -9,6 +9,9 @@ import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.ExternalAnnotator;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.progress.PerformInBackgroundOption;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.impl.BackgroundableProcessIndicator;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
@@ -41,7 +44,21 @@ public class DeepCodeExternalAnnotator
   @Override
   public List<AnalysisData.SuggestionForFile> doAnnotate(PsiFile psiFile) {
     if (!DeepCodeUtils.isSupportedFileFormat(psiFile)) return Collections.emptyList();
-    return AnalysisData.getAnalysis(psiFile);
+    return ProgressManager.getInstance().runProcess(
+            () -> AnalysisData.getAnalysis(psiFile),
+               new BackgroundableProcessIndicator(
+                      psiFile.getProject(),
+                      "DeepCode: Analysing " + psiFile.getName() + " file... ",
+                      new PerformInBackgroundOption() {
+                        @Override
+                        public boolean shouldStartInBackground() {
+                          return true;
+                        }
+                      },
+                      "Stop",
+                      "Stop file analysis",
+                      true)
+            );
   }
 
   @SuppressWarnings("deprecation") // later move to .newAnnotation introduced in 2020.1
