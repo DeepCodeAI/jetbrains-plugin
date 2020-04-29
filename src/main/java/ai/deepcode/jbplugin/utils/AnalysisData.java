@@ -157,10 +157,9 @@ public final class AnalysisData {
                         PsiTreeUtil.instanceOf(
                             event, VFileContentChangeEvent.class, VFileCreateEvent.class))
                 .map(VFileEvent::getFile)
-                .filter(DeepCodeUtils::isSupportedFileFormat)
                 .filter(Objects::nonNull)
                 .map(manager::findFile)
-                .filter(Objects::nonNull)
+                .filter(DeepCodeUtils::isSupportedFileFormat)
                 .collect(Collectors.toSet());
         if (!filesChangedOrCreated.isEmpty()) {
           removeFilesFromCache(filesChangedOrCreated);
@@ -177,10 +176,9 @@ public final class AnalysisData {
             events.stream()
                 .filter(event -> PsiTreeUtil.instanceOf(event, VFileDeleteEvent.class))
                 .map(VFileEvent::getFile)
-                .filter(DeepCodeUtils::isSupportedFileFormat)
                 .filter(Objects::nonNull)
                 .map(manager::findFile)
-                .filter(Objects::nonNull)
+                .filter(DeepCodeUtils::isSupportedFileFormat)
                 .collect(Collectors.toSet());
         if (!filesRemoved.isEmpty()) {
           removeFilesFromCache(filesRemoved);

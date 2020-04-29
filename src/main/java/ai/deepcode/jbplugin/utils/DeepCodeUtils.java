@@ -14,6 +14,7 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
+import com.intellij.openapi.vcs.changes.ChangeListManager;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiFile;
@@ -76,9 +77,7 @@ public final class DeepCodeUtils {
               @Override
               public void run(@NotNull ProgressIndicator indicator) {
                 AnalysisData.getAnalysis(
-                    (psiFiles != null)
-                        ? psiFiles
-                        : getAllSupportedFilesInProject(project));
+                    (psiFiles != null) ? psiFiles : getAllSupportedFilesInProject(project));
                 ServiceManager.getService(project, myTodoView.class).refresh();
                 //      StatusBarUtil.setStatusBarInfo(project, message);
               }
@@ -194,22 +193,16 @@ public final class DeepCodeUtils {
   private static final long MAX_FILE_SIZE = 5242880; // 5MB in bytes
 
   public static boolean isSupportedFileFormat(PsiFile psiFile) {
-    if (supportedExtensions.isEmpty() || supportedConfigFiles.isEmpty()) {
-      initSupportedExtentionsAndConfigFiles();
-    }
     if (psiFile == null) return false;
-    final VirtualFile file = psiFile.getVirtualFile();
-    if (file == null) return false;
-    return file.getLength() < MAX_FILE_SIZE
-        && (supportedExtensions.contains(file.getExtension())
-            || supportedConfigFiles.contains(file.getName()));
+    return isSupportedFileFormat(psiFile.getVirtualFile(), psiFile.getProject());
   }
 
-  public static boolean isSupportedFileFormat(VirtualFile file) {
+  private static boolean isSupportedFileFormat(VirtualFile file, @NotNull Project project) {
     if (supportedExtensions.isEmpty() || supportedConfigFiles.isEmpty()) {
       initSupportedExtentionsAndConfigFiles();
     }
     if (file == null) return false;
+    if (ChangeListManager.getInstance(project).isIgnoredFile(file)) return false;
     return file.getLength() < MAX_FILE_SIZE
         && (supportedExtensions.contains(file.getExtension())
             || supportedConfigFiles.contains(file.getName()));
