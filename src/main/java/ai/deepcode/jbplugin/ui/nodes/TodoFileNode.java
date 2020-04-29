@@ -7,6 +7,7 @@ import ai.deepcode.jbplugin.ui.HighlightedRegionProvider;
 import ai.deepcode.jbplugin.ui.TodoTreeBuilder;
 import ai.deepcode.jbplugin.ui.utils.DeepCodeUIUtils;
 import ai.deepcode.jbplugin.utils.AnalysisData;
+import ai.deepcode.jbplugin.utils.DeepCodeUtils;
 import com.intellij.ide.IdeBundle;
 import com.intellij.ide.projectView.PresentationData;
 import com.intellij.ide.projectView.ViewSettings;
@@ -66,10 +67,11 @@ public final class TodoFileNode extends PsiFileNode implements HighlightedRegion
   @Override
   protected void updateImpl(@NotNull PresentationData data) {
     super.updateImpl(data);
-    String newName = getValue().getVirtualFile().getPresentableUrl();
+    PsiFile psiFile = getValue();
+    String newName = DeepCodeUtils.getDeepCodedFilePath(psiFile);
     final int length = newName.length();
     if (length > 100) {
-      newName = "..." + newName.substring(length - 93, length);
+      newName = "..." + newName.substring(length - 97, length);
     }
 /*
     if (myBuilder.getTodoTreeStructure().isPackagesShown()) {
@@ -79,14 +81,12 @@ public final class TodoFileNode extends PsiFileNode implements HighlightedRegion
           mySingleFileMode ? getValue().getName() : getValue().getVirtualFile().getPresentableUrl();
     }
 */
-
-    PsiFile psiFile = getValue();
     String message =
         DeepCodeUIUtils.addErrWarnInfoCounts(
             Collections.singleton(psiFile), newName, false, myHighlightedRegions);
     data.setPresentableText(message);
 
-    //todo remove, not shown
+    //todo remove?, not shown
     int todoItemCount;
     try {
       todoItemCount = myBuilder.getTodoTreeStructure().getTodoItemCount(getValue());

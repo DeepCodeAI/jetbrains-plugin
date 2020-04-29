@@ -253,6 +253,15 @@ public final class DeepCodeUtils {
     }
   }
 
+  public static String getDeepCodedFilePath(PsiFile psiFile) {
+    String absolutePath = psiFile.getVirtualFile().getPath();
+    final String projectPath = psiFile.getProject().getBasePath();
+    if (projectPath != null) {
+      absolutePath = absolutePath.replace(projectPath, "");
+    }
+    return absolutePath.startsWith("/") ? absolutePath : "/" + absolutePath;
+  }
+
   public static class ErrorsWarningsInfos {
     private final int errors;
     private final int warnings;

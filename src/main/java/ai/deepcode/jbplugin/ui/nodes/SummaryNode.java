@@ -111,7 +111,7 @@ public class SummaryNode extends BaseToDoNode<ToDoSummary> implements Highlighte
     int todoItemCount = getTodoItemCount(getValue());
     int fileCount = getFileCount(getValue());
     String message = IdeBundle.message("node.todo.summary", todoItemCount, fileCount)
-            .replace("TODO item", "Suggestion");
+            .replace("TODO item", "occurrence");
     message = DeepCodeUIUtils.addErrWarnInfoCounts(
             AnalysisData.getAllFilesWithSuggestions(myProject),
             message,

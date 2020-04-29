@@ -12,7 +12,6 @@ import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
-import com.intellij.openapi.progress.util.StatusBarProgress;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.project.ProjectManagerListener;
@@ -288,7 +287,7 @@ public final class AnalysisData {
         // fixme
         (psiFiles.isEmpty() ? filesToRemove : psiFiles).stream().findFirst().get().getProject();
     List<String> removedFiles =
-        filesToRemove.stream().map(AnalysisData::getDeepCodedFilePath).collect(Collectors.toList());
+        filesToRemove.stream().map(DeepCodeUtils::getDeepCodedFilePath).collect(Collectors.toList());
     Map<String, String> mapPath2Hash = new HashMap<>();
     long sizePath2Hash = 0;
     int fileCounter = 0;
@@ -297,7 +296,7 @@ public final class AnalysisData {
       ProgressManager.checkCanceled();
       progress.setFraction(((double) fileCounter++) / totalFiles);
       progress.setText(PREPARE_FILES_TEXT + fileCounter + " of " + totalFiles + " files done.");
-      final String path = getDeepCodedFilePath(file);
+      final String path = DeepCodeUtils.getDeepCodedFilePath(file);
       final String hash = getHash(file);
       mapPath2Hash.put(path, hash);
       sizePath2Hash += (path.length() + hash.length()) * 2; // rough estimation of bytes occupied
@@ -332,6 +331,8 @@ public final class AnalysisData {
     fileCounter = 0;
     totalFiles = missingFiles.size();
     long fileChunkSize = 0;
+    int brokenMissingFilesCount = 0;
+    String brokenMissingFilesMessage = "";
     List<PsiFile> filesChunk = new ArrayList<>();
     for (String filePath : missingFiles) {
       ProgressManager.checkCanceled();
@@ -339,13 +340,21 @@ public final class AnalysisData {
       progress.setText(UPLOADING_FILES_TEXT + fileCounter + " of " + totalFiles + " files done.");
       PsiFile psiFile =
           psiFiles.stream()
-              .filter(f -> getDeepCodedFilePath(f).equals(filePath))
+              .filter(f -> DeepCodeUtils.getDeepCodedFilePath(f).equals(filePath))
               .findAny()
               .orElse(null);
       if (psiFile == null) {
-        logDeepCode(
-            "File requested in missingFiles not found in psiFiles (skipped to upload): "
-                + filePath);
+        if (brokenMissingFilesCount == 0) {
+          brokenMissingFilesMessage =
+              " files requested in missingFiles not found in psiFiles (skipped to upload)."
+                  + " First broken missingFile: "
+                  + filePath
+                  + " Full file path example: "
+                  + psiFiles.stream().findFirst().get().getVirtualFile().getPath()
+                  + " BaseDir path: "
+                  + project.getBasePath();
+        }
+        brokenMissingFilesCount++;
         continue;
       }
       final long fileSize = psiFile.getVirtualFile().getLength();
@@ -358,6 +367,7 @@ public final class AnalysisData {
       fileChunkSize += fileSize;
       filesChunk.add(psiFile);
     }
+    if (brokenMissingFilesCount > 0) logDeepCode(brokenMissingFilesMessage);
     logDeepCode("Last files-chunk size: " + fileChunkSize);
     uploadFiles(filesChunk, bundleId, progress);
 
@@ -406,14 +416,6 @@ public final class AnalysisData {
     }
     mapProject2BundleId.put(project, bundleResponse.getBundleId());
     return bundleResponse;
-  }
-
-  private static String getDeepCodedFilePath(PsiFile psiFile) {
-    return "/" + getPath(psiFile);
-  }
-
-  private static String getPath(PsiFile psiFile) {
-    return psiFile.getVirtualFile().getPath(); // .replace('/', '\\');
   }
 
   // https://www.baeldung.com/sha-256-hashing-java#message-digest
@@ -503,7 +505,7 @@ public final class AnalysisData {
       double progress = response.getProgress();
       if (progress == 0) progress = ((double) counter) / 100;
       progressIndicator.setFraction(progress);
-      progressIndicator.setText(WAITING_FOR_ANALYSIS_TEXT + (int)(progress * 100) + "% done");
+      progressIndicator.setText(WAITING_FOR_ANALYSIS_TEXT + (int) (progress * 100) + "% done");
       // fixme
       if (counter == 100) break;
       counter++;
@@ -523,8 +525,9 @@ public final class AnalysisData {
       return EMPTY_MAP;
     }
     for (PsiFile psiFile : psiFiles) {
+      // fixme iterate over analysisResults.getFiles() to reduce empty passes
       FileSuggestions fileSuggestions =
-          analysisResults.getFiles().get("/" + psiFile.getVirtualFile().getPath());
+          analysisResults.getFiles().get(DeepCodeUtils.getDeepCodedFilePath(psiFile));
       if (fileSuggestions == null) {
         result.put(psiFile, Collections.emptyList());
         continue;
@@ -570,7 +573,7 @@ public final class AnalysisData {
   }
 
   private static FileContent createFileContent(PsiFile psiFile) {
-    return new FileContent("/" + psiFile.getVirtualFile().getPath(), psiFile.getText());
+    return new FileContent(DeepCodeUtils.getDeepCodedFilePath(psiFile), psiFile.getText());
   }
 
   public static Set<PsiFile> getAllFilesWithSuggestions(@NotNull final Project project) {
