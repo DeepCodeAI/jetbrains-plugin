@@ -5,6 +5,7 @@ import ai.deepcode.javaclient.responses.GetFiltersResponse;
 import ai.deepcode.jbplugin.DeepCodeNotifications;
 import ai.deepcode.jbplugin.ui.myTodoView;
 import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.openapi.application.ApplicationNamesInfo;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
@@ -17,6 +18,11 @@ import java.util.stream.Collectors;
 
 public class DeepCodeParams {
 
+  // TODO https://www.jetbrains.org/intellij/sdk/docs/basics/persisting_sensitive_data.html
+  private static final PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
+
+  private DeepCodeParams() {}
+
   // Settings
   private static boolean isEnable;
   private static String apiUrl;
@@ -26,13 +32,9 @@ public class DeepCodeParams {
 
   // Inner params
   private static String loginUrl;
+  private static final String ideProductName = ApplicationNamesInfo.getInstance().getProductName();
 
-  // TODO https://www.jetbrains.org/intellij/sdk/docs/basics/persisting_sensitive_data.html
-  private static final PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
-
-  private DeepCodeParams() {}
-
-  public static void clearLoginParams(){
+  public static void clearLoginParams() {
     setSessionToken("");
     setLoginUrl("");
   }
@@ -102,10 +104,15 @@ public class DeepCodeParams {
     isEnable = propertiesComponent.getBoolean("isEnable", true);
     apiUrl = propertiesComponent.getValue("apiUrl", "https://www.deepcode.ai/");
     DeepCodeRestApi.setBaseUrl(apiUrl);
-    sessionToken = propertiesComponent.getValue("sessionToken", "");
-    loginUrl = propertiesComponent.getValue("loginUrl", "");
+    String pastIdeProductName = propertiesComponent.getValue("ideProductName", "");
+    if (pastIdeProductName.equals(ideProductName)) {
+      sessionToken = propertiesComponent.getValue("sessionToken", "");
+      loginUrl = propertiesComponent.getValue("loginUrl", "");
+    } else {
+      clearLoginParams();
+      propertiesComponent.setValue("ideProductName", ideProductName);
+    }
     useLinter = propertiesComponent.getBoolean("useLinter", false);
     minSeverity = propertiesComponent.getInt("minSeverity", 1);
   }
-
 }
