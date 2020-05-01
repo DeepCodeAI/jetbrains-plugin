@@ -149,18 +149,9 @@ public final class AnalysisData {
     @Override
     public void after(@NotNull List<? extends VFileEvent> events) {
       for (Project project : mapProject2BundleId.keySet()) {
-        PsiManager manager = PsiManager.getInstance(project);
         Set<PsiFile> filesChangedOrCreated =
-            events.stream()
-                .filter(
-                    event ->
-                        PsiTreeUtil.instanceOf(
-                            event, VFileContentChangeEvent.class, VFileCreateEvent.class))
-                .map(VFileEvent::getFile)
-                .filter(Objects::nonNull)
-                .map(manager::findFile)
-                .filter(DeepCodeUtils::isSupportedFileFormat)
-                .collect(Collectors.toSet());
+            getFilesOfEventTypes(
+                project, events, VFileContentChangeEvent.class, VFileCreateEvent.class);
         if (!filesChangedOrCreated.isEmpty()) {
           removeFilesFromCache(filesChangedOrCreated);
           DeepCodeUtils.asyncAnalyseAndUpdatePanel(project, filesChangedOrCreated);
@@ -171,15 +162,7 @@ public final class AnalysisData {
     @Override
     public void before(@NotNull List<? extends VFileEvent> events) {
       for (Project project : mapProject2BundleId.keySet()) {
-        PsiManager manager = PsiManager.getInstance(project);
-        Set<PsiFile> filesRemoved =
-            events.stream()
-                .filter(event -> PsiTreeUtil.instanceOf(event, VFileDeleteEvent.class))
-                .map(VFileEvent::getFile)
-                .filter(Objects::nonNull)
-                .map(manager::findFile)
-                .filter(DeepCodeUtils::isSupportedFileFormat)
-                .collect(Collectors.toSet());
+        Set<PsiFile> filesRemoved = getFilesOfEventTypes(project, events, VFileDeleteEvent.class);
         if (!filesRemoved.isEmpty()) {
           removeFilesFromCache(filesRemoved);
           ReadAction.nonBlocking(
@@ -190,6 +173,20 @@ public final class AnalysisData {
           ServiceManager.getService(project, myTodoView.class).refresh();
         }
       }
+    }
+
+    private Set<PsiFile> getFilesOfEventTypes(
+        @NotNull Project project,
+        @NotNull List<? extends VFileEvent> events,
+        @NotNull Class<?>... classesOfEventsToFilter) {
+      PsiManager manager = PsiManager.getInstance(project);
+      return events.stream()
+          .filter(event -> PsiTreeUtil.instanceOf(event, classesOfEventsToFilter))
+          .map(VFileEvent::getFile)
+          .filter(Objects::nonNull)
+          .map(manager::findFile)
+          .filter(DeepCodeUtils::isSupportedFileFormat)
+          .collect(Collectors.toSet());
     }
   }
 
@@ -285,7 +282,9 @@ public final class AnalysisData {
         // fixme
         (psiFiles.isEmpty() ? filesToRemove : psiFiles).stream().findFirst().get().getProject();
     List<String> removedFiles =
-        filesToRemove.stream().map(DeepCodeUtils::getDeepCodedFilePath).collect(Collectors.toList());
+        filesToRemove.stream()
+            .map(DeepCodeUtils::getDeepCodedFilePath)
+            .collect(Collectors.toList());
     Map<String, String> mapPath2Hash = new HashMap<>();
     long sizePath2Hash = 0;
     int fileCounter = 0;
