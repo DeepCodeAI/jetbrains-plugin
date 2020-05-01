@@ -18,6 +18,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.vcs.changes.ChangeListManager;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.wm.impl.status.StatusBarUtil;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
@@ -157,11 +158,7 @@ public final class DeepCodeUtils {
   }
 
   /** network request! */
-  public static void requestNewLogin(@Nullable Project project) {
-    Project[] projects =
-        (project != null)
-            ? new Project[] {project}
-            : ProjectManager.getInstance().getOpenProjects();
+  public static void requestNewLogin(@NotNull Project project) {
     DeepCodeParams.clearLoginParams();
     LoginResponse response = DeepCodeRestApi.newLogin(userAgent);
     if (response.getStatusCode() == 200) {
@@ -173,15 +170,13 @@ public final class DeepCodeUtils {
             .submit(NonUrgentExecutor.getInstance());
       }
     } else {
-      for (Project prj : projects) {
-        DeepCodeNotifications.showError(response.getStatusDescription(), prj);
-      }
+      DeepCodeNotifications.showError(response.getStatusDescription(), project);
     }
   }
 
   private static boolean isLoginCheckLoopStarted = false;
 
-  private static void startLoginCheckLoop(@Nullable Project project) {
+  private static void startLoginCheckLoop(@NotNull Project project) {
     isLoginCheckLoopStarted = true;
     do {
       try {
@@ -193,6 +188,7 @@ public final class DeepCodeUtils {
       ProgressManager.checkCanceled();
     } while (!isLogged(project, false));
     isLoginCheckLoopStarted = false;
+    DeepCodeNotifications.showInfo("Logging succeed", project);
     AnalysisData.clearCache(project);
     DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(project);
   }
