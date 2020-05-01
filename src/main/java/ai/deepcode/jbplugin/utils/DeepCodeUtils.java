@@ -7,6 +7,8 @@ import ai.deepcode.javaclient.responses.LoginResponse;
 import ai.deepcode.jbplugin.DeepCodeNotifications;
 import ai.deepcode.jbplugin.ui.myTodoView;
 import com.intellij.ide.BrowserUtil;
+import com.intellij.openapi.application.ApplicationInfo;
+import com.intellij.openapi.application.ApplicationNamesInfo;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -31,6 +33,11 @@ public final class DeepCodeUtils {
   private static Set<String> supportedExtensions = Collections.emptySet();
   private static Set<String> supportedConfigFiles = Collections.emptySet();
   private static final SimpleDateFormat HMSS = new SimpleDateFormat("h:m:s,S");
+  private static final String userAgent =
+      "JetBrains-plugin-"
+          + ApplicationNamesInfo.getInstance().getProductName()
+          + "-"
+          + ApplicationInfo.getInstance().getFullVersion();
 
   private DeepCodeUtils() {}
 
@@ -156,7 +163,7 @@ public final class DeepCodeUtils {
             ? new Project[] {project}
             : ProjectManager.getInstance().getOpenProjects();
     DeepCodeParams.clearLoginParams();
-    LoginResponse response = DeepCodeRestApi.newLogin();
+    LoginResponse response = DeepCodeRestApi.newLogin(userAgent);
     if (response.getStatusCode() == 200) {
       DeepCodeParams.setSessionToken(response.getSessionToken());
       DeepCodeParams.setLoginUrl(response.getLoginURL());
