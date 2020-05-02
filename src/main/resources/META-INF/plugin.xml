@@ -20,7 +20,7 @@
                 <toolWindow id="DeepCode(console)" anchor="bottom" factoryClass="ai.deepcode.jbplugin.DeepCodeConsoleToolWindowFactory"/>
         -->
         <toolWindow id="DeepCode" anchor="bottom" factoryClass="ai.deepcode.jbplugin.DeepCodeToolWindowFactory"
-                    canCloseContents="true" icon="/icons/DeepCodeLogo.svg"/>
+                    canCloseContents="true" icon="/icons/DeepCodeLogo.svg" order="last"/>
         <projectService serviceImplementation="ai.deepcode.jbplugin.ui.myTodoView"/>
         <projectService serviceImplementation="ai.deepcode.jbplugin.ui.nodes.TodoTreeHelper"/>
         <applicationConfigurable instance="ai.deepcode.jbplugin.ui.config.DeepCodeConfigEntry"/>

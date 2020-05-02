@@ -142,18 +142,25 @@ public final class DeepCodeUtils {
   }
 
   /** network request! */
-  public static boolean isLogged(@Nullable Project project, boolean showLoginLink) {
+  public static boolean isLogged(@Nullable Project project, boolean userActionNeeded) {
     final String sessionToken = DeepCodeParams.getSessionToken();
     final EmptyResponse response = DeepCodeRestApi.checkSession(sessionToken);
-    final boolean isLogged = response.getStatusCode() == 200;
+    boolean isLogged = response.getStatusCode() == 200;
     String message = response.getStatusDescription();
-    if (!isLogged && showLoginLink) {
-      DeepCodeNotifications.showLoginLink(project, message);
-    }
     logDeepCode(
         ((isLogged) ? "Logging check succeed." : "Logging check fails: " + message)
             + " Token: "
             + sessionToken);
+    if (!isLogged && userActionNeeded) {
+      if (sessionToken.isEmpty() && response.getStatusCode() == 401) {
+        message = "Authenticate using your GitHub, Bitbucket or GitLab account";
+      }
+      DeepCodeNotifications.showLoginLink(project, message);
+    } else if (isLogged && project != null && !DeepCodeParams.consentGiven(project)) {
+      logDeepCode("Consent check fail! Project: " + project.getName());
+      isLogged = false;
+      DeepCodeNotifications.showConsentRequest(project, userActionNeeded);
+    }
     return isLogged;
   }
 

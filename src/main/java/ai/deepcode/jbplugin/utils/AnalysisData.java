@@ -242,12 +242,13 @@ public final class AnalysisData {
 
   private static boolean loginRequested = false;
 
-  private static boolean isNotSucceed(EmptyResponse response, String message) {
+  private static boolean isNotSucceed(
+      @NotNull Project project, EmptyResponse response, String message) {
     if (response.getStatusCode() == 200) {
       loginRequested = false;
       return false;
     } else if (response.getStatusCode() == 401) {
-      DeepCodeUtils.isLogged(null, !loginRequested);
+      DeepCodeUtils.isLogged(project, !loginRequested);
       loginRequested = true;
     }
     logDeepCode(message + response.getStatusCode() + " " + response.getStatusDescription());
@@ -262,7 +263,13 @@ public final class AnalysisData {
   @NotNull
   private static Map<PsiFile, List<SuggestionForFile>> retrieveSuggestions(
       @NotNull Collection<PsiFile> psiFiles, @NotNull Collection<PsiFile> filesToRemove) {
-    if ((psiFiles.isEmpty() && filesToRemove.isEmpty()) || !DeepCodeUtils.isLogged(null, false)) {
+    if (psiFiles.isEmpty() && filesToRemove.isEmpty()) {
+      return Collections.emptyMap();
+    }
+    Project project =
+        // fixme
+        (psiFiles.isEmpty() ? filesToRemove : psiFiles).stream().findFirst().get().getProject();
+    if (!DeepCodeUtils.isLogged(project, false)) {
       return Collections.emptyMap();
     }
     Map<PsiFile, List<SuggestionForFile>> result;
@@ -278,9 +285,6 @@ public final class AnalysisData {
     ProgressManager.checkCanceled();
     mapPsiFile2Hash.clear();
     mapPsiFile2Content.clear();
-    Project project =
-        // fixme
-        (psiFiles.isEmpty() ? filesToRemove : psiFiles).stream().findFirst().get().getProject();
     List<String> removedFiles =
         filesToRemove.stream()
             .map(DeepCodeUtils::getDeepCodedFilePath)
@@ -300,7 +304,7 @@ public final class AnalysisData {
       if (sizePath2Hash > MAX_BUNDLE_SIZE) {
         CreateBundleResponse tempBundleResponse =
             makeNewBundle(project, mapPath2Hash, Collections.emptyList());
-        if (isNotSucceed(tempBundleResponse, "Bad Create/Extend Bundle request: "))
+        if (isNotSucceed(project, tempBundleResponse, "Bad Create/Extend Bundle request: "))
           return EMPTY_MAP;
         sizePath2Hash = 0;
         mapPath2Hash.clear();
@@ -308,7 +312,8 @@ public final class AnalysisData {
     }
     // todo break removeFiles in chunks less then MAX_BANDLE_SIZE
     CreateBundleResponse createBundleResponse = makeNewBundle(project, mapPath2Hash, removedFiles);
-    if (isNotSucceed(createBundleResponse, "Bad Create/Extend Bundle request: ")) return EMPTY_MAP;
+    if (isNotSucceed(project, createBundleResponse, "Bad Create/Extend Bundle request: "))
+      return EMPTY_MAP;
     logDeepCode(
         "--- Create/Extend Bundle took: "
             + (System.currentTimeMillis() - startTime)
@@ -357,7 +362,7 @@ public final class AnalysisData {
       final long fileSize = psiFile.getVirtualFile().getLength();
       if (fileChunkSize + fileSize > MAX_BUNDLE_SIZE) {
         logDeepCode("Files-chunk size: " + fileChunkSize);
-        uploadFiles(filesChunk, bundleId, progress);
+        uploadFiles(project, filesChunk, bundleId, progress);
         fileChunkSize = 0;
         filesChunk.clear();
       }
@@ -366,7 +371,7 @@ public final class AnalysisData {
     }
     if (brokenMissingFilesCount > 0) logDeepCode(brokenMissingFilesMessage);
     logDeepCode("Last files-chunk size: " + fileChunkSize);
-    uploadFiles(filesChunk, bundleId, progress);
+    uploadFiles(project, filesChunk, bundleId, progress);
 
     mapPsiFile2Hash.clear();
     mapPsiFile2Content.clear();
@@ -377,7 +382,7 @@ public final class AnalysisData {
     startTime = System.currentTimeMillis();
     progress.setText(WAITING_FOR_ANALYSIS_TEXT);
     ProgressManager.checkCanceled();
-    GetAnalysisResponse getAnalysisResponse = retrieveSuggestions(bundleId, progress);
+    GetAnalysisResponse getAnalysisResponse = retrieveSuggestions(project, bundleId, progress);
     result = parseGetAnalysisResponse(psiFiles, getAnalysisResponse);
     logDeepCode(
         "--- Get Analysis took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
@@ -461,6 +466,7 @@ public final class AnalysisData {
   }
 
   private static void uploadFiles(
+      @NotNull Project project,
       @NotNull Collection<PsiFile> psiFiles,
       @NotNull String bundleId,
       @NotNull ProgressIndicator progress) {
@@ -474,12 +480,14 @@ public final class AnalysisData {
 
     EmptyResponse uploadFilesResponse =
         DeepCodeRestApi.UploadFiles(DeepCodeParams.getSessionToken(), bundleId, listHash2Content);
-    isNotSucceed(uploadFilesResponse, "Bad UploadFiles request: ");
+    isNotSucceed(project, uploadFilesResponse, "Bad UploadFiles request: ");
   }
 
   @NotNull
   private static GetAnalysisResponse retrieveSuggestions(
-      @NotNull String bundleId, @NotNull ProgressIndicator progressIndicator) {
+      @NotNull Project project,
+      @NotNull String bundleId,
+      @NotNull ProgressIndicator progressIndicator) {
     GetAnalysisResponse response;
     int counter = 0;
     do {
@@ -497,7 +505,8 @@ public final class AnalysisData {
               DeepCodeParams.useLinter());
 
       logDeepCode(response.toString());
-      if (isNotSucceed(response, "Bad GetAnalysis request: ")) return new GetAnalysisResponse();
+      if (isNotSucceed(project, response, "Bad GetAnalysis request: "))
+        return new GetAnalysisResponse();
       ProgressManager.checkCanceled();
       double progress = response.getProgress();
       if (progress == 0) progress = ((double) counter) / 100;

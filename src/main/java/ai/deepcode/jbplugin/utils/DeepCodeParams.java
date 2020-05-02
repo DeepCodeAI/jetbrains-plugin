@@ -1,20 +1,10 @@
 package ai.deepcode.jbplugin.utils;
 
 import ai.deepcode.javaclient.DeepCodeRestApi;
-import ai.deepcode.javaclient.responses.GetFiltersResponse;
-import ai.deepcode.jbplugin.DeepCodeNotifications;
-import ai.deepcode.jbplugin.ui.myTodoView;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.application.ApplicationNamesInfo;
-import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.project.ProjectManager;
-import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.Collections;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 public class DeepCodeParams {
 
@@ -98,6 +88,14 @@ public class DeepCodeParams {
   public static void setEnable(boolean isEnable) {
     DeepCodeParams.isEnable = isEnable;
     propertiesComponent.setValue("isEnable", isEnable);
+  }
+
+  public static boolean consentGiven(@NotNull Project project) {
+    return PropertiesComponent.getInstance(project).getBoolean("consentGiven", false);
+  }
+
+  public static void setConsentGiven(@NotNull Project project) {
+    PropertiesComponent.getInstance(project).setValue("consentGiven", true);
   }
 
   static {
