@@ -2,7 +2,7 @@ package ai.deepcode.jbplugin.actions;
 
 import ai.deepcode.jbplugin.DeepCodeNotifications;
 import ai.deepcode.jbplugin.ui.myTodoView;
-import ai.deepcode.jbplugin.utils.DeepCodeUtils;
+import ai.deepcode.jbplugin.core.DeepCodeUtils;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;

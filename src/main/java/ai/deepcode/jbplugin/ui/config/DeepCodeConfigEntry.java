@@ -1,8 +1,8 @@
 package ai.deepcode.jbplugin.ui.config;
 
-import ai.deepcode.jbplugin.utils.AnalysisData;
-import ai.deepcode.jbplugin.utils.DeepCodeParams;
-import ai.deepcode.jbplugin.utils.DeepCodeUtils;
+import ai.deepcode.jbplugin.core.AnalysisData;
+import ai.deepcode.jbplugin.core.DeepCodeParams;
+import ai.deepcode.jbplugin.core.DeepCodeUtils;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
 import org.jetbrains.annotations.Nls;

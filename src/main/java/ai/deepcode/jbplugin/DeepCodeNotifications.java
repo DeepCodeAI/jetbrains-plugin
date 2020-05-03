@@ -1,7 +1,7 @@
 package ai.deepcode.jbplugin;
 
-import ai.deepcode.jbplugin.utils.DeepCodeParams;
-import ai.deepcode.jbplugin.utils.DeepCodeUtils;
+import ai.deepcode.jbplugin.core.DeepCodeParams;
+import ai.deepcode.jbplugin.core.DeepCodeUtils;
 import com.intellij.notification.*;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.DumbAwareAction;

@@ -1,4 +1,4 @@
-package ai.deepcode.jbplugin.utils;
+package ai.deepcode.jbplugin.core;
 
 import ai.deepcode.javaclient.DeepCodeRestApi;
 import ai.deepcode.javaclient.responses.EmptyResponse;
@@ -18,7 +18,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.vcs.changes.ChangeListManager;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.wm.impl.status.StatusBarUtil;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
@@ -128,7 +127,7 @@ public final class DeepCodeUtils {
     int infos = 0;
     Set<String> countedSuggestions = new HashSet<>();
     for (PsiFile file : psiFiles) {
-      for (AnalysisData.SuggestionForFile suggestion : AnalysisData.getAnalysis(file)) {
+      for (SuggestionForFile suggestion : AnalysisData.getAnalysis(file)) {
         if (!countedSuggestions.contains(suggestion.getId())) {
           final int severity = suggestion.getSeverity();
           if (severity == 1) infos += 1;

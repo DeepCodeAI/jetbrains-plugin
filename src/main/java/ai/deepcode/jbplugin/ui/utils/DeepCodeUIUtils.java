@@ -1,7 +1,7 @@
 package ai.deepcode.jbplugin.ui.utils;
 
-import ai.deepcode.jbplugin.utils.AnalysisData;
-import ai.deepcode.jbplugin.utils.DeepCodeUtils;
+import ai.deepcode.jbplugin.core.AnalysisData;
+import ai.deepcode.jbplugin.core.DeepCodeUtils;
 import com.intellij.execution.process.ConsoleHighlighter;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.editor.DefaultLanguageHighlighterColors;
@@ -11,7 +11,6 @@ import com.intellij.openapi.editor.markup.TextAttributes;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiFile;
 import com.intellij.ui.HighlightedRegion;
-import com.intellij.ui.JBColor;
 import com.intellij.ui.RowIcon;
 import com.intellij.ui.scale.JBUIScale;
 import com.intellij.util.IconUtil;
@@ -20,11 +19,8 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.font.TextAttribute;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 public class DeepCodeUIUtils {
 

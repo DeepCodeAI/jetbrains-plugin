@@ -1,8 +1,7 @@
 package ai.deepcode.jbplugin.actions;
 
 import ai.deepcode.jbplugin.ui.myTodoView;
-import ai.deepcode.jbplugin.utils.AnalysisData;
-import com.intellij.openapi.actionSystem.ActionManager;
+import ai.deepcode.jbplugin.core.AnalysisData;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;

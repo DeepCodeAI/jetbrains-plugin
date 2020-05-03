@@ -1,8 +1,9 @@
 package ai.deepcode.jbplugin;
 
 import ai.deepcode.jbplugin.ui.myTodoView;
-import ai.deepcode.jbplugin.utils.AnalysisData;
-import ai.deepcode.jbplugin.utils.DeepCodeUtils;
+import ai.deepcode.jbplugin.core.DeepCodeUtils;
+import ai.deepcode.jbplugin.core.MyBulkFileListener;
+import ai.deepcode.jbplugin.core.MyProjectManagerListener;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent;
@@ -26,10 +27,8 @@ public class DeepCodeStartupActivity implements StartupActivity {
     if (!listenersActivated) {
       final MessageBusConnection messageBusConnection =
           ApplicationManager.getApplication().getMessageBus().connect();
-      messageBusConnection.subscribe(
-          VirtualFileManager.VFS_CHANGES, new AnalysisData.MyBulkFileListener());
-      messageBusConnection.subscribe(
-          ProjectManager.TOPIC, new AnalysisData.MyProjectManagerListener(project));
+      messageBusConnection.subscribe(VirtualFileManager.VFS_CHANGES, new MyBulkFileListener());
+      messageBusConnection.subscribe(ProjectManager.TOPIC, new MyProjectManagerListener(project));
       listenersActivated = true;
     }
     // Initial logging if needed.

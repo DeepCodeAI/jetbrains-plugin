@@ -1,7 +1,8 @@
 package ai.deepcode.jbplugin;
 
-import ai.deepcode.jbplugin.utils.AnalysisData;
-import ai.deepcode.jbplugin.utils.DeepCodeUtils;
+import ai.deepcode.jbplugin.core.AnalysisData;
+import ai.deepcode.jbplugin.core.DeepCodeUtils;
+import ai.deepcode.jbplugin.core.SuggestionForFile;
 import com.intellij.execution.impl.ConsoleViewUtil;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.editor.Document;
@@ -122,8 +123,8 @@ public class DeepCodeConsoleToolWindowFactory implements ToolWindowFactory, Disp
     Project project = psiFile.getProject();
     cleanMessages(project);
     if (!DeepCodeUtils.isSupportedFileFormat(psiFile)) return;
-    List<AnalysisData.SuggestionForFile> suggestions = AnalysisData.getAnalysis(psiFile);
-    for (AnalysisData.SuggestionForFile suggestion : suggestions) {
+    List<SuggestionForFile> suggestions = AnalysisData.getAnalysis(psiFile);
+    for (SuggestionForFile suggestion : suggestions) {
       printMessage(project, suggestion.getMessage());
       for (TextRange range : suggestion.getRanges()) {
         printMessage(project, "  " + range);

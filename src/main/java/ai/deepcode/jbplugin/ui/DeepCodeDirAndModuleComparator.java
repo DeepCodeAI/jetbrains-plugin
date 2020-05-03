@@ -4,7 +4,7 @@
 package ai.deepcode.jbplugin.ui;
 
 import ai.deepcode.jbplugin.ui.nodes.TodoFileNode;
-import ai.deepcode.jbplugin.utils.DeepCodeUtils;
+import ai.deepcode.jbplugin.core.DeepCodeUtils;
 import com.intellij.ide.projectView.ProjectViewNode;
 import ai.deepcode.jbplugin.ui.nodes.ModuleToDoNode;
 import com.intellij.ide.util.treeView.NodeDescriptor;

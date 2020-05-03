@@ -1,6 +1,6 @@
 package ai.deepcode.jbplugin.actions;
 
-import ai.deepcode.jbplugin.utils.AnalysisData;
+import ai.deepcode.jbplugin.core.AnalysisData;
 import com.intellij.codeInsight.intention.IntentionAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;

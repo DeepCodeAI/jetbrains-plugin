@@ -2,8 +2,9 @@ package ai.deepcode.jbplugin.annotators;
 
 import ai.deepcode.jbplugin.actions.DeepCodeIntentionAction;
 import ai.deepcode.jbplugin.ui.myTodoView;
-import ai.deepcode.jbplugin.utils.AnalysisData;
-import ai.deepcode.jbplugin.utils.DeepCodeUtils;
+import ai.deepcode.jbplugin.core.AnalysisData;
+import ai.deepcode.jbplugin.core.DeepCodeUtils;
+import ai.deepcode.jbplugin.core.SuggestionForFile;
 import com.intellij.lang.annotation.Annotation;
 import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.ExternalAnnotator;
@@ -22,8 +23,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Collections;
 import java.util.List;
 
-public class DeepCodeExternalAnnotator
-    extends ExternalAnnotator<PsiFile, List<AnalysisData.SuggestionForFile>> {
+public class DeepCodeExternalAnnotator extends ExternalAnnotator<PsiFile, List<SuggestionForFile>> {
 
   private static final Logger LOG = LoggerFactory.getLogger("DeepCode.Annotator");
 
@@ -42,33 +42,32 @@ public class DeepCodeExternalAnnotator
 
   @Nullable
   @Override
-  public List<AnalysisData.SuggestionForFile> doAnnotate(PsiFile psiFile) {
+  public List<SuggestionForFile> doAnnotate(PsiFile psiFile) {
     if (!DeepCodeUtils.isSupportedFileFormat(psiFile)) return Collections.emptyList();
-    return ProgressManager.getInstance().runProcess(
+    return AnalysisData.getAnalysis(psiFile);
+/*
+    // https://youtrack.jetbrains.com/issue/IDEA-239960
+    return ProgressManager.getInstance()
+        .runProcess(
             () -> AnalysisData.getAnalysis(psiFile),
-               new BackgroundableProcessIndicator(
-                      psiFile.getProject(),
-                      "DeepCode: Analysing " + psiFile.getName() + " file... ",
-                      new PerformInBackgroundOption() {
-                        @Override
-                        public boolean shouldStartInBackground() {
-                          return true;
-                        }
-                      },
-                      "Stop",
-                      "Stop file analysis",
-                      true)
-            );
+            new BackgroundableProcessIndicator(
+                psiFile.getProject(),
+                "DeepCode: Analysing " + psiFile.getName() + " file... ",
+                () -> true,
+                "Stop",
+                "Stop file analysis",
+                true));
+*/
   }
 
   @SuppressWarnings("deprecation") // later move to .newAnnotation introduced in 2020.1
   @Override
   public void apply(
       @NotNull PsiFile psiFile,
-      List<AnalysisData.SuggestionForFile> suggestions,
+      List<SuggestionForFile> suggestions,
       @NotNull AnnotationHolder holder) {
     if (suggestions == null) return;
-    for (AnalysisData.SuggestionForFile suggestion : suggestions) {
+    for (SuggestionForFile suggestion : suggestions) {
       final String message = "DeepCode: " + suggestion.getMessage();
       Annotation annotation;
       for (TextRange range : suggestion.getRanges()) {
@@ -86,20 +85,21 @@ public class DeepCodeExternalAnnotator
             annotation = holder.createInfoAnnotation(range, message);
             break;
         }
-        annotation.registerFix(new DeepCodeIntentionAction(psiFile, range, suggestion.getId(), false));
-        annotation.registerFix(new DeepCodeIntentionAction(psiFile, range, suggestion.getId(), true));
-/*
-        holder
-            .newAnnotation(severity, "DeepCode: " + suggestion.getMessage())
-            .range(range)
-            .create();
-*/
+        annotation.registerFix(
+            new DeepCodeIntentionAction(psiFile, range, suggestion.getId(), false));
+        annotation.registerFix(
+            new DeepCodeIntentionAction(psiFile, range, suggestion.getId(), true));
+        /*
+                holder
+                    .newAnnotation(severity, "DeepCode: " + suggestion.getMessage())
+                    .range(range)
+                    .create();
+        */
       }
     }
     // fixme
     // Update CurrentFile Panel if file was edited
     ServiceManager.getService(psiFile.getProject(), myTodoView.class).refresh();
-//    DeepCodeUtils.asyncUpdateCurrentFilePanel(psiFile);
+    //    DeepCodeUtils.asyncUpdateCurrentFilePanel(psiFile);
   }
-
 }

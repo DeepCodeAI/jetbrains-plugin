@@ -7,7 +7,7 @@ plugins {
 
 //group 'org.example'
 
-version '0.0.8-alpha'
+version '0.0.9-alpha'
 sourceCompatibility = 1.8
 
 repositories {
@@ -51,7 +51,8 @@ runIde {
 
 task runIC_201(type: RunIdeTask){
     jvmArgs '-Xmx2G'
-    ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-0\\201.6668.121'
+//    ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-0\\201.6668.121'
+    ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-0\\201.7223.91'
 }
 
 task runIC_193(type: RunIdeTask){

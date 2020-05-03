@@ -1,4 +1,4 @@
-package ai.deepcode.jbplugin.utils;
+package ai.deepcode.jbplugin.core;
 
 import ai.deepcode.javaclient.DeepCodeRestApi;
 import com.intellij.ide.util.PropertiesComponent;

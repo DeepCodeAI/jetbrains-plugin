@@ -16,7 +16,7 @@
 
 package ai.deepcode.jbplugin.ui;
 
-import ai.deepcode.jbplugin.utils.AnalysisData;
+import ai.deepcode.jbplugin.core.AnalysisData;
 import com.intellij.ide.projectView.TreeStructureProvider;
 import com.intellij.ide.todo.TodoFilter;
 import com.intellij.ide.util.treeView.AbstractTreeNode;

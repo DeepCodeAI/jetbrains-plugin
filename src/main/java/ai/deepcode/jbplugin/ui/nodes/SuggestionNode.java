@@ -3,7 +3,7 @@ package ai.deepcode.jbplugin.ui.nodes;
 import ai.deepcode.jbplugin.ui.SmartTodoItemPointer;
 import ai.deepcode.jbplugin.ui.SmartTodoItemPointerComparator;
 import ai.deepcode.jbplugin.ui.TodoTreeBuilder;
-import ai.deepcode.jbplugin.utils.AnalysisData;
+import ai.deepcode.jbplugin.core.SuggestionForFile;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.projectView.PresentationData;
 import com.intellij.ide.todo.TodoConfiguration;
@@ -26,14 +26,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-public class SuggestionNode extends BaseToDoNode<AnalysisData.SuggestionForFile> {
+public class SuggestionNode extends BaseToDoNode<SuggestionForFile> {
   private final PsiFile myPsiFile;
 
   protected SuggestionNode(
       Project project,
       @NotNull PsiFile psiFile,
       TodoTreeBuilder builder,
-      @NotNull AnalysisData.SuggestionForFile suggestion) {
+      @NotNull SuggestionForFile suggestion) {
     super(project, suggestion, builder);
     myPsiFile = psiFile;
   }
@@ -51,7 +51,7 @@ public class SuggestionNode extends BaseToDoNode<AnalysisData.SuggestionForFile>
 
   private TodoItem[] findAllTodos(final PsiFile psiFile, final PsiTodoSearchHelper helper) {
     final List<TodoItem> todoItems = new ArrayList<>();
-    AnalysisData.SuggestionForFile suggestion = getValue();
+    SuggestionForFile suggestion = getValue();
     for (TextRange range : suggestion.getRanges()) {
       todoItems.add(
           new TodoItemImpl(
@@ -119,7 +119,7 @@ public class SuggestionNode extends BaseToDoNode<AnalysisData.SuggestionForFile>
 
   @Override
   protected void update(@NotNull PresentationData presentation) {
-    AnalysisData.SuggestionForFile suggestion = getValue();
+    SuggestionForFile suggestion = getValue();
     presentation.setPresentableText(suggestion.getMessage());
     Icon severityIcon;
     if (suggestion.getSeverity() == 1) severityIcon = AllIcons.General.Information;
@@ -130,12 +130,12 @@ public class SuggestionNode extends BaseToDoNode<AnalysisData.SuggestionForFile>
   }
 
   @Override
-  public int getFileCount(AnalysisData.SuggestionForFile val) {
+  public int getFileCount(SuggestionForFile val) {
     return 1;
   }
 
   @Override
-  public int getTodoItemCount(AnalysisData.SuggestionForFile val) {
+  public int getTodoItemCount(SuggestionForFile val) {
     return val.getRanges().size();
   }
 }

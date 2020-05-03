@@ -1,4 +1,4 @@
-package ai.deepcode.jbplugin.utils;
+package ai.deepcode.jbplugin.core;
 
 import ai.deepcode.javaclient.DeepCodeRestApi;
 import ai.deepcode.javaclient.requests.ExtendBundleRequest;
@@ -12,21 +12,11 @@ import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.impl.BackgroundableProcessIndicator;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
-import com.intellij.openapi.project.ProjectManagerListener;
 import com.intellij.openapi.util.TextRange;
-import com.intellij.openapi.vfs.newvfs.BulkFileListener;
-import com.intellij.openapi.vfs.newvfs.events.VFileContentChangeEvent;
-import com.intellij.openapi.vfs.newvfs.events.VFileCreateEvent;
-import com.intellij.openapi.vfs.newvfs.events.VFileDeleteEvent;
-import com.intellij.openapi.vfs.newvfs.events.VFileEvent;
 import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiManager;
-import com.intellij.psi.PsiTreeChangeAdapter;
-import com.intellij.psi.PsiTreeChangeEvent;
-import com.intellij.psi.util.PsiTreeUtil;
-import com.intellij.util.concurrency.NonUrgentExecutor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -39,7 +29,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import static ai.deepcode.jbplugin.utils.DeepCodeUtils.logDeepCode;
+import static ai.deepcode.jbplugin.core.DeepCodeUtils.logDeepCode;
 
 public final class AnalysisData {
 
@@ -65,70 +55,23 @@ public final class AnalysisData {
     return analysisUrl;
   }
 
-  public static class SuggestionForFile {
-    private final String id;
-    private final String message;
-    private final int severity;
-    private final List<TextRange> ranges;
-
-    public SuggestionForFile(String id, String message, int severity, List<TextRange> ranges) {
-      this.id = id;
-      this.message = message;
-      this.severity = severity;
-      this.ranges = ranges;
-    }
-
-    public String getId() {
-      return id;
-    }
-
-    public String getMessage() {
-      return message;
-    }
-
-    public List<TextRange> getRanges() {
-      return ranges;
-    }
-
-    public int getSeverity() {
-      return severity;
-    }
+  static boolean addProjectToCache(@NotNull Project project) {
+    return mapProject2BundleId.putIfAbsent(project, "") == null;
   }
 
-  /** Add PsiTree change Listener to clear caches for file if it was changed. */
-  public static class MyProjectManagerListener implements ProjectManagerListener {
-
-    public MyProjectManagerListener(@NotNull Project project) {
-      projectOpened(project);
-    }
-
-    @Override
-    public void projectOpened(@NotNull Project project) {
-      if (!mapProject2BundleId.containsKey(project)) {
-        PsiManager.getInstance(project).addPsiTreeChangeListener(new MyPsiTreeChangeAdapter());
-        mapProject2BundleId.put(project, "");
-      }
-    }
-
-    @Override
-    public void projectClosing(@NotNull Project project) {
-      removeProjectFromCache(project);
-    }
-
-    private static class MyPsiTreeChangeAdapter extends PsiTreeChangeAdapter {
-      @Override
-      public void beforeChildrenChange(@NotNull PsiTreeChangeEvent event) {
-        removeFilesFromCache(Collections.singleton(event.getFile()));
-      }
-    }
+  static Set<Project> getAllCachedProject() {
+    return mapProject2BundleId.keySet();
   }
 
-  private static void removeFilesFromCache(@NotNull Collection<PsiFile> files) {
-    files.stream().filter(Objects::nonNull).forEach(mapFile2Suggestions::remove);
+  static void removeFilesFromCache(@NotNull Collection<PsiFile> files) {
+    files.stream()
+        .filter(Objects::nonNull)
+        .filter(AnalysisData::isFileInCache)
+        .forEach(mapFile2Suggestions::remove);
     logDeepCode("Removed from cache " + files.size() + " files: " + files);
   }
 
-  private static void removeProjectFromCache(@NotNull Project project) {
+  static void removeProjectFromCache(@NotNull Project project) {
     if (mapProject2BundleId.remove(project) != null) {
       logDeepCode("Removed from cache: " + project);
     }
@@ -139,55 +82,6 @@ public final class AnalysisData {
     return mapFile2Suggestions.keySet().stream()
         .filter(file -> file.getProject().equals(project))
         .collect(Collectors.toList());
-  }
-
-  /**
-   * Add VFS File Listener to clear/update caches (and update Panel) for files if it was changed
-   * outside of IDE.
-   */
-  public static class MyBulkFileListener implements BulkFileListener {
-    @Override
-    public void after(@NotNull List<? extends VFileEvent> events) {
-      for (Project project : mapProject2BundleId.keySet()) {
-        Set<PsiFile> filesChangedOrCreated =
-            getFilesOfEventTypes(
-                project, events, VFileContentChangeEvent.class, VFileCreateEvent.class);
-        if (!filesChangedOrCreated.isEmpty()) {
-          removeFilesFromCache(filesChangedOrCreated);
-          DeepCodeUtils.asyncAnalyseAndUpdatePanel(project, filesChangedOrCreated);
-        }
-      }
-    }
-
-    @Override
-    public void before(@NotNull List<? extends VFileEvent> events) {
-      for (Project project : mapProject2BundleId.keySet()) {
-        Set<PsiFile> filesRemoved = getFilesOfEventTypes(project, events, VFileDeleteEvent.class);
-        if (!filesRemoved.isEmpty()) {
-          removeFilesFromCache(filesRemoved);
-          ReadAction.nonBlocking(
-                  () -> {
-                    retrieveSuggestions(Collections.emptyList(), filesRemoved);
-                  })
-              .submit(NonUrgentExecutor.getInstance());
-          ServiceManager.getService(project, myTodoView.class).refresh();
-        }
-      }
-    }
-
-    private Set<PsiFile> getFilesOfEventTypes(
-        @NotNull Project project,
-        @NotNull List<? extends VFileEvent> events,
-        @NotNull Class<?>... classesOfEventsToFilter) {
-      PsiManager manager = PsiManager.getInstance(project);
-      return events.stream()
-          .filter(event -> PsiTreeUtil.instanceOf(event, classesOfEventsToFilter))
-          .map(VFileEvent::getFile)
-          .filter(Objects::nonNull)
-          .map(manager::findFile)
-          .filter(DeepCodeUtils::isSupportedFileFormat)
-          .collect(Collectors.toSet());
-    }
   }
 
   /** see {@link #getAnalysis(java.util.Collection)} */
@@ -220,10 +114,8 @@ public final class AnalysisData {
     if (!filesToProceed.isEmpty()) {
       logDeepCode("Analysis requested for " + psiFiles.size() + " files: " + psiFiles.toString());
       logDeepCode("Files to proceed (not found in cache): " + filesToProceed.size());
+      mapFile2Suggestions.putAll(retrieveSuggestions(filesToProceed, Collections.emptyList()));
     }
-
-    mapFile2Suggestions.putAll(retrieveSuggestions(filesToProceed, Collections.emptyList()));
-
     final Collection<PsiFile> brokenKeys = new ArrayList<>();
     for (PsiFile psiFile : psiFiles) {
       List<SuggestionForFile> suggestions = mapFile2Suggestions.get(psiFile);
@@ -261,7 +153,7 @@ public final class AnalysisData {
 
   /** Perform costly network request. <b>No cache checks!</b> */
   @NotNull
-  private static Map<PsiFile, List<SuggestionForFile>> retrieveSuggestions(
+  static Map<PsiFile, List<SuggestionForFile>> retrieveSuggestions(
       @NotNull Collection<PsiFile> psiFiles, @NotNull Collection<PsiFile> filesToRemove) {
     if (psiFiles.isEmpty() && filesToRemove.isEmpty()) {
       return Collections.emptyMap();
@@ -279,7 +171,7 @@ public final class AnalysisData {
     //    progress.start();
 
     long startTime;
-    // Create Bundle
+    // ---------------------------------------- Create Bundle
     startTime = System.currentTimeMillis();
     progress.setText(PREPARE_FILES_TEXT);
     ProgressManager.checkCanceled();
@@ -325,7 +217,7 @@ public final class AnalysisData {
     final List<String> missingFiles = createBundleResponse.getMissingFiles();
     logDeepCode("missingFiles: " + missingFiles.size());
 
-    // Upload Files
+    // ---------------------------------------- Upload Files
     startTime = System.currentTimeMillis();
     progress.setText(UPLOADING_FILES_TEXT);
     ProgressManager.checkCanceled();
@@ -378,7 +270,7 @@ public final class AnalysisData {
     logDeepCode(
         "--- Upload Files took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
 
-    // Get Analysis
+    // ---------------------------------------- Get Analysis
     startTime = System.currentTimeMillis();
     progress.setText(WAITING_FOR_ANALYSIS_TEXT);
     ProgressManager.checkCanceled();
@@ -594,6 +486,10 @@ public final class AnalysisData {
     return mapFile2Suggestions.keySet().stream()
         .filter(s -> s.getProject().equals(project))
         .collect(Collectors.toSet());
+  }
+
+  public static boolean isFileInCache(@NotNull PsiFile psiFile) {
+    return mapFile2Suggestions.containsKey(psiFile);
   }
 
   public static void clearCache(@Nullable final Project project) {
