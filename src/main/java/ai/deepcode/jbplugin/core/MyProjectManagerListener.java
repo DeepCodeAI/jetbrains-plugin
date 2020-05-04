@@ -1,7 +1,10 @@
 package ai.deepcode.jbplugin.core;
 
+import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManagerListener;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
 import com.intellij.psi.PsiTreeChangeAdapter;
@@ -47,6 +50,15 @@ public class MyProjectManagerListener implements ProjectManagerListener {
         DeepCodeIgnoreInfoHolder.update_dcignoreFileContent(psiFile);
         AnalysisData.clearCache(psiFile.getProject());
         DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(psiFile.getProject());
+      }
+      // .gitignore content delay to be parsed https://youtrack.jetbrains.com/issue/IDEA-239773
+      final VirtualFile virtualFile = psiFile.getVirtualFile();
+      if (virtualFile != null && virtualFile.getName().equals(".gitignore")) {
+        final Document document = psiFile.getViewProvider().getDocument();
+        if (document != null) {
+          FileDocumentManager.getInstance().saveDocument(document);
+          DeepCodeUtils.rescanProject(psiFile.getProject(), 1000);
+        }
       }
     }
 

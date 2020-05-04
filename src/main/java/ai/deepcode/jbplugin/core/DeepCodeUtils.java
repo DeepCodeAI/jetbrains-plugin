@@ -8,6 +8,7 @@ import ai.deepcode.jbplugin.DeepCodeNotifications;
 import ai.deepcode.jbplugin.ui.myTodoView;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.application.ApplicationInfo;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ApplicationNamesInfo;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.components.ServiceManager;
@@ -63,6 +64,32 @@ public final class DeepCodeUtils {
                         psiFile.getProject(),
                         () -> DeepCodeConsoleToolWindowFactory.updateCurrentFilePanel(psiFile)));
     */
+  }
+
+  public static void delay(long millis) {
+    try {
+      Thread.sleep(millis);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+      Thread.currentThread().interrupt();
+    }
+  }
+
+  public static long timeOfLastRescanRequest = 0;
+
+  public static void rescanProject(@Nullable Project project, long delayMilliseconds) {
+    ProgressManager.getInstance()
+        .run(
+            new Task.Backgroundable(project, "DeepCode: Delayed Analysis...") {
+              @Override
+              public void run(@NotNull ProgressIndicator indicator) {
+                long timeOfThisRequest = timeOfLastRescanRequest = System.currentTimeMillis();
+                delay(delayMilliseconds);
+                if (timeOfLastRescanRequest > timeOfThisRequest) return;
+                AnalysisData.clearCache(project);
+                asyncAnalyseProjectAndUpdatePanel(project);
+              }
+            });
   }
 
   public static void asyncAnalyseProjectAndUpdatePanel(@Nullable Project project) {

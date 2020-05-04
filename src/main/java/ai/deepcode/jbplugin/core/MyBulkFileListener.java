@@ -95,6 +95,7 @@ public class MyBulkFileListener implements BulkFileListener {
         .map(VFileEvent::getFile)
         .filter(Objects::nonNull)
         .map(manager::findFile)
+        .filter(Objects::nonNull)
         .filter(fileFilter)
         .collect(Collectors.toSet());
   }
