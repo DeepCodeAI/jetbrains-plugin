@@ -100,10 +100,16 @@ public final class DeepCodeUtils {
     //    if (dumbService == null) return;
     //    dumbService.runReadActionInSmartMode(() ->
     return ReadAction.compute(
-        () ->
-            allProjectFiles(project).stream()
-                .filter(DeepCodeUtils::isSupportedFileFormat)
-                .collect(Collectors.toList()));
+        () -> {
+          final List<PsiFile> allProjectFiles = allProjectFiles(project);
+          // Initial scan for .dcignore files
+          allProjectFiles.stream()
+              .filter(DeepCodeIgnoreInfoHolder::is_dcignoreFile)
+              .forEach(DeepCodeIgnoreInfoHolder::update_dcignoreFileContent);
+          return allProjectFiles.stream()
+              .filter(DeepCodeUtils::isSupportedFileFormat)
+              .collect(Collectors.toList());
+        });
   }
 
   private static List<PsiFile> allProjectFiles(@NotNull Project project) {
@@ -202,19 +208,18 @@ public final class DeepCodeUtils {
   private static final long MAX_FILE_SIZE = 5242880; // 5MB in bytes
 
   public static boolean isSupportedFileFormat(PsiFile psiFile) {
-    if (psiFile == null) return false;
-    return isSupportedFileFormat(psiFile.getVirtualFile(), psiFile.getProject());
-  }
-
-  private static boolean isSupportedFileFormat(VirtualFile file, @NotNull Project project) {
     if (supportedExtensions.isEmpty() || supportedConfigFiles.isEmpty()) {
       initSupportedExtentionsAndConfigFiles();
     }
-    if (file == null) return false;
-    if (ChangeListManager.getInstance(project).isIgnoredFile(file)) return false;
-    return file.getLength() < MAX_FILE_SIZE
-        && (supportedExtensions.contains(file.getExtension())
-            || supportedConfigFiles.contains(file.getName()));
+    if (psiFile == null) return false;
+    if (DeepCodeIgnoreInfoHolder.isIgnoredFile(psiFile)) return false;
+    final VirtualFile virtualFile = psiFile.getVirtualFile();
+    if (virtualFile == null) return false;
+    if (ChangeListManager.getInstance(psiFile.getProject()).isIgnoredFile(virtualFile))
+      return false;
+    return virtualFile.getLength() < MAX_FILE_SIZE
+        && (supportedExtensions.contains(virtualFile.getExtension())
+            || supportedConfigFiles.contains(virtualFile.getName()));
   }
 
   /** Potentially <b>Heavy</b> network request! */

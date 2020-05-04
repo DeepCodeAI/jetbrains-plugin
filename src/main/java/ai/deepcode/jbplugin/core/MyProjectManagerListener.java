@@ -33,8 +33,30 @@ public class MyProjectManagerListener implements ProjectManagerListener {
     @Override
     public void beforeChildrenChange(@NotNull PsiTreeChangeEvent event) {
       final PsiFile psiFile = event.getFile();
-      if (psiFile!= null && AnalysisData.isFileInCache(psiFile)) {
+      if (psiFile == null) return;
+      if (AnalysisData.isFileInCache(psiFile)) {
         AnalysisData.removeFilesFromCache(Collections.singleton(psiFile));
+      }
+    }
+
+    @Override
+    public void childrenChanged(@NotNull PsiTreeChangeEvent event) {
+      final PsiFile psiFile = event.getFile();
+      if (psiFile == null) return;
+      if (DeepCodeIgnoreInfoHolder.is_dcignoreFile(psiFile)) {
+        DeepCodeIgnoreInfoHolder.update_dcignoreFileContent(psiFile);
+        AnalysisData.clearCache(psiFile.getProject());
+        DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(psiFile.getProject());
+      }
+    }
+
+    @Override
+    public void beforeChildRemoval(@NotNull PsiTreeChangeEvent event) {
+      PsiFile psiFile = (event.getChild() instanceof PsiFile) ? (PsiFile) event.getChild() : null;
+      if (psiFile != null && DeepCodeIgnoreInfoHolder.is_dcignoreFile(psiFile)) {
+        DeepCodeIgnoreInfoHolder.remove_dcignoreFileContent(psiFile);
+        AnalysisData.clearCache(psiFile.getProject());
+        DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(psiFile.getProject());
       }
     }
   }

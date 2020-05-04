@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -30,11 +31,28 @@ public class MyBulkFileListener implements BulkFileListener {
   public void after(@NotNull List<? extends VFileEvent> events) {
     for (Project project : AnalysisData.getAllCachedProject()) {
       Set<PsiFile> filesChangedOrCreated =
-          getFilesOfEventTypes(
-              project, events, VFileContentChangeEvent.class, VFileCreateEvent.class);
+          getFilteredFilesOfEventTypes(
+              project,
+              events,
+              DeepCodeUtils::isSupportedFileFormat,
+              VFileContentChangeEvent.class,
+              VFileCreateEvent.class);
       if (!filesChangedOrCreated.isEmpty()) {
         AnalysisData.removeFilesFromCache(filesChangedOrCreated);
         DeepCodeUtils.asyncAnalyseAndUpdatePanel(project, filesChangedOrCreated);
+      }
+
+      Set<PsiFile> gcignoreChangedFiles =
+          getFilteredFilesOfEventTypes(
+              project,
+              events,
+              DeepCodeIgnoreInfoHolder::is_dcignoreFile,
+              VFileContentChangeEvent.class,
+              VFileCreateEvent.class);
+      if (!gcignoreChangedFiles.isEmpty()) {
+        gcignoreChangedFiles.forEach(DeepCodeIgnoreInfoHolder::update_dcignoreFileContent);
+        AnalysisData.clearCache(project);
+        DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(project);
       }
     }
   }
@@ -42,7 +60,9 @@ public class MyBulkFileListener implements BulkFileListener {
   @Override
   public void before(@NotNull List<? extends VFileEvent> events) {
     for (Project project : AnalysisData.getAllCachedProject()) {
-      Set<PsiFile> filesRemoved = getFilesOfEventTypes(project, events, VFileDeleteEvent.class);
+      Set<PsiFile> filesRemoved =
+          getFilteredFilesOfEventTypes(
+              project, events, DeepCodeUtils::isSupportedFileFormat, VFileDeleteEvent.class);
       if (!filesRemoved.isEmpty()) {
         AnalysisData.removeFilesFromCache(filesRemoved);
         ReadAction.nonBlocking(
@@ -52,12 +72,22 @@ public class MyBulkFileListener implements BulkFileListener {
             .submit(NonUrgentExecutor.getInstance());
         ServiceManager.getService(project, myTodoView.class).refresh();
       }
+
+      Set<PsiFile> gcignoreChangedFiles =
+          getFilteredFilesOfEventTypes(
+              project, events, DeepCodeIgnoreInfoHolder::is_dcignoreFile, VFileDeleteEvent.class);
+      if (!gcignoreChangedFiles.isEmpty()) {
+        gcignoreChangedFiles.forEach(DeepCodeIgnoreInfoHolder::remove_dcignoreFileContent);
+        AnalysisData.clearCache(project);
+        DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(project);
+      }
     }
   }
 
-  private Set<PsiFile> getFilesOfEventTypes(
+  private Set<PsiFile> getFilteredFilesOfEventTypes(
       @NotNull Project project,
       @NotNull List<? extends VFileEvent> events,
+      @NotNull Predicate<PsiFile> fileFilter,
       @NotNull Class<?>... classesOfEventsToFilter) {
     PsiManager manager = PsiManager.getInstance(project);
     return events.stream()
@@ -65,7 +95,7 @@ public class MyBulkFileListener implements BulkFileListener {
         .map(VFileEvent::getFile)
         .filter(Objects::nonNull)
         .map(manager::findFile)
-        .filter(DeepCodeUtils::isSupportedFileFormat)
+        .filter(fileFilter)
         .collect(Collectors.toSet());
   }
 }
