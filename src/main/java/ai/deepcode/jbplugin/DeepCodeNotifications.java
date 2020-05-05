@@ -2,6 +2,7 @@ package ai.deepcode.jbplugin;
 
 import ai.deepcode.jbplugin.core.DeepCodeParams;
 import ai.deepcode.jbplugin.core.DeepCodeUtils;
+import com.intellij.ide.BrowserUtil;
 import com.intellij.notification.*;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.DumbAwareAction;
@@ -58,15 +59,15 @@ public class DeepCodeNotifications {
     lastNotificationRunnable = () -> showConsentRequest(project, userActionNeeded);
     final String message =
         "Confirm remote analysis of "
-            + project.getBasePath()
-            + " (<a href=\"https://www.deepcode.ai/tc\">Terms & Conditions</a>)";
+            + project.getBasePath();
+//            + " (<a href=\"https://www.deepcode.ai/tc\">Terms & Conditions</a>)";
     final Notification notification =
         new ConsentNotification(
                 groupNeedAction,
-                title,
-                message,
+                title + ": Confirm remote analysis of",
+                project.getName(),
                 NotificationType.WARNING,
-                NotificationListener.URL_OPENING_LISTENER)
+                null /*NotificationListener.URL_OPENING_LISTENER*/)
             .addAction(
                 new ShowClickableLinkAction(
                     "CONFIRM",
@@ -75,7 +76,12 @@ public class DeepCodeNotifications {
                       consentRequestShown = false;
                       DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(project);
                     },
-                    true));
+                    true))
+            .addAction(
+                new ShowClickableLinkAction(
+                    "Terms and Conditions",
+                    () -> BrowserUtil.open("https://www.deepcode.ai/tc"),
+                    false));
     lastNotifications.forEach(DeepCodeNotifications::expireNotification);
     lastNotifications.clear();
     lastNotifications.add(notification);
