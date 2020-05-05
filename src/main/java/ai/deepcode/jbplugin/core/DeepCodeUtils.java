@@ -119,7 +119,7 @@ public final class DeepCodeUtils {
     //    ReadAction.nonBlocking(() -> doUpdate(project)).submit(NonUrgentExecutor.getInstance());
   }
 
-  public static List<PsiFile> getAllSupportedFilesInProject(@NotNull Project project) {
+  private static List<PsiFile> getAllSupportedFilesInProject(@NotNull Project project) {
     // todo do we need indexes ready here?
 
     //    final DumbService dumbService = ReadAction.compute(() -> project.isDisposed() ? null :

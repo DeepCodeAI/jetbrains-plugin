@@ -102,7 +102,7 @@ public class DeepCodeUIUtils {
           IconUtil.textToIcon("?", new JLabel(), fontToScale));
 
   public static Icon getSummaryIcon(@NotNull Project project) {
-    if (AnalysisData.getAllAnalysedFiles(project).isEmpty()) return EMPTY_EWI_ICON;
+    if (!DeepCodeUtils.isLogged(project, false)) return EMPTY_EWI_ICON;
 
     DeepCodeUtils.ErrorsWarningsInfos ewi =
         DeepCodeUtils.getEWI(AnalysisData.getAllFilesWithSuggestions(project));

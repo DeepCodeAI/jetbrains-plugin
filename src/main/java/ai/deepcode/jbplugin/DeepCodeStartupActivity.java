@@ -1,9 +1,11 @@
 package ai.deepcode.jbplugin;
 
+import ai.deepcode.jbplugin.core.AnalysisData;
 import ai.deepcode.jbplugin.ui.myTodoView;
 import ai.deepcode.jbplugin.core.DeepCodeUtils;
 import ai.deepcode.jbplugin.core.MyBulkFileListener;
 import ai.deepcode.jbplugin.core.MyProjectManagerListener;
+import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent;
@@ -31,6 +33,10 @@ public class DeepCodeStartupActivity implements StartupActivity {
       messageBusConnection.subscribe(ProjectManager.TOPIC, new MyProjectManagerListener(project));
       listenersActivated = true;
     }
+    // Keep commented - for DEBUG ONLY !!!!!!!!!!!!!!!!!
+    //PropertiesComponent.getInstance(project).setValue("consentGiven", false);
+
+    AnalysisData.clearCache(project);
     // Initial logging if needed.
     if (DeepCodeUtils.isLogged(project, true)) {
       DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(project);

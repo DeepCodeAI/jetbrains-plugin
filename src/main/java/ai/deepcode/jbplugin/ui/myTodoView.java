@@ -202,7 +202,7 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
     myPanels.add(myChangeListTodosPanel);
     myPanels.add(myCurrentFileTodosPanel);
     myPanels.add(myScopeBasedTodosPanel);
-    toolWindow.setIcon(DeepCodeUIUtils.getSummaryIcon(myProject));
+    toolWindow.setIcon(DeepCodeUIUtils.EMPTY_EWI_ICON);
   }
 
   @NotNull
