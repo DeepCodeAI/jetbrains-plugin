@@ -5,8 +5,10 @@ import com.intellij.codeInsight.intention.IntentionAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorKind;
+import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
+import com.intellij.openapi.wm.IdeFocusManager;
 import com.intellij.psi.PsiFile;
 import com.intellij.util.IncorrectOperationException;
 import org.jetbrains.annotations.Nls;
@@ -119,6 +121,9 @@ public class DeepCodeIntentionAction implements IntentionAction {
     editor.getCaretModel().moveToOffset(caretOffset);
 
     editor.getSelectionModel().setSelection(caretOffset, caretOffset + ignoreDescription.length());
+
+    // set focus on editor if called from DeepCode Panel
+    IdeFocusManager.getInstance(project).requestFocus(editor.getContentComponent(), true);
   }
 
   /**

@@ -2,12 +2,12 @@ import org.jetbrains.intellij.tasks.RunIdeTask
 
 plugins {
     id 'java'
-    id 'org.jetbrains.intellij' version '0.4.18'
+    id 'org.jetbrains.intellij' version '0.4.19'
 }
 
 //group 'org.example'
 
-version '0.0.11-alpha'
+version '0.0.12-alpha-test'
 sourceCompatibility = 1.8
 
 repositories {
@@ -22,7 +22,7 @@ dependencies {
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {
-    pluginName 'DeepCodePlugin'
+    pluginName "DeepCode-$project.name"
 //    version '2019.2.4'
 //    localPath 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-0\\193.6911.18'
 //    localPath 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-1\\201.6487.11'
