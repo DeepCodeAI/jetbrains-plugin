@@ -8,7 +8,6 @@ import ai.deepcode.jbplugin.DeepCodeNotifications;
 import ai.deepcode.jbplugin.ui.myTodoView;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.application.ApplicationInfo;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ApplicationNamesInfo;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.components.ServiceManager;
@@ -26,34 +25,19 @@ import com.intellij.util.concurrency.NonUrgentExecutor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public final class DeepCodeUtils {
+  private DeepCodeUtils() {}
+
   private static Set<String> supportedExtensions = Collections.emptySet();
   private static Set<String> supportedConfigFiles = Collections.emptySet();
-  private static final SimpleDateFormat HMSS = new SimpleDateFormat("h:m:s,S");
   private static final String userAgent =
       "JetBrains-plugin-"
           + ApplicationNamesInfo.getInstance().getProductName()
           + "-"
           + ApplicationInfo.getInstance().getFullVersion();
-
-  private DeepCodeUtils() {}
-
-  public static void logDeepCode(String message) {
-    String currentTime = "[" + HMSS.format(System.currentTimeMillis()) + "] ";
-    if (message.length() > 500) {
-      message =
-          message.substring(0, 500)
-              + " ... ["
-              + (message.length() - 500)
-              + " more symbols were cut]";
-    }
-    // fixme: made DeepCode console
-    System.out.println(currentTime + message);
-  }
 
   public static void asyncUpdateCurrentFilePanel(PsiFile psiFile) {
     /*
@@ -77,17 +61,24 @@ public final class DeepCodeUtils {
 
   public static long timeOfLastRescanRequest = 0;
 
+  // BackgroundTaskQueue ??? com.intellij.openapi.wm.ex.StatusBarEx#getBackgroundProcesses ???
   public static void rescanProject(@Nullable Project project, long delayMilliseconds) {
+    runInBackground(project, ()-> {
+      long timeOfThisRequest = timeOfLastRescanRequest = System.currentTimeMillis();
+      delay(delayMilliseconds);
+      if (timeOfLastRescanRequest > timeOfThisRequest) return;
+      AnalysisData.clearCache(project);
+      asyncAnalyseProjectAndUpdatePanel(project);
+    });
+  }
+
+  public static void runInBackground(@Nullable Project project, @NotNull Runnable runnable) {
     ProgressManager.getInstance()
         .run(
-            new Task.Backgroundable(project, "DeepCode: Delayed Analysis...") {
+            new Task.Backgroundable(project, "DeepCode: Analysing Files...") {
               @Override
               public void run(@NotNull ProgressIndicator indicator) {
-                long timeOfThisRequest = timeOfLastRescanRequest = System.currentTimeMillis();
-                delay(delayMilliseconds);
-                if (timeOfLastRescanRequest > timeOfThisRequest) return;
-                AnalysisData.clearCache(project);
-                asyncAnalyseProjectAndUpdatePanel(project);
+                runnable.run();
               }
             });
   }
@@ -105,17 +96,12 @@ public final class DeepCodeUtils {
     //    DumbService.getInstance(project)
     //        .runWhenSmart(
     //            () ->
-    ProgressManager.getInstance()
-        .run(
-            new Task.Backgroundable(project, "DeepCode: Analyse Files...") {
-              @Override
-              public void run(@NotNull ProgressIndicator indicator) {
-                AnalysisData.getAnalysis(
-                    (psiFiles != null) ? psiFiles : getAllSupportedFilesInProject(project));
-                ServiceManager.getService(project, myTodoView.class).refresh();
-                //      StatusBarUtil.setStatusBarInfo(project, message);
-              }
-            });
+    runInBackground(project, ()-> {
+      AnalysisData.getAnalysis(
+              (psiFiles != null) ? psiFiles : getAllSupportedFilesInProject(project));
+      ServiceManager.getService(project, myTodoView.class).refresh();
+      //      StatusBarUtil.setStatusBarInfo(project, message);
+    });
     //    ReadAction.nonBlocking(() -> doUpdate(project)).submit(NonUrgentExecutor.getInstance());
   }
 
@@ -179,7 +165,7 @@ public final class DeepCodeUtils {
     final EmptyResponse response = DeepCodeRestApi.checkSession(sessionToken);
     boolean isLogged = response.getStatusCode() == 200;
     String message = response.getStatusDescription();
-    logDeepCode(
+    DCLogger.info(
         ((isLogged) ? "Logging check succeed." : "Logging check fails: " + message)
             + " Token: "
             + sessionToken);
@@ -189,7 +175,7 @@ public final class DeepCodeUtils {
       }
       DeepCodeNotifications.showLoginLink(project, message);
     } else if (isLogged && project != null && !DeepCodeParams.consentGiven(project)) {
-      logDeepCode("Consent check fail! Project: " + project.getName());
+      DCLogger.info("Consent check fail! Project: " + project.getName());
       isLogged = false;
       DeepCodeNotifications.showConsentRequest(project, userActionNeeded);
     }
@@ -259,10 +245,10 @@ public final class DeepCodeUtils {
               .map(s -> s.substring(1)) // remove preceding `.` (`.js` -> `js`)
               .collect(Collectors.toSet());
       supportedConfigFiles = new HashSet<>(filtersResponse.getConfigFiles());
-      logDeepCode("Supported extensions: " + supportedExtensions);
-      logDeepCode("Supported configFiles: " + supportedConfigFiles);
+      DCLogger.info("Supported extensions: " + supportedExtensions);
+      DCLogger.info("Supported configFiles: " + supportedConfigFiles);
     } else {
-      logDeepCode(
+      DCLogger.info(
           "Can't retrieve supported file extensions and config files from the server. Fallback to default set.\n"
               + filtersResponse.getStatusCode()
               + " "

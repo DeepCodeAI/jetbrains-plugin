@@ -12,7 +12,6 @@ import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
-import com.intellij.openapi.progress.impl.BackgroundableProcessIndicator;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.util.TextRange;
@@ -27,9 +26,10 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
-import static ai.deepcode.jbplugin.core.DeepCodeUtils.logDeepCode;
+import static ai.deepcode.jbplugin.core.DCLogger.info;
 
 public final class AnalysisData {
 
@@ -51,6 +51,9 @@ public final class AnalysisData {
 
   private static final Map<Project, String> mapProject2BundleId = new ConcurrentHashMap<>();
 
+  // Mutex need to be requested to change mapFile2Suggestions
+  private static final ReentrantLock MUTEX = new ReentrantLock();
+
   public static String getAnalysisUrl() {
     return analysisUrl;
   }
@@ -64,16 +67,29 @@ public final class AnalysisData {
   }
 
   static void removeFilesFromCache(@NotNull Collection<PsiFile> files) {
-    files.stream()
-        .filter(Objects::nonNull)
-        .filter(AnalysisData::isFileInCache)
-        .forEach(mapFile2Suggestions::remove);
-    logDeepCode("Removed from cache " + files.size() + " files: " + files);
+    try {
+      info("Request to remove from cache " + files.size() + " files: " + files);
+      MUTEX.lock();
+      int removeCounter = 0;
+      for (PsiFile file : files) {
+        if (file != null && isFileInCache(file)) {
+          mapFile2Suggestions.remove(file);
+          removeCounter++;
+        }
+      }
+      info(
+          "Actually removed from cache: "
+              + removeCounter
+              + " files. Were not in cache: "
+              + (files.size() - removeCounter));
+    } finally {
+      MUTEX.unlock();
+    }
   }
 
   static void removeProjectFromCache(@NotNull Project project) {
     if (mapProject2BundleId.remove(project) != null) {
-      logDeepCode("Removed from cache: " + project);
+      info("Removed from cache: " + project);
     }
     removeFilesFromCache(cachedFilesOfProject(project));
   }
@@ -100,21 +116,38 @@ public final class AnalysisData {
    * @return
    */
   @NotNull
-  public static synchronized Map<PsiFile, List<SuggestionForFile>> getAnalysis(
+  public static Map<PsiFile, List<SuggestionForFile>> getAnalysis(
+      @NotNull Collection<PsiFile> psiFiles) {
+    return doGetAnalysis(psiFiles);
+  }
+
+  @NotNull
+  private static Map<PsiFile, List<SuggestionForFile>> doGetAnalysis(
       @NotNull Collection<PsiFile> psiFiles) {
     Map<PsiFile, List<SuggestionForFile>> result = new HashMap<>();
-    Collection<PsiFile> filesToProceed =
-        ReadAction.compute(
-            () ->
-                psiFiles.stream()
-                    .filter(Objects::nonNull)
-                    .filter(PsiFile::isValid)
-                    .filter(file -> !mapFile2Suggestions.containsKey(file))
-                    .collect(Collectors.toSet()));
-    if (!filesToProceed.isEmpty()) {
-      logDeepCode("Analysis requested for " + psiFiles.size() + " files: " + psiFiles.toString());
-      logDeepCode("Files to proceed (not found in cache): " + filesToProceed.size());
-      mapFile2Suggestions.putAll(retrieveSuggestions(filesToProceed, Collections.emptyList()));
+    try {
+      MUTEX.lock();
+      Collection<PsiFile> filesToProceed =
+          ReadAction.compute(
+              () ->
+                  psiFiles.stream()
+                      .filter(Objects::nonNull)
+                      .filter(PsiFile::isValid)
+                      .filter(file -> !mapFile2Suggestions.containsKey(file))
+                      .collect(Collectors.toSet()));
+      if (!filesToProceed.isEmpty()) {
+        info("Analysis requested for " + psiFiles.size() + " files: " + psiFiles.toString());
+
+        // fixme debug only
+        info(getHash(psiFiles.stream().findFirst().get()));
+
+        info("Files to proceed (not found in cache): " + filesToProceed.size());
+        mapFile2Suggestions.putAll(retrieveSuggestions(filesToProceed, Collections.emptyList()));
+      }
+    } finally {
+      // fixme debug only
+      //info("MUTEX RELEASED");
+      MUTEX.unlock();
     }
     final Collection<PsiFile> brokenKeys = new ArrayList<>();
     for (PsiFile psiFile : psiFiles) {
@@ -126,7 +159,7 @@ public final class AnalysisData {
       }
     }
     if (!brokenKeys.isEmpty()) {
-      logDeepCode(
+      info(
           "Suggestions not found for " + brokenKeys.size() + " files: " + brokenKeys.toString());
     }
     return result;
@@ -143,7 +176,7 @@ public final class AnalysisData {
       DeepCodeUtils.isLogged(project, !loginRequested);
       loginRequested = true;
     }
-    logDeepCode(message + response.getStatusCode() + " " + response.getStatusDescription());
+    info(message + response.getStatusCode() + " " + response.getStatusDescription());
     return true;
   }
 
@@ -206,16 +239,16 @@ public final class AnalysisData {
     CreateBundleResponse createBundleResponse = makeNewBundle(project, mapPath2Hash, removedFiles);
     if (isNotSucceed(project, createBundleResponse, "Bad Create/Extend Bundle request: "))
       return EMPTY_MAP;
-    logDeepCode(
+    info(
         "--- Create/Extend Bundle took: "
             + (System.currentTimeMillis() - startTime)
             + " milliseconds");
 
     final String bundleId = createBundleResponse.getBundleId();
-    logDeepCode("bundleId: " + bundleId);
+    info("bundleId: " + bundleId);
 
     final List<String> missingFiles = createBundleResponse.getMissingFiles();
-    logDeepCode("missingFiles: " + missingFiles.size());
+    info("missingFiles: " + missingFiles.size());
 
     // ---------------------------------------- Upload Files
     startTime = System.currentTimeMillis();
@@ -253,7 +286,7 @@ public final class AnalysisData {
       }
       final long fileSize = psiFile.getVirtualFile().getLength();
       if (fileChunkSize + fileSize > MAX_BUNDLE_SIZE) {
-        logDeepCode("Files-chunk size: " + fileChunkSize);
+        info("Files-chunk size: " + fileChunkSize);
         uploadFiles(project, filesChunk, bundleId, progress);
         fileChunkSize = 0;
         filesChunk.clear();
@@ -261,13 +294,13 @@ public final class AnalysisData {
       fileChunkSize += fileSize;
       filesChunk.add(psiFile);
     }
-    if (brokenMissingFilesCount > 0) logDeepCode(brokenMissingFilesMessage);
-    logDeepCode("Last files-chunk size: " + fileChunkSize);
+    if (brokenMissingFilesCount > 0) info(brokenMissingFilesMessage);
+    info("Last files-chunk size: " + fileChunkSize);
     uploadFiles(project, filesChunk, bundleId, progress);
 
     mapPsiFile2Hash.clear();
     mapPsiFile2Content.clear();
-    logDeepCode(
+    info(
         "--- Upload Files took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
 
     // ---------------------------------------- Get Analysis
@@ -276,7 +309,7 @@ public final class AnalysisData {
     ProgressManager.checkCanceled();
     GetAnalysisResponse getAnalysisResponse = retrieveSuggestions(project, bundleId, progress);
     result = parseGetAnalysisResponse(psiFiles, getAnalysisResponse);
-    logDeepCode(
+    info(
         "--- Get Analysis took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
     //    progress.stop();
     return result;
@@ -295,7 +328,7 @@ public final class AnalysisData {
             + mapPath2Hash.size()
             + " files"
             + (removedFiles.isEmpty() ? "" : " and remove " + removedFiles.size() + " files");
-    logDeepCode(message);
+    info(message);
     final CreateBundleResponse bundleResponse;
     // check if bundleID for the project already been created
     if (parentBundleId.isEmpty())
@@ -363,7 +396,7 @@ public final class AnalysisData {
       @NotNull String bundleId,
       @NotNull ProgressIndicator progress) {
     List<FileHash2ContentRequest> listHash2Content = new ArrayList<>(psiFiles.size());
-    logDeepCode("Uploading " + psiFiles.size() + " files... ");
+    info("Uploading " + psiFiles.size() + " files... ");
     for (PsiFile psiFile : psiFiles) {
       listHash2Content.add(new FileHash2ContentRequest(getHash(psiFile), getFileContent(psiFile)));
       //      logDeepCode("Uploading file: " + getPath(psiFile));
@@ -383,12 +416,7 @@ public final class AnalysisData {
     GetAnalysisResponse response;
     int counter = 0;
     do {
-      try {
-        if (counter > 0) Thread.sleep(1000);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-        Thread.currentThread().interrupt();
-      }
+      if (counter > 0) DeepCodeUtils.delay(1000);
       response =
           DeepCodeRestApi.getAnalysis(
               DeepCodeParams.getSessionToken(),
@@ -396,7 +424,7 @@ public final class AnalysisData {
               DeepCodeParams.getMinSeverity(),
               DeepCodeParams.useLinter());
 
-      logDeepCode(response.toString());
+      info(response.toString());
       if (isNotSucceed(project, response, "Bad GetAnalysis request: "))
         return new GetAnalysisResponse();
       ProgressManager.checkCanceled();
@@ -435,7 +463,11 @@ public final class AnalysisData {
         LOG.error("Suggestions is empty for: {}", response);
         return EMPTY_MAP;
       }
+      // fixme debug only
+      DCLogger.info("parseGetAnalysisResponse before Document requested");
       Document document = ReadAction.compute(() -> psiFile.getViewProvider().getDocument());
+      // fixme debug only
+      DCLogger.info("parseGetAnalysisResponse after Document requested");
       if (document == null) {
         LOG.error("Document not found for file: {}  GetAnalysisResponse: {}", psiFile, response);
         return EMPTY_MAP;
@@ -493,8 +525,14 @@ public final class AnalysisData {
   }
 
   public static void clearCache(@Nullable final Project project) {
+    info("Cache clearance requested for project: " + project);
     if (project == null) {
-      mapFile2Suggestions.clear();
+      try {
+        MUTEX.lock();
+        mapFile2Suggestions.clear();
+      } finally {
+        MUTEX.unlock();
+      }
       mapProject2BundleId.clear();
       for (Project prj : ProjectManager.getInstance().getOpenProjects()) {
         ServiceManager.getService(prj, myTodoView.class).refresh();

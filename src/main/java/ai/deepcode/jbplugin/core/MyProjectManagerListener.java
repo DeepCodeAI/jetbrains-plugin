@@ -23,6 +23,7 @@ public class MyProjectManagerListener implements ProjectManagerListener {
   @Override
   public void projectOpened(@NotNull Project project) {
     if (AnalysisData.addProjectToCache(project)) {
+      // EditorFactory.getEventMulticaster.addDocumentListener BulkAwareDocumentListener
       PsiManager.getInstance(project).addPsiTreeChangeListener(new MyPsiTreeChangeAdapter());
     }
   }
