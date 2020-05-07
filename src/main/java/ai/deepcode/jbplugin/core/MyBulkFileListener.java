@@ -40,15 +40,12 @@ public class MyBulkFileListener implements BulkFileListener {
               VFileContentChangeEvent.class,
               VFileCreateEvent.class);
       if (!filesChangedOrCreated.isEmpty()) {
-        // ReadAction needed to avoid deadlock with other ReadActions (parseGetAnalysisResponse)
-        ReadAction.run(
-            () ->
-                DeepCodeUtils.runInBackground(
-                    project,
-                    () -> {
-                      AnalysisData.removeFilesFromCache(filesChangedOrCreated);
-                      DeepCodeUtils.asyncAnalyseAndUpdatePanel(project, filesChangedOrCreated);
-                    }));
+        DeepCodeUtils.runInBackground(
+            project,
+            () -> {
+              AnalysisData.removeFilesFromCache(filesChangedOrCreated);
+              DeepCodeUtils.asyncAnalyseAndUpdatePanel(project, filesChangedOrCreated);
+            });
       }
 
       Set<PsiFile> gcignoreChangedFiles =
@@ -59,17 +56,13 @@ public class MyBulkFileListener implements BulkFileListener {
               VFileContentChangeEvent.class,
               VFileCreateEvent.class);
       if (!gcignoreChangedFiles.isEmpty()) {
-        // ReadAction needed to avoid deadlock with other ReadActions (parseGetAnalysisResponse)
-        ReadAction.run(
-            () ->
-                DeepCodeUtils.runInBackground(
-                    project,
-                    () -> {
-                      gcignoreChangedFiles.forEach(
-                          DeepCodeIgnoreInfoHolder::update_dcignoreFileContent);
-                      AnalysisData.clearCache(project);
-                      DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(project);
-                    }));
+        DeepCodeUtils.runInBackground(
+            project,
+            () -> {
+              gcignoreChangedFiles.forEach(DeepCodeIgnoreInfoHolder::update_dcignoreFileContent);
+              AnalysisData.clearCache(project);
+              DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(project);
+            });
       }
     }
     // fixme debug only
@@ -78,23 +71,20 @@ public class MyBulkFileListener implements BulkFileListener {
 
   @Override
   public void before(@NotNull List<? extends VFileEvent> events) {
-    // DCLogger.info("MyBulkFileListener.before");
+    DCLogger.info("MyBulkFileListener.before begins");
     for (Project project : AnalysisData.getAllCachedProject()) {
       Set<PsiFile> filesRemoved =
           getFilteredFilesOfEventTypes(
               project, events, DeepCodeUtils::isSupportedFileFormat, VFileDeleteEvent.class);
       if (!filesRemoved.isEmpty()) {
-        // ReadAction needed to avoid deadlock with other ReadActions (parseGetAnalysisResponse)
-        ReadAction.run(
-            () ->
-                DeepCodeUtils.runInBackground(
-                    project,
-                    () -> {
-                      AnalysisData.removeFilesFromCache(filesRemoved);
-                      // ReadAction.nonBlocking(
-                      AnalysisData.retrieveSuggestions(Collections.emptyList(), filesRemoved);
-                      ServiceManager.getService(project, myTodoView.class).refresh();
-                    }));
+        DeepCodeUtils.runInBackground(
+            project,
+            () -> {
+              AnalysisData.removeFilesFromCache(filesRemoved);
+              // ReadAction.nonBlocking(
+              AnalysisData.retrieveSuggestions(Collections.emptyList(), filesRemoved);
+              ServiceManager.getService(project, myTodoView.class).refresh();
+            });
       }
 
       Set<PsiFile> gcignoreChangedFiles =
@@ -102,18 +92,16 @@ public class MyBulkFileListener implements BulkFileListener {
               project, events, DeepCodeIgnoreInfoHolder::is_dcignoreFile, VFileDeleteEvent.class);
       if (!gcignoreChangedFiles.isEmpty()) {
         // ReadAction needed to avoid deadlock with other ReadActions (parseGetAnalysisResponse)
-        ReadAction.run(
-            () ->
-                DeepCodeUtils.runInBackground(
-                    project,
-                    () -> {
-                      gcignoreChangedFiles.forEach(
-                          DeepCodeIgnoreInfoHolder::remove_dcignoreFileContent);
-                      AnalysisData.clearCache(project);
-                      DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(project);
-                    }));
+        DeepCodeUtils.runInBackground(
+            project,
+            () -> {
+              gcignoreChangedFiles.forEach(DeepCodeIgnoreInfoHolder::remove_dcignoreFileContent);
+              AnalysisData.clearCache(project);
+              DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(project);
+            });
       }
     }
+    DCLogger.info("MyBulkFileListener.before ends");
   }
 
   private Set<PsiFile> getFilteredFilesOfEventTypes(
@@ -123,6 +111,7 @@ public class MyBulkFileListener implements BulkFileListener {
       @NotNull Class<?>... classesOfEventsToFilter) {
     PsiManager manager = PsiManager.getInstance(project);
     return events.stream()
+        //        .filter(MyBulkFileListener::isEventFromOutside)
         .filter(event -> PsiTreeUtil.instanceOf(event, classesOfEventsToFilter))
         .map(VFileEvent::getFile)
         .filter(Objects::nonNull)
@@ -130,5 +119,9 @@ public class MyBulkFileListener implements BulkFileListener {
         .filter(Objects::nonNull)
         .filter(fileFilter)
         .collect(Collectors.toSet());
+  }
+
+  private static boolean isEventFromOutside(VFileEvent event) {
+    return true;
   }
 }

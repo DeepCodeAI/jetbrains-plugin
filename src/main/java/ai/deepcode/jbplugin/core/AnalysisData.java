@@ -125,16 +125,16 @@ public final class AnalysisData {
   private static Map<PsiFile, List<SuggestionForFile>> doGetAnalysis(
       @NotNull Collection<PsiFile> psiFiles) {
     Map<PsiFile, List<SuggestionForFile>> result = new HashMap<>();
+    Collection<PsiFile> filesToProceed = null;
     try {
       MUTEX.lock();
-      Collection<PsiFile> filesToProceed =
-          ReadAction.compute(
-              () ->
-                  psiFiles.stream()
-                      .filter(Objects::nonNull)
-                      .filter(PsiFile::isValid)
-                      .filter(file -> !mapFile2Suggestions.containsKey(file))
-                      .collect(Collectors.toSet()));
+      filesToProceed = ReadAction.compute(
+          () ->
+              psiFiles.stream()
+                  .filter(Objects::nonNull)
+                  .filter(PsiFile::isValid)
+                  .filter(file -> !mapFile2Suggestions.containsKey(file))
+                  .collect(Collectors.toSet()));
       if (!filesToProceed.isEmpty()) {
         info("Analysis requested for " + psiFiles.size() + " files: " + psiFiles.toString());
 
@@ -146,7 +146,7 @@ public final class AnalysisData {
       }
     } finally {
       // fixme debug only
-      //info("MUTEX RELEASED");
+      if (filesToProceed != null && !filesToProceed.isEmpty()) info("MUTEX RELEASED");
       MUTEX.unlock();
     }
     final Collection<PsiFile> brokenKeys = new ArrayList<>();
@@ -308,7 +308,7 @@ public final class AnalysisData {
     progress.setText(WAITING_FOR_ANALYSIS_TEXT);
     ProgressManager.checkCanceled();
     GetAnalysisResponse getAnalysisResponse = retrieveSuggestions(project, bundleId, progress);
-    result = parseGetAnalysisResponse(psiFiles, getAnalysisResponse);
+    result = parseGetAnalysisResponse(psiFiles, getAnalysisResponse, progress);
     info(
         "--- Get Analysis took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
     //    progress.stop();
@@ -441,7 +441,8 @@ public final class AnalysisData {
 
   @NotNull
   private static Map<PsiFile, List<SuggestionForFile>> parseGetAnalysisResponse(
-      @NotNull Collection<PsiFile> psiFiles, GetAnalysisResponse response) {
+      @NotNull Collection<PsiFile> psiFiles, GetAnalysisResponse response,
+      @NotNull ProgressIndicator progressIndicator) {
     Map<PsiFile, List<SuggestionForFile>> result = new HashMap<>();
     if (!response.getStatus().equals("DONE")) return EMPTY_MAP;
     AnalysisResults analysisResults = response.getAnalysisResults();
@@ -463,11 +464,16 @@ public final class AnalysisData {
         LOG.error("Suggestions is empty for: {}", response);
         return EMPTY_MAP;
       }
+      ProgressManager.checkCanceled();
       // fixme debug only
-      DCLogger.info("parseGetAnalysisResponse before Document requested");
-      Document document = ReadAction.compute(() -> psiFile.getViewProvider().getDocument());
+      //DCLogger.info("parseGetAnalysisResponse before Document requested");
+      Document document = ReadAction.compute(() -> {
+        // fixme debug only
+        //info("Document requested");
+        return psiFile.getViewProvider().getDocument();
+      });
       // fixme debug only
-      DCLogger.info("parseGetAnalysisResponse after Document requested");
+      //DCLogger.info("parseGetAnalysisResponse after Document requested");
       if (document == null) {
         LOG.error("Document not found for file: {}  GetAnalysisResponse: {}", psiFile, response);
         return EMPTY_MAP;

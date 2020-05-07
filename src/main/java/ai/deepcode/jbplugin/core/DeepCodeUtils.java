@@ -73,6 +73,7 @@ public final class DeepCodeUtils {
   }
 
   public static void runInBackground(@Nullable Project project, @NotNull Runnable runnable) {
+    DCLogger.info("runInBackground requested");
     ProgressManager.getInstance()
         .run(
             new Task.Backgroundable(project, "DeepCode: Analysing Files...") {
