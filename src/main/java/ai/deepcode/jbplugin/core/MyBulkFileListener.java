@@ -1,8 +1,5 @@
 package ai.deepcode.jbplugin.core;
 
-import ai.deepcode.jbplugin.ui.myTodoView;
-import com.intellij.openapi.application.ReadAction;
-import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.newvfs.BulkFileListener;
 import com.intellij.openapi.vfs.newvfs.events.VFileContentChangeEvent;
@@ -12,7 +9,6 @@ import com.intellij.openapi.vfs.newvfs.events.VFileEvent;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
 import com.intellij.psi.util.PsiTreeUtil;
-import com.intellij.util.concurrency.NonUrgentExecutor;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
@@ -32,21 +28,29 @@ public class MyBulkFileListener implements BulkFileListener {
     // fixme debug only
     DCLogger.info("MyBulkFileListener.after begins");
     for (Project project : AnalysisData.getAllCachedProject()) {
-      Set<PsiFile> filesChangedOrCreated =
-          getFilteredFilesOfEventTypes(
-              project,
-              events,
-              DeepCodeUtils::isSupportedFileFormat,
-              VFileContentChangeEvent.class,
-              VFileCreateEvent.class);
-      if (!filesChangedOrCreated.isEmpty()) {
-        DeepCodeUtils.runInBackground(
-            project,
-            () -> {
+      DeepCodeUtils.runInBackground(
+          project,
+          () -> {
+            Set<PsiFile> filesChangedOrCreated =
+                DeepCodeUtils.computeInReadActionInSmartMode(
+                    project,
+                    () ->
+                        getFilteredFilesOfEventTypes(
+                            project,
+                            events,
+                            (psiFile ->
+                                DeepCodeUtils.isSupportedFileFormat(psiFile)
+                                    && isEventFromOutside(psiFile)),
+                            VFileContentChangeEvent.class,
+                            VFileCreateEvent.class));
+            if (!filesChangedOrCreated.isEmpty()) {
+              // fixme debug only
+              DCLogger.info(
+                  filesChangedOrCreated.size() + " files changed: " + filesChangedOrCreated);
               AnalysisData.removeFilesFromCache(filesChangedOrCreated);
               DeepCodeUtils.asyncAnalyseAndUpdatePanel(project, filesChangedOrCreated);
-            });
-      }
+            }
+          });
 
       Set<PsiFile> gcignoreChangedFiles =
           getFilteredFilesOfEventTypes(
@@ -81,9 +85,8 @@ public class MyBulkFileListener implements BulkFileListener {
             project,
             () -> {
               AnalysisData.removeFilesFromCache(filesRemoved);
-              // ReadAction.nonBlocking(
-              AnalysisData.retrieveSuggestions(Collections.emptyList(), filesRemoved);
-              ServiceManager.getService(project, myTodoView.class).refresh();
+              DeepCodeUtils.asyncAnalyseAndUpdatePanel(
+                  project, Collections.emptyList(), filesRemoved);
             });
       }
 
@@ -91,7 +94,6 @@ public class MyBulkFileListener implements BulkFileListener {
           getFilteredFilesOfEventTypes(
               project, events, DeepCodeIgnoreInfoHolder::is_dcignoreFile, VFileDeleteEvent.class);
       if (!gcignoreChangedFiles.isEmpty()) {
-        // ReadAction needed to avoid deadlock with other ReadActions (parseGetAnalysisResponse)
         DeepCodeUtils.runInBackground(
             project,
             () -> {
@@ -111,7 +113,6 @@ public class MyBulkFileListener implements BulkFileListener {
       @NotNull Class<?>... classesOfEventsToFilter) {
     PsiManager manager = PsiManager.getInstance(project);
     return events.stream()
-        //        .filter(MyBulkFileListener::isEventFromOutside)
         .filter(event -> PsiTreeUtil.instanceOf(event, classesOfEventsToFilter))
         .map(VFileEvent::getFile)
         .filter(Objects::nonNull)
@@ -121,7 +122,7 @@ public class MyBulkFileListener implements BulkFileListener {
         .collect(Collectors.toSet());
   }
 
-  private static boolean isEventFromOutside(VFileEvent event) {
-    return true;
+  private static boolean isEventFromOutside(@NotNull PsiFile psiFile) {
+    return AnalysisData.isHashChanged(psiFile);
   }
 }

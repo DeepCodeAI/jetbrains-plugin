@@ -2,12 +2,12 @@
 
 package ai.deepcode.jbplugin.ui.nodes;
 
-import com.intellij.ide.IdeBundle;
-import com.intellij.ide.projectView.PresentationData;
+import ai.deepcode.jbplugin.core.DeepCodeUtils;
 import ai.deepcode.jbplugin.ui.TodoTreeBuilder;
 import ai.deepcode.jbplugin.ui.TodoTreeStructure;
+import com.intellij.ide.IdeBundle;
+import com.intellij.ide.projectView.PresentationData;
 import com.intellij.ide.util.treeView.AbstractTreeNode;
-import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleType;
 import com.intellij.openapi.module.ModuleUtilCore;
@@ -106,7 +106,9 @@ public class ModuleToDoNode extends BaseToDoNode<Module> {
     int count = 0;
     while (iterator.hasNext()) {
       final PsiFile psiFile = iterator.next();
-      count += ReadAction.compute(() -> getTreeStructure().getTodoItemCount(psiFile));
+      count += DeepCodeUtils.computeInReadActionInSmartMode(
+              psiFile.getProject(),
+              () -> getTreeStructure().getTodoItemCount(psiFile));
     }
     return count;
   }

@@ -7,7 +7,6 @@ import ai.deepcode.javaclient.requests.FileHash2ContentRequest;
 import ai.deepcode.javaclient.requests.FileHashRequest;
 import ai.deepcode.javaclient.responses.*;
 import ai.deepcode.jbplugin.ui.myTodoView;
-import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -49,6 +48,8 @@ public final class AnalysisData {
       // deepcode ignore ApiMigration~java.util.Hashtable: we need read and write full data lock
       new Hashtable<>(); // new ConcurrentHashMap<>();
 
+  private static final Map<PsiFile, String> mapPsiFile2Hash = new ConcurrentHashMap<>();
+
   private static final Map<Project, String> mapProject2BundleId = new ConcurrentHashMap<>();
 
   // Mutex need to be requested to change mapFile2Suggestions
@@ -74,6 +75,7 @@ public final class AnalysisData {
       for (PsiFile file : files) {
         if (file != null && isFileInCache(file)) {
           mapFile2Suggestions.remove(file);
+          mapPsiFile2Hash.remove(file);
           removeCounter++;
         }
       }
@@ -100,10 +102,10 @@ public final class AnalysisData {
         .collect(Collectors.toList());
   }
 
-  /** see {@link #getAnalysis(java.util.Collection)} */
+  /** see getAnalysis() below} */
   @NotNull
   public static List<SuggestionForFile> getAnalysis(@NotNull PsiFile psiFile) {
-    return getAnalysis(Collections.singleton(psiFile))
+    return getAnalysis(Collections.singleton(psiFile), Collections.emptyList())
         .getOrDefault(psiFile, Collections.emptyList());
   }
 
@@ -117,32 +119,31 @@ public final class AnalysisData {
    */
   @NotNull
   public static Map<PsiFile, List<SuggestionForFile>> getAnalysis(
-      @NotNull Collection<PsiFile> psiFiles) {
-    return doGetAnalysis(psiFiles);
-  }
-
-  @NotNull
-  private static Map<PsiFile, List<SuggestionForFile>> doGetAnalysis(
-      @NotNull Collection<PsiFile> psiFiles) {
+      @NotNull Collection<PsiFile> psiFiles, @NotNull Collection<PsiFile> filesToRemove) {
     Map<PsiFile, List<SuggestionForFile>> result = new HashMap<>();
     Collection<PsiFile> filesToProceed = null;
     try {
       MUTEX.lock();
-      filesToProceed = ReadAction.compute(
-          () ->
-              psiFiles.stream()
-                  .filter(Objects::nonNull)
-                  .filter(PsiFile::isValid)
-                  .filter(file -> !mapFile2Suggestions.containsKey(file))
-                  .collect(Collectors.toSet()));
+      filesToProceed =
+          // DeepCodeUtils.computeNonBlockingReadAction(
+          // () ->
+          psiFiles.stream()
+              .filter(Objects::nonNull)
+              // .filter(PsiFile::isValid)
+              .filter(file -> !mapFile2Suggestions.containsKey(file))
+              .collect(Collectors.toSet());
       if (!filesToProceed.isEmpty()) {
         info("Analysis requested for " + psiFiles.size() + " files: " + psiFiles.toString());
-
         // fixme debug only
-        info(getHash(psiFiles.stream().findFirst().get()));
-
+        final PsiFile firstFile = psiFiles.stream().findFirst().get();
+        info("Hash for " + firstFile.getName() + " [" + getHash(firstFile) + "]");
         info("Files to proceed (not found in cache): " + filesToProceed.size());
-        mapFile2Suggestions.putAll(retrieveSuggestions(filesToProceed, Collections.emptyList()));
+
+        mapFile2Suggestions.putAll(retrieveSuggestions(filesToProceed, filesToRemove));
+
+      } else if (!filesToRemove.isEmpty()) {
+        info("Files to remove: " + filesToRemove.size() + " files: " + filesToRemove.toString());
+        retrieveSuggestions(filesToProceed, filesToRemove);
       }
     } finally {
       // fixme debug only
@@ -159,8 +160,7 @@ public final class AnalysisData {
       }
     }
     if (!brokenKeys.isEmpty()) {
-      info(
-          "Suggestions not found for " + brokenKeys.size() + " files: " + brokenKeys.toString());
+      info("Suggestions not found for " + brokenKeys.size() + " files: " + brokenKeys.toString());
     }
     return result;
   }
@@ -181,12 +181,11 @@ public final class AnalysisData {
   }
 
   static final int MAX_BUNDLE_SIZE = 4000000; // bytes
-  private static final Map<PsiFile, String> mapPsiFile2Hash = new HashMap<>();
-  private static final Map<PsiFile, String> mapPsiFile2Content = new HashMap<>();
+  private static final Map<PsiFile, String> mapPsiFile2Content = new ConcurrentHashMap<>();
 
   /** Perform costly network request. <b>No cache checks!</b> */
   @NotNull
-  static Map<PsiFile, List<SuggestionForFile>> retrieveSuggestions(
+  private static Map<PsiFile, List<SuggestionForFile>> retrieveSuggestions(
       @NotNull Collection<PsiFile> psiFiles, @NotNull Collection<PsiFile> filesToRemove) {
     if (psiFiles.isEmpty() && filesToRemove.isEmpty()) {
       return Collections.emptyMap();
@@ -208,7 +207,6 @@ public final class AnalysisData {
     startTime = System.currentTimeMillis();
     progress.setText(PREPARE_FILES_TEXT);
     ProgressManager.checkCanceled();
-    mapPsiFile2Hash.clear();
     mapPsiFile2Content.clear();
     List<String> removedFiles =
         filesToRemove.stream()
@@ -219,6 +217,7 @@ public final class AnalysisData {
     int fileCounter = 0;
     int totalFiles = psiFiles.size();
     for (PsiFile file : psiFiles) {
+      mapPsiFile2Hash.remove(file);
       ProgressManager.checkCanceled();
       progress.setFraction(((double) fileCounter++) / totalFiles);
       progress.setText(PREPARE_FILES_TEXT + fileCounter + " of " + totalFiles + " files done.");
@@ -294,23 +293,21 @@ public final class AnalysisData {
       fileChunkSize += fileSize;
       filesChunk.add(psiFile);
     }
-    if (brokenMissingFilesCount > 0) info(brokenMissingFilesMessage);
+    if (brokenMissingFilesCount > 0) info(brokenMissingFilesCount + brokenMissingFilesMessage);
     info("Last files-chunk size: " + fileChunkSize);
     uploadFiles(project, filesChunk, bundleId, progress);
 
-    mapPsiFile2Hash.clear();
+    //    mapPsiFile2Hash.clear();
     mapPsiFile2Content.clear();
-    info(
-        "--- Upload Files took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
+    info("--- Upload Files took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
 
     // ---------------------------------------- Get Analysis
     startTime = System.currentTimeMillis();
     progress.setText(WAITING_FOR_ANALYSIS_TEXT);
     ProgressManager.checkCanceled();
-    GetAnalysisResponse getAnalysisResponse = retrieveSuggestions(project, bundleId, progress);
+    GetAnalysisResponse getAnalysisResponse = doRetrieveSuggestions(project, bundleId, progress);
     result = parseGetAnalysisResponse(psiFiles, getAnalysisResponse, progress);
-    info(
-        "--- Get Analysis took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
+    info("--- Get Analysis took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
     //    progress.stop();
     return result;
   }
@@ -356,31 +353,52 @@ public final class AnalysisData {
     return hexString.toString();
   }
 
-  private static String getHash(PsiFile psiFile) {
+  /** check if Hash for PsiFile was changed comparing to cached hash */
+  public static boolean isHashChanged(@NotNull PsiFile psiFile) {
+    // fixme debug only
+    // DCLogger.info("hash check started");
+    String newHash = doGetHash(doGetFileContent(psiFile));
+    String oldHash = mapPsiFile2Hash.put(psiFile, newHash);
+    // fixme debug only
+    DCLogger.info(
+        "Hash check (if file been changed) for "
+            + psiFile.getName()
+            + "\noldHash = "
+            + oldHash
+            + "\nnewHash = "
+            + newHash);
+
+    return !newHash.equals(oldHash);
+  }
+
+  private static String getHash(@NotNull PsiFile psiFile) {
     return mapPsiFile2Hash.computeIfAbsent(psiFile, AnalysisData::doGetHash);
   }
 
-  private static String doGetHash(PsiFile psiFile) {
+  private static String doGetHash(@NotNull PsiFile psiFile) {
+    return doGetHash(getFileContent(psiFile));
+  }
+
+  private static String doGetHash(@NotNull String fileText) {
     MessageDigest messageDigest;
     try {
       messageDigest = MessageDigest.getInstance("SHA-256");
     } catch (NoSuchAlgorithmException e) {
       throw new RuntimeException(e);
     }
-    String fileText = getFileContent(psiFile);
     byte[] encodedHash = messageDigest.digest(fileText.getBytes(StandardCharsets.UTF_8));
     return bytesToHex(encodedHash);
   }
 
   @NotNull
-  private static String getFileContent(PsiFile psiFile) {
+  private static String getFileContent(@NotNull PsiFile psiFile) {
     // potential OutOfMemoryException for too large projects
     return mapPsiFile2Content.computeIfAbsent(psiFile, AnalysisData::doGetFileContent);
   }
 
-  private static String doGetFileContent(PsiFile psiFile) {
+  private static String doGetFileContent(@NotNull PsiFile psiFile) {
     // psiFile.getText() is NOT expensive as it's goes to VirtualFileContent.getText()
-    return ReadAction.compute(psiFile::getText);
+    return DeepCodeUtils.computeInReadActionInSmartMode(psiFile.getProject(), psiFile::getText);
     /*
         try {
           return new String(Files.readAllBytes(Paths.get(getPath(psiFile))), StandardCharsets.UTF_8);
@@ -409,7 +427,7 @@ public final class AnalysisData {
   }
 
   @NotNull
-  private static GetAnalysisResponse retrieveSuggestions(
+  private static GetAnalysisResponse doRetrieveSuggestions(
       @NotNull Project project,
       @NotNull String bundleId,
       @NotNull ProgressIndicator progressIndicator) {
@@ -441,7 +459,8 @@ public final class AnalysisData {
 
   @NotNull
   private static Map<PsiFile, List<SuggestionForFile>> parseGetAnalysisResponse(
-      @NotNull Collection<PsiFile> psiFiles, GetAnalysisResponse response,
+      @NotNull Collection<PsiFile> psiFiles,
+      GetAnalysisResponse response,
       @NotNull ProgressIndicator progressIndicator) {
     Map<PsiFile, List<SuggestionForFile>> result = new HashMap<>();
     if (!response.getStatus().equals("DONE")) return EMPTY_MAP;
@@ -466,14 +485,12 @@ public final class AnalysisData {
       }
       ProgressManager.checkCanceled();
       // fixme debug only
-      //DCLogger.info("parseGetAnalysisResponse before Document requested");
-      Document document = ReadAction.compute(() -> {
-        // fixme debug only
-        //info("Document requested");
-        return psiFile.getViewProvider().getDocument();
-      });
+      // DCLogger.info("parseGetAnalysisResponse before Document requested");
+      Document document =
+          DeepCodeUtils.computeInReadActionInSmartMode(
+              psiFile.getProject(), psiFile.getViewProvider()::getDocument);
       // fixme debug only
-      //DCLogger.info("parseGetAnalysisResponse after Document requested");
+      // DCLogger.info("parseGetAnalysisResponse after Document requested");
       if (document == null) {
         LOG.error("Document not found for file: {}  GetAnalysisResponse: {}", psiFile, response);
         return EMPTY_MAP;
@@ -520,18 +537,14 @@ public final class AnalysisData {
         .collect(Collectors.toSet());
   }
 
-  public static Set<PsiFile> getAllAnalysedFiles(@NotNull final Project project) {
-    return mapFile2Suggestions.keySet().stream()
-        .filter(s -> s.getProject().equals(project))
-        .collect(Collectors.toSet());
-  }
-
   public static boolean isFileInCache(@NotNull PsiFile psiFile) {
     return mapFile2Suggestions.containsKey(psiFile);
   }
 
   public static void clearCache(@Nullable final Project project) {
     info("Cache clearance requested for project: " + project);
+    mapPsiFile2Hash.clear();
+    mapPsiFile2Content.clear();
     if (project == null) {
       try {
         MUTEX.lock();

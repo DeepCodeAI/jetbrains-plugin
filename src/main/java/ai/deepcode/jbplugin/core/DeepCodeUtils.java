@@ -14,8 +14,10 @@ import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
+import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vcs.changes.ChangeListManager;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDirectory;
@@ -50,6 +52,25 @@ public final class DeepCodeUtils {
     */
   }
 
+  public static <T> T computeInReadActionInSmartMode(
+      //      @NotNull Project project, @NotNull Callable<T> computation) {
+      @NotNull Project project, @NotNull final Computable<T> computation) {
+    // fixme debug only
+    //DCLogger.info("computeInReadActionInSmartMode requested");
+    T result = null;
+    final DumbService dumbService =
+        ReadAction.compute(() -> project.isDisposed() ? null : DumbService.getInstance(project));
+    if (dumbService == null) return result;
+    result =
+        dumbService.runReadActionInSmartMode(
+            () -> {
+              // fixme debug only
+              //DCLogger.info("computeInReadActionInSmartMode actually executing");
+              return computation.compute();
+            });
+    return result;
+  }
+
   public static void delay(long millis) {
     try {
       Thread.sleep(millis);
@@ -63,13 +84,15 @@ public final class DeepCodeUtils {
 
   // BackgroundTaskQueue ??? com.intellij.openapi.wm.ex.StatusBarEx#getBackgroundProcesses ???
   public static void rescanProject(@Nullable Project project, long delayMilliseconds) {
-    runInBackground(project, ()-> {
-      long timeOfThisRequest = timeOfLastRescanRequest = System.currentTimeMillis();
-      delay(delayMilliseconds);
-      if (timeOfLastRescanRequest > timeOfThisRequest) return;
-      AnalysisData.clearCache(project);
-      asyncAnalyseProjectAndUpdatePanel(project);
-    });
+    runInBackground(
+        project,
+        () -> {
+          long timeOfThisRequest = timeOfLastRescanRequest = System.currentTimeMillis();
+          delay(delayMilliseconds);
+          if (timeOfLastRescanRequest > timeOfThisRequest) return;
+          AnalysisData.clearCache(project);
+          asyncAnalyseProjectAndUpdatePanel(project);
+        });
   }
 
   public static void runInBackground(@Nullable Project project, @NotNull Runnable runnable) {
@@ -94,16 +117,25 @@ public final class DeepCodeUtils {
 
   public static void asyncAnalyseAndUpdatePanel(
       @NotNull Project project, @Nullable Collection<PsiFile> psiFiles) {
+    asyncAnalyseAndUpdatePanel(project, psiFiles, Collections.emptyList());
+  }
+
+  public static void asyncAnalyseAndUpdatePanel(
+      @NotNull Project project,
+      @Nullable Collection<PsiFile> psiFiles,
+      @NotNull Collection<PsiFile> filesToRemove) {
     //    DumbService.getInstance(project)
     //        .runWhenSmart(
     //            () ->
-    runInBackground(project, ()-> {
-      AnalysisData.getAnalysis(
-              (psiFiles != null) ? psiFiles : getAllSupportedFilesInProject(project));
-      ServiceManager.getService(project, myTodoView.class).refresh();
-      //      StatusBarUtil.setStatusBarInfo(project, message);
-    });
-    //    ReadAction.nonBlocking(() -> doUpdate(project)).submit(NonUrgentExecutor.getInstance());
+    runInBackground(
+        project,
+        () -> {
+          AnalysisData.getAnalysis(
+              (psiFiles != null) ? psiFiles : getAllSupportedFilesInProject(project),
+              filesToRemove);
+          ServiceManager.getService(project, myTodoView.class).refresh();
+          //      StatusBarUtil.setStatusBarInfo(project, message);
+        });
   }
 
   private static List<PsiFile> getAllSupportedFilesInProject(@NotNull Project project) {
@@ -113,7 +145,8 @@ public final class DeepCodeUtils {
     // DumbService.getInstance(project));
     //    if (dumbService == null) return;
     //    dumbService.runReadActionInSmartMode(() ->
-    return ReadAction.compute(
+    return computeInReadActionInSmartMode(
+        project,
         () -> {
           final List<PsiFile> allProjectFiles = allProjectFiles(project);
           // Initial scan for .dcignore files
@@ -222,6 +255,8 @@ public final class DeepCodeUtils {
   private static final long MAX_FILE_SIZE = 5242880; // 5MB in bytes
 
   public static boolean isSupportedFileFormat(PsiFile psiFile) {
+    // fixme debug only
+    // DCLogger.info("isSupportedFileFormat started for " + psiFile.getName());
     if (supportedExtensions.isEmpty() || supportedConfigFiles.isEmpty()) {
       initSupportedExtentionsAndConfigFiles();
     }
@@ -231,9 +266,13 @@ public final class DeepCodeUtils {
     if (virtualFile == null) return false;
     if (ChangeListManager.getInstance(psiFile.getProject()).isIgnoredFile(virtualFile))
       return false;
-    return virtualFile.getLength() < MAX_FILE_SIZE
-        && (supportedExtensions.contains(virtualFile.getExtension())
-            || supportedConfigFiles.contains(virtualFile.getName()));
+    final boolean result =
+        virtualFile.getLength() < MAX_FILE_SIZE
+            && (supportedExtensions.contains(virtualFile.getExtension())
+                || supportedConfigFiles.contains(virtualFile.getName()));
+    // fixme debug only
+    // DCLogger.info("isSupportedFileFormat ends for " + psiFile.getName());
+    return result;
   }
 
   /** Potentially <b>Heavy</b> network request! */

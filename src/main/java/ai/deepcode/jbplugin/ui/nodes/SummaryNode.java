@@ -3,16 +3,16 @@
 
 package ai.deepcode.jbplugin.ui.nodes;
 
+import ai.deepcode.jbplugin.core.AnalysisData;
+import ai.deepcode.jbplugin.core.DeepCodeUtils;
 import ai.deepcode.jbplugin.ui.DeepCodeDirAndModuleComparator;
 import ai.deepcode.jbplugin.ui.HighlightedRegionProvider;
 import ai.deepcode.jbplugin.ui.ToDoSummary;
 import ai.deepcode.jbplugin.ui.TodoTreeBuilder;
 import ai.deepcode.jbplugin.ui.utils.DeepCodeUIUtils;
-import ai.deepcode.jbplugin.core.AnalysisData;
 import com.intellij.ide.IdeBundle;
 import com.intellij.ide.projectView.PresentationData;
 import com.intellij.ide.util.treeView.AbstractTreeNode;
-import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectFileIndex;
@@ -23,7 +23,9 @@ import com.intellij.ui.HighlightedRegion;
 import com.intellij.util.containers.ContainerUtil;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 
 public class SummaryNode extends BaseToDoNode<ToDoSummary> implements HighlightedRegionProvider {
@@ -145,7 +147,10 @@ public class SummaryNode extends BaseToDoNode<ToDoSummary> implements Highlighte
   public int getTodoItemCount(final ToDoSummary val) {
     int count = 0;
     for (final Iterator<PsiFile> i = myBuilder.getAllFiles(); i.hasNext(); ) {
-      count += ReadAction.compute(() -> getTreeStructure().getTodoItemCount(i.next()));
+      final PsiFile psiFile = i.next();
+      count += DeepCodeUtils.computeInReadActionInSmartMode(
+              psiFile.getProject(),
+              () -> getTreeStructure().getTodoItemCount(psiFile));
     }
     return count;
   }
