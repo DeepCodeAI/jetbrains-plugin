@@ -102,7 +102,8 @@ public class DeepCodeUIUtils {
           IconUtil.textToIcon("?", new JLabel(), fontToScale));
 
   public static Icon getSummaryIcon(@NotNull Project project) {
-    if (!DeepCodeUtils.isLogged(project, false)) return EMPTY_EWI_ICON;
+    if (!DeepCodeUtils.isLogged(project, false) || AnalysisData.isAnalysisInProgress())
+      return EMPTY_EWI_ICON;
 
     DeepCodeUtils.ErrorsWarningsInfos ewi =
         DeepCodeUtils.getEWI(AnalysisData.getAllFilesWithSuggestions(project));
@@ -122,6 +123,6 @@ public class DeepCodeUIUtils {
 
   private static Icon number2ColoredIcon(int number, @Nullable Color color) {
     Icon greyIcon = IconUtil.textToIcon(String.valueOf(number), new JLabel(), fontToScale);
-    return greyIcon; //(color == null) ? greyIcon : IconUtil.colorize(greyIcon, color);
+    return greyIcon; // (color == null) ? greyIcon : IconUtil.colorize(greyIcon, color);
   }
 }

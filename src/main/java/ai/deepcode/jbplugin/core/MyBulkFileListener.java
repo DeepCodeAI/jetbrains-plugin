@@ -38,9 +38,8 @@ public class MyBulkFileListener implements BulkFileListener {
                         getFilteredFilesOfEventTypes(
                             project,
                             events,
-                            (psiFile ->
-                                DeepCodeUtils.isSupportedFileFormat(psiFile)
-                                    && isEventFromOutside(psiFile)),
+                            (psiFile -> DeepCodeUtils.isSupportedFileFormat(psiFile)
+                                && AnalysisData.isHashChanged(psiFile)),
                             VFileContentChangeEvent.class,
                             VFileCreateEvent.class));
             if (!filesChangedOrCreated.isEmpty()) {
@@ -64,8 +63,8 @@ public class MyBulkFileListener implements BulkFileListener {
             project,
             () -> {
               gcignoreChangedFiles.forEach(DeepCodeIgnoreInfoHolder::update_dcignoreFileContent);
-              AnalysisData.clearCache(project);
-              DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(project);
+              // small delay to prevent duplicated delete with MyPsiTreeChangeAdapter
+              DeepCodeUtils.rescanProject(project, 100);
             });
       }
     }
@@ -90,16 +89,16 @@ public class MyBulkFileListener implements BulkFileListener {
             });
       }
 
-      Set<PsiFile> gcignoreChangedFiles =
+      Set<PsiFile> ignoreFilesToRemove =
           getFilteredFilesOfEventTypes(
-              project, events, DeepCodeIgnoreInfoHolder::is_dcignoreFile, VFileDeleteEvent.class);
-      if (!gcignoreChangedFiles.isEmpty()) {
+              project, events, DeepCodeIgnoreInfoHolder::is_ignoreFile, VFileDeleteEvent.class);
+      if (!ignoreFilesToRemove.isEmpty()) {
         DeepCodeUtils.runInBackground(
             project,
             () -> {
-              gcignoreChangedFiles.forEach(DeepCodeIgnoreInfoHolder::remove_dcignoreFileContent);
-              AnalysisData.clearCache(project);
-              DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(project);
+              ignoreFilesToRemove.forEach(DeepCodeIgnoreInfoHolder::remove_dcignoreFileContent);
+              // small delay to prevent duplicated delete with MyPsiTreeChangeAdapter
+              DeepCodeUtils.rescanProject(project, 100);
             });
       }
     }
@@ -122,7 +121,4 @@ public class MyBulkFileListener implements BulkFileListener {
         .collect(Collectors.toSet());
   }
 
-  private static boolean isEventFromOutside(@NotNull PsiFile psiFile) {
-    return AnalysisData.isHashChanged(psiFile);
-  }
 }

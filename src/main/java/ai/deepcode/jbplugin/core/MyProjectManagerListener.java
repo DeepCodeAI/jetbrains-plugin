@@ -55,8 +55,7 @@ public class MyProjectManagerListener implements ProjectManagerListener {
 */
       if (DeepCodeIgnoreInfoHolder.is_dcignoreFile(psiFile)) {
         DeepCodeIgnoreInfoHolder.update_dcignoreFileContent(psiFile);
-        AnalysisData.clearCache(psiFile.getProject());
-        DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(psiFile.getProject());
+        DeepCodeUtils.rescanProject(psiFile.getProject(), 1000);
       }
       // .gitignore content delay to be parsed https://youtrack.jetbrains.com/issue/IDEA-239773
       final VirtualFile virtualFile = psiFile.getVirtualFile();
@@ -72,10 +71,10 @@ public class MyProjectManagerListener implements ProjectManagerListener {
     @Override
     public void beforeChildRemoval(@NotNull PsiTreeChangeEvent event) {
       PsiFile psiFile = (event.getChild() instanceof PsiFile) ? (PsiFile) event.getChild() : null;
-      if (psiFile != null && DeepCodeIgnoreInfoHolder.is_dcignoreFile(psiFile)) {
+      if (psiFile != null && DeepCodeIgnoreInfoHolder.is_ignoreFile(psiFile)) {
         DeepCodeIgnoreInfoHolder.remove_dcignoreFileContent(psiFile);
-        AnalysisData.clearCache(psiFile.getProject());
-        DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(psiFile.getProject());
+        // small delay to prevent duplicated delete with MyBulkFileListener
+        DeepCodeUtils.rescanProject(psiFile.getProject(), 100);
       }
     }
   }

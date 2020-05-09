@@ -59,6 +59,10 @@ public final class AnalysisData {
     return analysisUrl;
   }
 
+  public static boolean isAnalysisInProgress() {
+    return MUTEX.isLocked();
+  }
+
   static boolean addProjectToCache(@NotNull Project project) {
     return mapProject2BundleId.putIfAbsent(project, "") == null;
   }
