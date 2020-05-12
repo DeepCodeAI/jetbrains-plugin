@@ -2,6 +2,8 @@ package ai.deepcode.jbplugin.actions;
 
 import ai.deepcode.jbplugin.core.AnalysisData;
 import com.intellij.codeInsight.intention.IntentionAction;
+import com.intellij.lang.Commenter;
+import com.intellij.lang.LanguageCommenters;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorKind;
@@ -50,7 +52,6 @@ public class DeepCodeIntentionAction implements IntentionAction {
    * same family name get enabled/disabled. The name is also shown in settings tree.
    *
    * @return the intention family name.
-   * @see IntentionManager#registerIntentionAndMetaData(IntentionAction, String...)
    */
   @Nls(capitalization = Nls.Capitalization.Sentence)
   @NotNull
@@ -78,10 +79,16 @@ public class DeepCodeIntentionAction implements IntentionAction {
             .anyMatch(r -> r.contains(myRange));
   }
 
-  // fixme
-  private static final String COMMENT_START = "//";
-  private static final Pattern IGNORE_PATTERN =
-      Pattern.compile(".*" + COMMENT_START + ".*deepcode\\s?ignore.*");
+  private static final String DEFAULT_LINE_COMMENT_PREFIX = "//";
+
+  @NotNull
+  private static String getLineCommentPrefix(@NotNull PsiFile psiFile) {
+    final Commenter commenter = LanguageCommenters.INSTANCE.forLanguage(psiFile.getLanguage());
+    if (commenter == null) return DEFAULT_LINE_COMMENT_PREFIX;
+    String prefix = commenter.getLineCommentPrefix();
+    return prefix == null ? DEFAULT_LINE_COMMENT_PREFIX : prefix;
+  }
+
   /**
    * Called when user invokes intention. This method is called inside command. If {@link
    * #startInWriteAction()} returns {@code true}, this method is also called inside write action.
@@ -93,6 +100,7 @@ public class DeepCodeIntentionAction implements IntentionAction {
   @Override
   public void invoke(@NotNull Project project, Editor editor, PsiFile file)
       throws IncorrectOperationException {
+    if (editor == null || file == null) return;
     Document document = editor.getDocument();
     if (document.getTextLength() < 0) return;
     int lineNumber = document.getLineNumber(myRange.getStartOffset());
@@ -100,13 +108,15 @@ public class DeepCodeIntentionAction implements IntentionAction {
     final int lineStart = document.getLineStartOffset(lineNumber);
     final int lineEnd = document.getLineEndOffset(lineNumber);
     String lineText = document.getText(new TextRange(lineStart, lineEnd));
-    String prefix = getLeadingSpaces(lineText) + COMMENT_START;
+    String prefix = getLeadingSpaces(lineText) + getLineCommentPrefix(file);
     String postfix = "\n";
     if (lineNumber > 0) {
       final int prevLineStart = document.getLineStartOffset(lineNumber - 1);
       final int prevLineEnd = document.getLineEndOffset(lineNumber - 1);
       String prevLine = document.getText(new TextRange(prevLineStart, prevLineEnd)).toLowerCase();
-      if (IGNORE_PATTERN.matcher(prevLine).matches()) {
+      final Pattern ignorePattern =
+          Pattern.compile(".*" + getLineCommentPrefix(file) + ".*deepcode\\s?ignore.*");
+      if (ignorePattern.matcher(prevLine).matches()) {
         prefix = ",";
         postfix = "";
         insertPosition -= 1;
@@ -140,8 +150,7 @@ public class DeepCodeIntentionAction implements IntentionAction {
   /**
    * Indicate whether this action should be invoked inside write action. Should return {@code false}
    * if, e.g., a modal dialog is shown inside the action. If false is returned the action itself is
-   * responsible for starting write action when needed, by calling {@link
-   * Application#runWriteAction(Runnable)}.
+   * responsible for starting write action when needed, by calling
    *
    * @return {@code true} if the intention requires a write action, {@code false} otherwise.
    */
