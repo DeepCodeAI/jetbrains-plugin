@@ -6,9 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.StringJoiner;
-import java.util.stream.Collectors;
+import java.util.function.Consumer;
 
 public class DCLogger {
   private DCLogger() {}
@@ -19,6 +18,15 @@ public class DCLogger {
 
   public static synchronized void info(String message) {
     if (!LOG.isInfoEnabled()) return;
+    doLogging(message, LOG::info);
+  }
+
+  public static synchronized void warn(String message) {
+    if (!LOG.isWarnEnabled()) return;
+    doLogging(message, LOG::warn);
+  }
+
+  private static synchronized void doLogging(String message, Consumer<String> logFunction) {
     //    String currentTime = "[" + HMSS.format(System.currentTimeMillis()) + "] ";
     String currentTime = "[" + mmssSSS.format(System.currentTimeMillis()) + "] ";
     if (message.length() > 500) {
@@ -34,7 +42,7 @@ public class DCLogger {
 
     StringJoiner joiner = new StringJoiner(" -> ");
     StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-    for (int i = stackTrace.length - 1; i > 1; i--) {
+    for (int i = stackTrace.length - 1; i > 2; i--) {
       StackTraceElement ste = stackTrace[i];
       if (ste.getClassName().contains("ai.deepcode.jbplugin")) {
         String s =
@@ -51,10 +59,11 @@ public class DCLogger {
     rwAccess += (application.isWriteAccessAllowed() ? "W" : " ");
     rwAccess += " ";
 
+    logFunction.accept(currentTime + rwAccess + currentThread + myClassesStackTrace);
+
     final String[] lines = message.split("[\n\r]");
-    LOG.info(currentTime + rwAccess + currentThread + myClassesStackTrace);
     for (String line : lines) {
-      LOG.info("    " + line);
+      logFunction.accept("    " + line);
     }
   }
 }

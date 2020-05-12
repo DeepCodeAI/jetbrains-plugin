@@ -29,6 +29,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 import static ai.deepcode.jbplugin.core.DCLogger.info;
+import static ai.deepcode.jbplugin.core.DCLogger.warn;
 
 public final class AnalysisData {
 
@@ -124,6 +125,10 @@ public final class AnalysisData {
   @NotNull
   public static Map<PsiFile, List<SuggestionForFile>> getAnalysis(
       @NotNull Collection<PsiFile> psiFiles, @NotNull Collection<PsiFile> filesToRemove) {
+    if (psiFiles.isEmpty() && filesToRemove.isEmpty()) {
+      warn("getAnalysis requested for empty list of files");
+      return Collections.emptyMap();
+    }
     Map<PsiFile, List<SuggestionForFile>> result = new HashMap<>();
     Collection<PsiFile> filesToProceed = null;
     try {
@@ -164,7 +169,7 @@ public final class AnalysisData {
       }
     }
     if (!brokenKeys.isEmpty()) {
-      info("Suggestions not found for " + brokenKeys.size() + " files: " + brokenKeys.toString());
+      warn("Suggestions not found for " + brokenKeys.size() + " files: " + brokenKeys.toString());
     }
     return result;
   }
@@ -180,7 +185,7 @@ public final class AnalysisData {
       DeepCodeUtils.isLogged(project, !loginRequested);
       loginRequested = true;
     }
-    info(message + response.getStatusCode() + " " + response.getStatusDescription());
+    warn(message + response.getStatusCode() + " " + response.getStatusDescription());
     return true;
   }
 
@@ -297,7 +302,7 @@ public final class AnalysisData {
       fileChunkSize += fileSize;
       filesChunk.add(psiFile);
     }
-    if (brokenMissingFilesCount > 0) info(brokenMissingFilesCount + brokenMissingFilesMessage);
+    if (brokenMissingFilesCount > 0) warn(brokenMissingFilesCount + brokenMissingFilesMessage);
     info("Last files-chunk size: " + fileChunkSize);
     uploadFiles(project, filesChunk, bundleId, progress);
 

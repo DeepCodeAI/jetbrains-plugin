@@ -56,7 +56,7 @@ public final class DeepCodeUtils {
       //      @NotNull Project project, @NotNull Callable<T> computation) {
       @NotNull Project project, @NotNull final Computable<T> computation) {
     // fixme debug only
-    //DCLogger.info("computeInReadActionInSmartMode requested");
+    // DCLogger.info("computeInReadActionInSmartMode requested");
     T result = null;
     final DumbService dumbService =
         ReadAction.compute(() -> project.isDisposed() ? null : DumbService.getInstance(project));
@@ -65,7 +65,7 @@ public final class DeepCodeUtils {
         dumbService.runReadActionInSmartMode(
             () -> {
               // fixme debug only
-              //DCLogger.info("computeInReadActionInSmartMode actually executing");
+              // DCLogger.info("computeInReadActionInSmartMode actually executing");
               return computation.compute();
             });
     return result;
@@ -139,24 +139,24 @@ public final class DeepCodeUtils {
   }
 
   private static List<PsiFile> getAllSupportedFilesInProject(@NotNull Project project) {
-    // todo do we need indexes ready here?
-
-    //    final DumbService dumbService = ReadAction.compute(() -> project.isDisposed() ? null :
-    // DumbService.getInstance(project));
-    //    if (dumbService == null) return;
-    //    dumbService.runReadActionInSmartMode(() ->
-    return computeInReadActionInSmartMode(
-        project,
-        () -> {
-          final List<PsiFile> allProjectFiles = allProjectFiles(project);
-          // Initial scan for .dcignore files
-          allProjectFiles.stream()
-              .filter(DeepCodeIgnoreInfoHolder::is_dcignoreFile)
-              .forEach(DeepCodeIgnoreInfoHolder::update_dcignoreFileContent);
-          return allProjectFiles.stream()
-              .filter(DeepCodeUtils::isSupportedFileFormat)
-              .collect(Collectors.toList());
-        });
+    final List<PsiFile> result =
+        computeInReadActionInSmartMode(
+            project,
+            () -> {
+              final List<PsiFile> allProjectFiles = allProjectFiles(project);
+              if (allProjectFiles.isEmpty()) {
+                DCLogger.warn("Empty files list for project: " + project);
+              }
+              // Initial scan for .dcignore files
+              allProjectFiles.stream()
+                  .filter(DeepCodeIgnoreInfoHolder::is_dcignoreFile)
+                  .forEach(DeepCodeIgnoreInfoHolder::update_dcignoreFileContent);
+              return allProjectFiles.stream()
+                  .filter(DeepCodeUtils::isSupportedFileFormat)
+                  .collect(Collectors.toList());
+            });
+    if (result.isEmpty()) DCLogger.warn("Empty supported files list for project: " + project);
+    return result;
   }
 
   private static List<PsiFile> allProjectFiles(@NotNull Project project) {
@@ -199,17 +199,18 @@ public final class DeepCodeUtils {
     final EmptyResponse response = DeepCodeRestApi.checkSession(sessionToken);
     boolean isLogged = response.getStatusCode() == 200;
     String message = response.getStatusDescription();
-    DCLogger.info(
-        ((isLogged) ? "Logging check succeed." : "Logging check fails: " + message)
-            + " Token: "
-            + sessionToken);
+    if (isLogged) {
+      DCLogger.info("Login check succeed." + " Token: " + sessionToken);
+    } else {
+      DCLogger.warn("Login check fails: " + message + " Token: " + sessionToken);
+    }
     if (!isLogged && userActionNeeded) {
       if (sessionToken.isEmpty() && response.getStatusCode() == 401) {
         message = "Authenticate using your GitHub, Bitbucket or GitLab account";
       }
       DeepCodeNotifications.showLoginLink(project, message);
     } else if (isLogged && project != null && !DeepCodeParams.consentGiven(project)) {
-      DCLogger.info("Consent check fail! Project: " + project.getName());
+      DCLogger.warn("Consent check fail! Project: " + project.getName());
       isLogged = false;
       DeepCodeNotifications.showConsentRequest(project, userActionNeeded);
     }
@@ -247,7 +248,7 @@ public final class DeepCodeUtils {
       ProgressManager.checkCanceled();
     } while (!isLogged(project, false));
     isLoginCheckLoopStarted = false;
-    DeepCodeNotifications.showInfo("Logging succeed", project);
+    DeepCodeNotifications.showInfo("Login succeed", project);
     AnalysisData.clearCache(project);
     DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(project);
   }
@@ -288,7 +289,7 @@ public final class DeepCodeUtils {
       DCLogger.info("Supported extensions: " + supportedExtensions);
       DCLogger.info("Supported configFiles: " + supportedConfigFiles);
     } else {
-      DCLogger.info(
+      DCLogger.warn(
           "Can't retrieve supported file extensions and config files from the server. Fallback to default set.\n"
               + filtersResponse.getStatusCode()
               + " "
