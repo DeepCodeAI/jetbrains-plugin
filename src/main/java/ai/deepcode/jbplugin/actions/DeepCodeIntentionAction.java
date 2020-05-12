@@ -5,7 +5,6 @@ import com.intellij.codeInsight.intention.IntentionAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorKind;
-import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.wm.IdeFocusManager;
@@ -79,7 +78,10 @@ public class DeepCodeIntentionAction implements IntentionAction {
             .anyMatch(r -> r.contains(myRange));
   }
 
-  private static final Pattern IGNORE_PATTERN = Pattern.compile(".*//.*deepcode\\s?ignore.*");
+  // fixme
+  private static final String COMMENT_START = "//";
+  private static final Pattern IGNORE_PATTERN =
+      Pattern.compile(".*" + COMMENT_START + ".*deepcode\\s?ignore.*");
   /**
    * Called when user invokes intention. This method is called inside command. If {@link
    * #startInWriteAction()} returns {@code true}, this method is also called inside write action.
@@ -95,7 +97,10 @@ public class DeepCodeIntentionAction implements IntentionAction {
     if (document.getTextLength() < 0) return;
     int lineNumber = document.getLineNumber(myRange.getStartOffset());
     int insertPosition = document.getLineStartOffset(lineNumber);
-    String prefix = "//";
+    final int lineStart = document.getLineStartOffset(lineNumber);
+    final int lineEnd = document.getLineEndOffset(lineNumber);
+    String lineText = document.getText(new TextRange(lineStart, lineEnd));
+    String prefix = getLeadingSpaces(lineText) + COMMENT_START;
     String postfix = "\n";
     if (lineNumber > 0) {
       final int prevLineStart = document.getLineStartOffset(lineNumber - 1);
@@ -124,6 +129,12 @@ public class DeepCodeIntentionAction implements IntentionAction {
 
     // set focus on editor if called from DeepCode Panel
     IdeFocusManager.getInstance(project).requestFocus(editor.getContentComponent(), true);
+  }
+
+  private static String getLeadingSpaces(@NotNull String string) {
+    int index = 0;
+    while (index < string.length() && Character.isWhitespace(string.charAt(index))) index++;
+    return string.substring(0, index);
   }
 
   /**

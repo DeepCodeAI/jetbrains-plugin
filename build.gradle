@@ -7,7 +7,7 @@ plugins {
 
 //group 'org.example'
 
-version '0.0.17-alpha-test'
+version '0.0.18-alpha-test'
 sourceCompatibility = 1.8
 
 repositories {
@@ -71,6 +71,10 @@ task runCLion_193(type: RunIdeTask){
 task run_WS_201(type: RunIdeTask){
     jvmArgs '-Xmx2G'
     ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\WebStorm\\ch-0\\201.6668.106'
+}
+task run_PC_193(type: RunIdeTask){
+    jvmArgs '-Xmx2G'
+    ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\PyCharm-C\\ch-0\\193.5233.109'
 }
 
 tasks.withType(RunIdeTask).forEach {task -> task.dependsOn(prepareSandbox)}
