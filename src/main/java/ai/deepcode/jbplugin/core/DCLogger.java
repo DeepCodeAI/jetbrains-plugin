@@ -2,6 +2,9 @@ package ai.deepcode.jbplugin.core;
 
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.project.DumbService;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +62,11 @@ public class DCLogger {
     rwAccess += (application.isWriteAccessAllowed() ? "W" : " ");
     rwAccess += " ";
 
-    logFunction.accept(currentTime + rwAccess + currentThread + myClassesStackTrace);
+    //fixme presume we work with one project only
+    final Project project = ProjectManager.getInstance().getOpenProjects()[0];
+    String mode = (DumbService.getInstance(project).isDumb() ? "D" : "S") + " ";
+
+    logFunction.accept(currentTime + rwAccess + mode + currentThread + myClassesStackTrace);
 
     final String[] lines = message.split("[\n\r]");
     for (String line : lines) {
