@@ -127,7 +127,12 @@ public class DeepCodeIntentionAction implements IntentionAction {
     String suggestionId = splitedId[splitedId.length - 1];
 
     final String ignoreCommand =
-        prefix + (isFileIntention ? " file " : " ") + "deepcode ignore " + suggestionId + ": ";
+        prefix
+            + (prefix.endsWith(" ") ? "" : " ")
+            + (isFileIntention ? "file " : "")
+            + "deepcode ignore "
+            + suggestionId
+            + ": ";
     final String ignoreDescription = "<please specify a reason of ignoring this>";
 
     document.insertString(insertPosition, ignoreCommand + ignoreDescription + postfix);
