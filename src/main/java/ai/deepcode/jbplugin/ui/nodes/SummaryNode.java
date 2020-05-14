@@ -4,7 +4,7 @@
 package ai.deepcode.jbplugin.ui.nodes;
 
 import ai.deepcode.jbplugin.core.AnalysisData;
-import ai.deepcode.jbplugin.core.DeepCodeUtils;
+import ai.deepcode.jbplugin.core.RunUtils;
 import ai.deepcode.jbplugin.ui.DeepCodeDirAndModuleComparator;
 import ai.deepcode.jbplugin.ui.HighlightedRegionProvider;
 import ai.deepcode.jbplugin.ui.ToDoSummary;
@@ -148,7 +148,7 @@ public class SummaryNode extends BaseToDoNode<ToDoSummary> implements Highlighte
     int count = 0;
     for (final Iterator<PsiFile> i = myBuilder.getAllFiles(); i.hasNext(); ) {
       final PsiFile psiFile = i.next();
-      count += DeepCodeUtils.computeInReadActionInSmartMode(
+      count += RunUtils.computeInReadActionInSmartMode(
               psiFile.getProject(),
               () -> getTreeStructure().getTodoItemCount(psiFile));
     }

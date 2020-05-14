@@ -2,7 +2,7 @@
 
 package ai.deepcode.jbplugin.ui.nodes;
 
-import ai.deepcode.jbplugin.core.DeepCodeUtils;
+import ai.deepcode.jbplugin.core.RunUtils;
 import ai.deepcode.jbplugin.ui.TodoTreeBuilder;
 import ai.deepcode.jbplugin.ui.TodoTreeStructure;
 import com.intellij.ide.IdeBundle;
@@ -106,7 +106,7 @@ public class ModuleToDoNode extends BaseToDoNode<Module> {
     int count = 0;
     while (iterator.hasNext()) {
       final PsiFile psiFile = iterator.next();
-      count += DeepCodeUtils.computeInReadActionInSmartMode(
+      count += RunUtils.computeInReadActionInSmartMode(
               psiFile.getProject(),
               () -> getTreeStructure().getTodoItemCount(psiFile));
     }

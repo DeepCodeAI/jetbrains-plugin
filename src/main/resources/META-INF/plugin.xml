@@ -13,9 +13,6 @@
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <!-- Add your extensions here
-        <annotator language="JAVA" implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
-        -->
         <postStartupActivity implementation="ai.deepcode.jbplugin.DeepCodeStartupActivity"/>
         <!--
                 <toolWindow id="DeepCode(console)" anchor="bottom" factoryClass="ai.deepcode.jbplugin.DeepCodeConsoleToolWindowFactory"/>
@@ -26,7 +23,8 @@
         <projectService serviceImplementation="ai.deepcode.jbplugin.ui.nodes.TodoTreeHelper"/>
         <applicationConfigurable instance="ai.deepcode.jbplugin.ui.config.DeepCodeConfigEntry"/>
 
-        <!--        For Idea CE and those that doesn't include corresponding plugin-->
+        <!-- Add your extensions here
+        <annotator language="JAVA" implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
         <externalAnnotator language="TEXT"
                            implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
         <externalAnnotator language=""
@@ -41,6 +39,23 @@
                            implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
         <externalAnnotator language="Python"
                            implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        -->
+
+        <!--        For Idea CE and those that doesn't include corresponding plugin-->
+        <annotator language="TEXT"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
+        <annotator language=""
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
+        <annotator language="textmate"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
+        <annotator language="JAVA"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
+        <annotator language="JavaScript"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
+        <annotator language="HTML"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
+        <annotator language="Python"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
     </extensions>
 
     <actions>

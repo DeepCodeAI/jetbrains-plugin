@@ -1,6 +1,7 @@
 package ai.deepcode.jbplugin.actions;
 
 import ai.deepcode.jbplugin.DeepCodeNotifications;
+import ai.deepcode.jbplugin.core.RunUtils;
 import ai.deepcode.jbplugin.ui.myTodoView;
 import ai.deepcode.jbplugin.core.DeepCodeUtils;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -43,7 +44,7 @@ public class AnalyseCurrentFileAction extends AnAction {
               project);
       return;
     }
-    DeepCodeUtils.asyncUpdateCurrentFilePanel(psiFile);
+    RunUtils.asyncUpdateCurrentFilePanel(psiFile);
     ServiceManager.getService(project, myTodoView.class).refresh();
   }
 }

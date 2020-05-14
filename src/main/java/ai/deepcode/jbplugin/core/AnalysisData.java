@@ -407,7 +407,7 @@ public final class AnalysisData {
 
   private static String doGetFileContent(@NotNull PsiFile psiFile) {
     // psiFile.getText() is NOT expensive as it's goes to VirtualFileContent.getText()
-    return DeepCodeUtils.computeInReadActionInSmartMode(psiFile.getProject(), psiFile::getText);
+    return RunUtils.computeInReadActionInSmartMode(psiFile.getProject(), psiFile::getText);
     /*
         try {
           return new String(Files.readAllBytes(Paths.get(getPath(psiFile))), StandardCharsets.UTF_8);
@@ -443,7 +443,7 @@ public final class AnalysisData {
     GetAnalysisResponse response;
     int counter = 0;
     do {
-      if (counter > 0) DeepCodeUtils.delay(1000);
+      if (counter > 0) RunUtils.delay(1000);
       response =
           DeepCodeRestApi.getAnalysis(
               DeepCodeParams.getSessionToken(),
@@ -496,7 +496,7 @@ public final class AnalysisData {
       // fixme debug only
       // DCLogger.info("parseGetAnalysisResponse before Document requested");
       Document document =
-          DeepCodeUtils.computeInReadActionInSmartMode(
+          RunUtils.computeInReadActionInSmartMode(
               psiFile.getProject(), psiFile.getViewProvider()::getDocument);
       // fixme debug only
       // DCLogger.info("parseGetAnalysisResponse after Document requested");

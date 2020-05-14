@@ -3,6 +3,7 @@ package ai.deepcode.jbplugin.ui.config;
 import ai.deepcode.jbplugin.core.AnalysisData;
 import ai.deepcode.jbplugin.core.DeepCodeParams;
 import ai.deepcode.jbplugin.core.DeepCodeUtils;
+import ai.deepcode.jbplugin.core.RunUtils;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
 import org.jetbrains.annotations.Nls;
@@ -80,7 +81,7 @@ public class DeepCodeConfigEntry implements Configurable {
     if (needClearCachesAndRescan) {
       AnalysisData.clearCache(null);
       if (DeepCodeUtils.isLogged(null, true)) {
-        DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(null);
+        RunUtils.asyncAnalyseProjectAndUpdatePanel(null);
       }
     }
   }

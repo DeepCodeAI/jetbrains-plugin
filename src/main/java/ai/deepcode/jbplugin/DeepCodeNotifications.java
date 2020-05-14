@@ -2,6 +2,7 @@ package ai.deepcode.jbplugin;
 
 import ai.deepcode.jbplugin.core.DeepCodeParams;
 import ai.deepcode.jbplugin.core.DeepCodeUtils;
+import ai.deepcode.jbplugin.core.RunUtils;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.notification.*;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -74,7 +75,7 @@ public class DeepCodeNotifications {
                     () -> {
                       DeepCodeParams.setConsentGiven(project);
                       consentRequestShown = false;
-                      DeepCodeUtils.asyncAnalyseProjectAndUpdatePanel(project);
+                      RunUtils.asyncAnalyseProjectAndUpdatePanel(project);
                     },
                     true))
             .addAction(

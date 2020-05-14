@@ -7,7 +7,7 @@ plugins {
 
 //group 'org.example'
 
-version '0.0.19-alpha'
+version '0.0.20-alpha'
 sourceCompatibility = 1.8
 
 repositories {
@@ -32,7 +32,7 @@ intellij {
 //    localPath 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\PyCharm-C\\ch-0\\193.5233.109'
 //    plugins += 'java'
 //    plugins += 'PsiViewer:201-SNAPSHOT'
-//    plugins += 'PsiViewer:193-SNAPSHOT'
+    plugins += 'PsiViewer:192-SNAPSHOT'
 
 }
 patchPluginXml {
@@ -72,9 +72,15 @@ task run_WS_201(type: RunIdeTask){
     jvmArgs '-Xmx2G'
     ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\WebStorm\\ch-0\\201.6668.106'
 }
+
 task run_PC_193(type: RunIdeTask){
     jvmArgs '-Xmx2G'
     ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\PyCharm-C\\ch-0\\193.5233.109'
+}
+
+task run_AS_40(type: RunIdeTask){
+    jvmArgs '-Xmx2G'
+    ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\AndroidStudio\\ch-0\\193.6453388'
 }
 
 tasks.withType(RunIdeTask).forEach {task -> task.dependsOn(prepareSandbox)}

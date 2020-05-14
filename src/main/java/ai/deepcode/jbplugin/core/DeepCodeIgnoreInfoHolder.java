@@ -54,7 +54,7 @@ class DeepCodeIgnoreInfoHolder {
     String basePath = virtualFile.getParent().getPath();
     String lineSeparator = "[\n\r]";
     final String fileText =
-        DeepCodeUtils.computeInReadActionInSmartMode(file.getProject(), file::getText);
+        RunUtils.computeInReadActionInSmartMode(file.getProject(), file::getText);
     for (String line : fileText.split(lineSeparator)) {
 
       // https://git-scm.com/docs/gitignore#_pattern_format

@@ -49,13 +49,17 @@ public class MyProjectManagerListener implements ProjectManagerListener {
       if (psiFile == null) return;
 /*
       if (DeepCodeUtils.isSupportedFileFormat(psiFile)) {
-        DeepCodeUtils.asyncAnalyseAndUpdatePanel(
-            psiFile.getProject(), Collections.singleton(psiFile));
+        DeepCodeUtils.runInBackgroundDelayedCancellable(
+            psiFile.getProject(),
+            () -> DeepCodeUtils.asyncAnalyseAndUpdatePanel(
+                psiFile.getProject(), Collections.singleton(psiFile)),
+            0);
       }
 */
       if (DeepCodeIgnoreInfoHolder.is_dcignoreFile(psiFile)) {
         DeepCodeIgnoreInfoHolder.update_dcignoreFileContent(psiFile);
-        DeepCodeUtils.rescanProject(psiFile.getProject(), 1000);
+        // delayed to prevent unnecessary updates in case of continuous typing by user
+        RunUtils.rescanProject(psiFile.getProject(), 1000);
       }
       // .gitignore content delay to be parsed https://youtrack.jetbrains.com/issue/IDEA-239773
       final VirtualFile virtualFile = psiFile.getVirtualFile();
@@ -63,7 +67,8 @@ public class MyProjectManagerListener implements ProjectManagerListener {
         final Document document = psiFile.getViewProvider().getDocument();
         if (document != null) {
           FileDocumentManager.getInstance().saveDocument(document);
-          DeepCodeUtils.rescanProject(psiFile.getProject(), 1000);
+          // delayed to let git update it meta-info
+          RunUtils.rescanProject(psiFile.getProject(), 1000);
         }
       }
     }
@@ -74,7 +79,7 @@ public class MyProjectManagerListener implements ProjectManagerListener {
       if (psiFile != null && DeepCodeIgnoreInfoHolder.is_ignoreFile(psiFile)) {
         DeepCodeIgnoreInfoHolder.remove_dcignoreFileContent(psiFile);
         // small delay to prevent duplicated delete with MyBulkFileListener
-        DeepCodeUtils.rescanProject(psiFile.getProject(), 100);
+        RunUtils.rescanProject(psiFile.getProject(), 100);
       }
     }
   }
