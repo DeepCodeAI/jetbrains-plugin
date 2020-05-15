@@ -7,7 +7,7 @@ plugins {
 
 //group 'org.example'
 
-version '0.0.20-alpha'
+version '0.0.21-alpha-test'
 sourceCompatibility = 1.8
 
 repositories {
@@ -32,7 +32,7 @@ intellij {
 //    localPath 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\PyCharm-C\\ch-0\\193.5233.109'
 //    plugins += 'java'
 //    plugins += 'PsiViewer:201-SNAPSHOT'
-    plugins += 'PsiViewer:192-SNAPSHOT'
+//    plugins += 'PsiViewer:192-SNAPSHOT'
 
 }
 patchPluginXml {

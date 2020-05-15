@@ -47,15 +47,16 @@ public class MyProjectManagerListener implements ProjectManagerListener {
     public void childrenChanged(@NotNull PsiTreeChangeEvent event) {
       final PsiFile psiFile = event.getFile();
       if (psiFile == null) return;
-/*
+
       if (DeepCodeUtils.isSupportedFileFormat(psiFile)) {
-        DeepCodeUtils.runInBackgroundDelayedCancellable(
-            psiFile.getProject(),
-            () -> DeepCodeUtils.asyncAnalyseAndUpdatePanel(
-                psiFile.getProject(), Collections.singleton(psiFile)),
-            0);
+        RunUtils.runInBackgroundCancellable(
+            psiFile,
+            () -> {
+              RunUtils.asyncAnalyseAndUpdatePanel(
+                  psiFile.getProject(), Collections.singleton(psiFile));
+            });
       }
-*/
+
       if (DeepCodeIgnoreInfoHolder.is_dcignoreFile(psiFile)) {
         DeepCodeIgnoreInfoHolder.update_dcignoreFileContent(psiFile);
         // delayed to prevent unnecessary updates in case of continuous typing by user

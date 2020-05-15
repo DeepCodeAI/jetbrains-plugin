@@ -1,6 +1,7 @@
 package ai.deepcode.jbplugin.annotators;
 
 import ai.deepcode.jbplugin.actions.DeepCodeIntentionAction;
+import ai.deepcode.jbplugin.core.DCLogger;
 import ai.deepcode.jbplugin.ui.myTodoView;
 import ai.deepcode.jbplugin.core.AnalysisData;
 import ai.deepcode.jbplugin.core.DeepCodeUtils;
@@ -23,6 +24,10 @@ import org.slf4j.LoggerFactory;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * We should use ExternalAnnotator to work on <b>files level</b> while ordinary Annotators works on
+ * elements level.
+ */
 public class DeepCodeExternalAnnotator extends ExternalAnnotator<PsiFile, List<SuggestionForFile>> {
 
   private static final Logger LOG = LoggerFactory.getLogger("DeepCode.Annotator");
@@ -44,20 +49,29 @@ public class DeepCodeExternalAnnotator extends ExternalAnnotator<PsiFile, List<S
   @Override
   public List<SuggestionForFile> doAnnotate(PsiFile psiFile) {
     if (!DeepCodeUtils.isSupportedFileFormat(psiFile)) return Collections.emptyList();
-    return AnalysisData.getAnalysis(psiFile);
-/*
-    // https://youtrack.jetbrains.com/issue/IDEA-239960
-    return ProgressManager.getInstance()
-        .runProcess(
-            () -> AnalysisData.getAnalysis(psiFile),
-            new BackgroundableProcessIndicator(
-                psiFile.getProject(),
-                "DeepCode: Analysing " + psiFile.getName() + " file... ",
-                () -> true,
-                "Stop",
-                "Stop file analysis",
-                true));
-*/
+    final long annotatorId = System.currentTimeMillis();
+    DCLogger.info("Annotator (" + annotatorId + ") requested for file: " + psiFile.getName());
+    AnalysisData.waitForUpdateAnalysisFinish();
+    ProgressManager.checkCanceled();
+    List<SuggestionForFile> suggestions = AnalysisData.getAnalysis(psiFile);
+    DCLogger.info(
+        "Annotator (" + annotatorId + ") suggestions gotten for file: " + psiFile.getName());
+    ProgressManager.checkCanceled();
+
+    return suggestions;
+    /*
+        // https://youtrack.jetbrains.com/issue/IDEA-239960
+        return ProgressManager.getInstance()
+            .runProcess(
+                () -> AnalysisData.getAnalysis(psiFile),
+                new BackgroundableProcessIndicator(
+                    psiFile.getProject(),
+                    "DeepCode: Analysing " + psiFile.getName() + " file... ",
+                    () -> true,
+                    "Stop",
+                    "Stop file analysis",
+                    true));
+    */
   }
 
   @SuppressWarnings("deprecation") // later move to .newAnnotation introduced in 2020.1
@@ -97,9 +111,5 @@ public class DeepCodeExternalAnnotator extends ExternalAnnotator<PsiFile, List<S
         */
       }
     }
-    // fixme
-    // Update CurrentFile Panel if file was edited
-    ServiceManager.getService(psiFile.getProject(), myTodoView.class).refresh();
-    //    DeepCodeUtils.asyncUpdateCurrentFilePanel(psiFile);
   }
 }

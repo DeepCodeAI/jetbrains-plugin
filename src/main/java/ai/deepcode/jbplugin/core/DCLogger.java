@@ -2,6 +2,8 @@ package ai.deepcode.jbplugin.core;
 
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
@@ -41,7 +43,7 @@ public class DCLogger {
     }
     // todo: made DeepCode console
 
-    String currentThread = "[" + Thread.currentThread().getName() + "] ";
+    String currentThread = " [" + Thread.currentThread().getName() + "] ";
 
     StringJoiner joiner = new StringJoiner(" -> ");
     StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
@@ -58,19 +60,30 @@ public class DCLogger {
     String myClassesStackTrace = joiner.toString();
 
     final Application application = ApplicationManager.getApplication();
-    String rwAccess = (application.isReadAccessAllowed() ? "R" : " ");
-    rwAccess += (application.isWriteAccessAllowed() ? "W" : " ");
-    rwAccess += " ";
+    String rwAccess = (application.isReadAccessAllowed() ? "R" : "-");
+    rwAccess += (application.isWriteAccessAllowed() ? "W" : "-");
 
-    //fixme presume we work with one project only
+    // fixme presume we work with one project only
     final Project project = ProjectManager.getInstance().getOpenProjects()[0];
-    String mode = (DumbService.getInstance(project).isDumb() ? "D" : "S") + " ";
+    String mode = DumbService.getInstance(project).isDumb() ? "D" : "S";
 
-    logFunction.accept(currentTime + rwAccess + mode + currentThread + myClassesStackTrace);
+    final ProgressIndicator currentProgressIndicator =
+        ProgressManager.getInstance().getProgressIndicator();
+    String progressIndicator =
+        (currentProgressIndicator == null)
+            ? ""
+            : "\nProgressIndicator [" + currentProgressIndicator.toString() + "]";
 
     final String[] lines = message.split("[\n\r]");
-    for (String line : lines) {
-      logFunction.accept("    " + line);
+    for (int i = 0; i < lines.length; i++) {
+      String line = lines[i];
+      line = (i == 0 ? currentTime : "            ") + line;
+      if (i == lines.length - 1) {
+        line += "\n" + rwAccess + mode + currentThread + myClassesStackTrace;
+        line += progressIndicator;
+      }
+
+      logFunction.accept(line);
     }
   }
 }

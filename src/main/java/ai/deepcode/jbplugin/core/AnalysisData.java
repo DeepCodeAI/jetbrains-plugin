@@ -56,12 +56,46 @@ public final class AnalysisData {
   // Mutex need to be requested to change mapFile2Suggestions
   private static final ReentrantLock MUTEX = new ReentrantLock();
 
-  public static String getAnalysisUrl() {
-    return analysisUrl;
+  /** see getAnalysis() below} */
+  @NotNull
+  public static List<SuggestionForFile> getAnalysis(@NotNull PsiFile psiFile) {
+    return getAnalysis(Collections.singleton(psiFile))
+        .getOrDefault(psiFile, Collections.emptyList());
   }
 
-  public static boolean isAnalysisInProgress() {
-    return MUTEX.isLocked();
+  /**
+   * Return Suggestions mapped to Files.
+   *
+   * <p>Look into cached results ONLY.
+   *
+   * @param psiFiles
+   * @return
+   */
+  @NotNull
+  public static Map<PsiFile, List<SuggestionForFile>> getAnalysis(
+      @NotNull Collection<PsiFile> psiFiles) {
+    if (psiFiles.isEmpty()) {
+      warn("getAnalysis requested for empty list of files");
+      return Collections.emptyMap();
+    }
+    Map<PsiFile, List<SuggestionForFile>> result = new HashMap<>();
+    final Collection<PsiFile> brokenKeys = new ArrayList<>();
+    for (PsiFile psiFile : psiFiles) {
+      List<SuggestionForFile> suggestions = mapFile2Suggestions.get(psiFile);
+      if (suggestions != null) {
+        result.put(psiFile, suggestions);
+      } else {
+        brokenKeys.add(psiFile);
+      }
+    }
+    if (!brokenKeys.isEmpty()) {
+      warn("Suggestions not found for " + brokenKeys.size() + " files: " + brokenKeys.toString());
+    }
+    return result;
+  }
+
+  public static String getAnalysisUrl() {
+    return analysisUrl;
   }
 
   static boolean addProjectToCache(@NotNull Project project) {
@@ -107,32 +141,37 @@ public final class AnalysisData {
         .collect(Collectors.toList());
   }
 
-  /** see getAnalysis() below} */
-  @NotNull
-  public static List<SuggestionForFile> getAnalysis(@NotNull PsiFile psiFile) {
-    return getAnalysis(Collections.singleton(psiFile), Collections.emptyList())
-        .getOrDefault(psiFile, Collections.emptyList());
+  private static boolean updateInProgress = false;
+
+  public static boolean isUpdateAnalysisInProgress() {
+    return updateInProgress;
   }
 
-  /**
-   * Return Suggestions mapped to Files.
-   *
-   * <p>Look into cached results first and if not found retrieve analysis results from server.
-   *
-   * @param psiFiles
-   * @return
-   */
-  @NotNull
-  public static Map<PsiFile, List<SuggestionForFile>> getAnalysis(
-      @NotNull Collection<PsiFile> psiFiles, @NotNull Collection<PsiFile> filesToRemove) {
-    if (psiFiles.isEmpty() && filesToRemove.isEmpty()) {
-      warn("getAnalysis requested for empty list of files");
-      return Collections.emptyMap();
+  public static void waitForUpdateAnalysisFinish() {
+    while (updateInProgress) {
+      RunUtils.delay(100);
     }
-    Map<PsiFile, List<SuggestionForFile>> result = new HashMap<>();
+  }
+
+  /*
+    public static void updateCachedResultsForFile(@NotNull PsiFile psiFile) {
+      updateCachedResultsForFiles(Collections.singleton(psiFile), Collections.emptyList());
+    }
+  */
+
+  public static void updateCachedResultsForFiles(
+      @NotNull Project project,
+      @NotNull Collection<PsiFile> psiFiles,
+      @NotNull Collection<PsiFile> filesToRemove) {
+    if (psiFiles.isEmpty() && filesToRemove.isEmpty()) {
+      warn("updateCachedResultsForFiles requested for empty list of files");
+      return;
+    }
+    info("Update requested for " + psiFiles.size() + " files: " + psiFiles.toString());
     Collection<PsiFile> filesToProceed = null;
     try {
       MUTEX.lock();
+      updateInProgress = true;
       filesToProceed =
           // DeepCodeUtils.computeNonBlockingReadAction(
           // () ->
@@ -142,36 +181,25 @@ public final class AnalysisData {
               .filter(file -> !mapFile2Suggestions.containsKey(file))
               .collect(Collectors.toSet());
       if (!filesToProceed.isEmpty()) {
-        info("Analysis requested for " + psiFiles.size() + " files: " + psiFiles.toString());
-        // fixme debug only
-        final PsiFile firstFile = psiFiles.stream().findFirst().get();
-        info("Hash for " + firstFile.getName() + " [" + getHash(firstFile) + "]");
         info("Files to proceed (not found in cache): " + filesToProceed.size());
+        // fixme debug only
+        final PsiFile firstFile = filesToProceed.stream().findFirst().get();
+        info("Hash for first file " + firstFile.getName() + " [" + getHash(firstFile) + "]");
 
-        mapFile2Suggestions.putAll(retrieveSuggestions(filesToProceed, filesToRemove));
+        mapFile2Suggestions.putAll(retrieveSuggestions(project, filesToProceed, filesToRemove));
 
       } else if (!filesToRemove.isEmpty()) {
         info("Files to remove: " + filesToRemove.size() + " files: " + filesToRemove.toString());
-        retrieveSuggestions(filesToProceed, filesToRemove);
+        retrieveSuggestions(project, filesToProceed, filesToRemove);
       }
+
+      ServiceManager.getService(project, myTodoView.class).refresh();
+      updateInProgress = false;
+
     } finally {
-      // fixme debug only
       if (filesToProceed != null && !filesToProceed.isEmpty()) info("MUTEX RELEASED");
       MUTEX.unlock();
     }
-    final Collection<PsiFile> brokenKeys = new ArrayList<>();
-    for (PsiFile psiFile : psiFiles) {
-      List<SuggestionForFile> suggestions = mapFile2Suggestions.get(psiFile);
-      if (suggestions != null) {
-        result.put(psiFile, suggestions);
-      } else {
-        brokenKeys.add(psiFile);
-      }
-    }
-    if (!brokenKeys.isEmpty()) {
-      warn("Suggestions not found for " + brokenKeys.size() + " files: " + brokenKeys.toString());
-    }
-    return result;
   }
 
   private static boolean loginRequested = false;
@@ -195,13 +223,12 @@ public final class AnalysisData {
   /** Perform costly network request. <b>No cache checks!</b> */
   @NotNull
   private static Map<PsiFile, List<SuggestionForFile>> retrieveSuggestions(
-      @NotNull Collection<PsiFile> psiFiles, @NotNull Collection<PsiFile> filesToRemove) {
+      @NotNull Project project,
+      @NotNull Collection<PsiFile> psiFiles,
+      @NotNull Collection<PsiFile> filesToRemove) {
     if (psiFiles.isEmpty() && filesToRemove.isEmpty()) {
       return Collections.emptyMap();
     }
-    Project project =
-        // fixme
-        (psiFiles.isEmpty() ? filesToRemove : psiFiles).stream().findFirst().get().getProject();
     if (!DeepCodeUtils.isLogged(project, false)) {
       return Collections.emptyMap();
     }
@@ -215,6 +242,7 @@ public final class AnalysisData {
     // ---------------------------------------- Create Bundle
     startTime = System.currentTimeMillis();
     progress.setText(PREPARE_FILES_TEXT);
+    info(PREPARE_FILES_TEXT);
     ProgressManager.checkCanceled();
     mapPsiFile2Content.clear();
     List<String> removedFiles =
@@ -231,7 +259,9 @@ public final class AnalysisData {
       progress.setFraction(((double) fileCounter++) / totalFiles);
       progress.setText(PREPARE_FILES_TEXT + fileCounter + " of " + totalFiles + " files done.");
       final String path = DeepCodeUtils.getDeepCodedFilePath(file);
+      // info("getHash requested");
       final String hash = getHash(file);
+      // info("getHash done");
       mapPath2Hash.put(path, hash);
       sizePath2Hash += (path.length() + hash.length()) * 2; // rough estimation of bytes occupied
       if (sizePath2Hash > MAX_BUNDLE_SIZE) {
@@ -443,7 +473,7 @@ public final class AnalysisData {
     GetAnalysisResponse response;
     int counter = 0;
     do {
-      if (counter > 0) RunUtils.delay(1000);
+      if (counter > 0) RunUtils.delay(500);
       response =
           DeepCodeRestApi.getAnalysis(
               DeepCodeParams.getSessionToken(),
@@ -456,13 +486,16 @@ public final class AnalysisData {
         return new GetAnalysisResponse();
       ProgressManager.checkCanceled();
       double progress = response.getProgress();
-      if (progress == 0) progress = ((double) counter) / 100;
+      if (progress == 0) progress = ((double) counter) / 200;
       progressIndicator.setFraction(progress);
       progressIndicator.setText(WAITING_FOR_ANALYSIS_TEXT + (int) (progress * 100) + "% done");
       // fixme
-      if (counter == 100) break;
+      if (counter == 200) break;
       counter++;
-    } while (!response.getStatus().equals("DONE"));
+    } while (!response.getStatus().equals("DONE")
+        // !!!! keep commented in production, for debug only: to emulate long processing
+        // || counter < 10
+    );
     return response;
   }
 

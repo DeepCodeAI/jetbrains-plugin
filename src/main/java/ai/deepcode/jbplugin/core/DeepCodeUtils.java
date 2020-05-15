@@ -105,10 +105,14 @@ public final class DeepCodeUtils {
         message = "Authenticate using your GitHub, Bitbucket or GitLab account";
       }
       DeepCodeNotifications.showLoginLink(project, message);
-    } else if (isLogged && project != null && !DeepCodeParams.consentGiven(project)) {
-      DCLogger.warn("Consent check fail! Project: " + project.getName());
-      isLogged = false;
-      DeepCodeNotifications.showConsentRequest(project, userActionNeeded);
+    } else if (isLogged && project != null) {
+      if (DeepCodeParams.consentGiven(project)) {
+        DCLogger.info("Consent check succeed for: " + project);
+      } else {
+        DCLogger.warn("Consent check fail! Project: " + project.getName());
+        isLogged = false;
+        DeepCodeNotifications.showConsentRequest(project, userActionNeeded);
+      }
     }
     return isLogged;
   }
