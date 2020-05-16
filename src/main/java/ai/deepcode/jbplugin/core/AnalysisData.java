@@ -301,6 +301,7 @@ public final class AnalysisData {
     List<PsiFile> filesChunk = new ArrayList<>();
     for (String filePath : missingFiles) {
       ProgressManager.checkCanceled();
+      progress.checkCanceled();
       progress.setFraction(((double) fileCounter++) / totalFiles);
       progress.setText(UPLOADING_FILES_TEXT + fileCounter + " of " + totalFiles + " files done.");
       PsiFile psiFile =
@@ -435,6 +436,7 @@ public final class AnalysisData {
     return mapPsiFile2Content.computeIfAbsent(psiFile, AnalysisData::doGetFileContent);
   }
 
+  @NotNull
   private static String doGetFileContent(@NotNull PsiFile psiFile) {
     // psiFile.getText() is NOT expensive as it's goes to VirtualFileContent.getText()
     return RunUtils.computeInReadActionInSmartMode(psiFile.getProject(), psiFile::getText);
@@ -455,6 +457,7 @@ public final class AnalysisData {
     List<FileHash2ContentRequest> listHash2Content = new ArrayList<>(psiFiles.size());
     info("Uploading " + psiFiles.size() + " files... ");
     for (PsiFile psiFile : psiFiles) {
+      progress.checkCanceled();
       listHash2Content.add(new FileHash2ContentRequest(getHash(psiFile), getFileContent(psiFile)));
       //      logDeepCode("Uploading file: " + getPath(psiFile));
     }
@@ -481,6 +484,7 @@ public final class AnalysisData {
               DeepCodeParams.getMinSeverity(),
               DeepCodeParams.useLinter());
 
+      ProgressManager.checkCanceled();
       info(response.toString());
       if (isNotSucceed(project, response, "Bad GetAnalysis request: "))
         return new GetAnalysisResponse();
@@ -493,8 +497,8 @@ public final class AnalysisData {
       if (counter == 200) break;
       counter++;
     } while (!response.getStatus().equals("DONE")
-        // !!!! keep commented in production, for debug only: to emulate long processing
-        // || counter < 10
+    // !!!! keep commented in production, for debug only: to emulate long processing
+    // || counter < 10
     );
     return response;
   }

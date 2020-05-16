@@ -2,6 +2,7 @@ package ai.deepcode.jbplugin.core;
 
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManagerListener;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -12,6 +13,7 @@ import com.intellij.psi.PsiTreeChangeEvent;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
+import java.util.Set;
 
 /** Add PsiTree change Listener to clear caches for file if it was changed. */
 public class MyProjectManagerListener implements ProjectManagerListener {
@@ -30,7 +32,9 @@ public class MyProjectManagerListener implements ProjectManagerListener {
 
   @Override
   public void projectClosing(@NotNull Project project) {
-    AnalysisData.removeProjectFromCache(project);
+    RunUtils.cancelRunningIndicators(project);
+    // lets all running ProgressIndicators release MUTEX first
+    RunUtils.runInBackground(project, () -> AnalysisData.removeProjectFromCache(project));
   }
 
   private static class MyPsiTreeChangeAdapter extends PsiTreeChangeAdapter {
@@ -39,8 +43,22 @@ public class MyProjectManagerListener implements ProjectManagerListener {
       final PsiFile psiFile = event.getFile();
       if (psiFile == null) return;
       if (AnalysisData.isFileInCache(psiFile)) {
+        // immediate delete for visual updates in Panel, annotations, etc.
         AnalysisData.removeFilesFromCache(Collections.singleton(psiFile));
       }
+      /*
+            if (DeepCodeUtils.isSupportedFileFormat(psiFile)) {
+              // should be done in background to wait MUTEX released in case of currently running update
+              RunUtils.runInBackground(
+                  psiFile.getProject(),
+                  () -> {
+                    // to prevent updating already done by MyBulkFileListener
+                    if (AnalysisData.isHashChanged(psiFile)) {
+                      AnalysisData.removeFilesFromCache(Collections.singleton(psiFile));
+                    }
+                  });
+            }
+      */
     }
 
     @Override
@@ -52,8 +70,13 @@ public class MyProjectManagerListener implements ProjectManagerListener {
         RunUtils.runInBackgroundCancellable(
             psiFile,
             () -> {
-              RunUtils.asyncAnalyseAndUpdatePanel(
-                  psiFile.getProject(), Collections.singleton(psiFile));
+              final Set<PsiFile> psiFileSet = Collections.singleton(psiFile);
+              if (AnalysisData.isFileInCache(psiFile)) {
+                // should be already deleted at beforeChildrenChange in most cases,
+                // but in case of update finished between beforeChildrenChange and now.
+                AnalysisData.removeFilesFromCache(psiFileSet);
+              }
+              RunUtils.asyncAnalyseAndUpdatePanel(psiFile.getProject(), psiFileSet);
             });
       }
 

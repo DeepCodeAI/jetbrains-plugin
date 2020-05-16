@@ -64,8 +64,11 @@ public class DCLogger {
     rwAccess += (application.isWriteAccessAllowed() ? "W" : "-");
 
     // fixme presume we work with one project only
-    final Project project = ProjectManager.getInstance().getOpenProjects()[0];
-    String mode = DumbService.getInstance(project).isDumb() ? "D" : "S";
+    final Project[] openProjects = ProjectManager.getInstance().getOpenProjects();
+    String mode =
+        (openProjects.length != 0)
+            ? DumbService.getInstance(openProjects[0]).isDumb() ? "D" : "S"
+            : "X";
 
     final ProgressIndicator currentProgressIndicator =
         ProgressManager.getInstance().getProgressIndicator();

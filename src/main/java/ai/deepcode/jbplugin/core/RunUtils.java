@@ -8,16 +8,15 @@ import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.util.Computable;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import com.intellij.util.containers.ContainerUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 public class RunUtils {
   private RunUtils() {}
@@ -85,6 +84,9 @@ public class RunUtils {
     }
   }
 
+  private static final Map<Project, List<ProgressIndicator>> mapProject2Indicators =
+      new ConcurrentHashMap<>();
+
   private static class MyBackgroundable extends Task.Backgroundable {
     private @Nullable final Project project;
     private @NotNull final Runnable runnable;
@@ -97,18 +99,29 @@ public class RunUtils {
 
     @Override
     public void run(@NotNull ProgressIndicator indicator) {
-      DCLogger.info(
-          "New Process started at "
-              + project);
+      DCLogger.info("New Process started at " + project);
+      mapProject2Indicators.computeIfAbsent(project, p -> new ArrayList<>()).add(indicator);
 
       runnable.run();
 
-      DCLogger.info(
-          "Process ended at " + project);
+      DCLogger.info("Process ending at " + project);
+      mapProject2Indicators.getOrDefault(project, Collections.emptyList()).remove(indicator);
     }
   }
 
-  private static final Map<PsiFile, ProgressIndicator> mapFileProcessed2CancellableIndicator =
+  public static void cancelRunningIndicators(@NotNull Project project) {
+    String indicatorsList =
+        mapProject2Indicators.getOrDefault(project, Collections.emptyList()).stream()
+            .map(ProgressIndicator::toString)
+            .collect(Collectors.joining("\n"));
+    DCLogger.info("Canceling ProgressIndicators:\n" + indicatorsList);
+    mapProject2Indicators
+        .getOrDefault(project, Collections.emptyList())
+        .forEach(ProgressIndicator::cancel);
+    mapProject2Indicators.remove(project);
+  }
+
+  private static final Map<VirtualFile, ProgressIndicator> mapFileProcessed2CancellableIndicator =
       new ConcurrentHashMap<>();
 
   public static void runInBackgroundCancellable(
@@ -120,23 +133,21 @@ public class RunUtils {
               @Override
               public void run(@NotNull ProgressIndicator indicator) {
                 ProgressIndicator prevProgressIndicator =
-                    mapFileProcessed2CancellableIndicator.put(psiFile, indicator);
+                    mapFileProcessed2CancellableIndicator.put(psiFile.getVirtualFile(), indicator);
                 if (prevProgressIndicator != null) {
-                  prevProgressIndicator.cancel();
                   DCLogger.info(
-                      "Previous Process cancelled for "
-                          + psiFile.getName());
+                      "Previous Process cancelling for "
+                          + psiFile.getName()
+                          + "\nProgressIndicator ["
+                          + prevProgressIndicator.toString()
+                          + "]");
+                  prevProgressIndicator.cancel();
                 }
-                DCLogger.info(
-                    "New Process started for "
-                        + psiFile.getName());
+                DCLogger.info("New Process started for " + psiFile.getName());
 
                 runnable.run();
 
-                mapFileProcessed2CancellableIndicator.remove(psiFile);
-                DCLogger.info(
-                    "Process ended for "
-                        + psiFile.getName());
+                DCLogger.info("Process ending for " + psiFile.getName());
               }
             });
   }

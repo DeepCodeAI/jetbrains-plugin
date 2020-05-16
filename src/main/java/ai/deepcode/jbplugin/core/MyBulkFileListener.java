@@ -38,8 +38,10 @@ public class MyBulkFileListener implements BulkFileListener {
                         getFilteredFilesOfEventTypes(
                             project,
                             events,
-                            (psiFile -> DeepCodeUtils.isSupportedFileFormat(psiFile)
-                                && AnalysisData.isHashChanged(psiFile)),
+                            (psiFile ->
+                                DeepCodeUtils.isSupportedFileFormat(psiFile)
+                                    // to prevent updating files already done by MyPsiTreeChangeAdapter
+                                    && AnalysisData.isHashChanged(psiFile)),
                             VFileContentChangeEvent.class,
                             VFileCreateEvent.class));
             if (!filesChangedOrCreated.isEmpty()) {
@@ -84,8 +86,7 @@ public class MyBulkFileListener implements BulkFileListener {
             project,
             () -> {
               AnalysisData.removeFilesFromCache(filesRemoved);
-              RunUtils.asyncAnalyseAndUpdatePanel(
-                  project, Collections.emptyList(), filesRemoved);
+              RunUtils.asyncAnalyseAndUpdatePanel(project, Collections.emptyList(), filesRemoved);
             });
       }
 
@@ -120,5 +121,4 @@ public class MyBulkFileListener implements BulkFileListener {
         .filter(fileFilter)
         .collect(Collectors.toSet());
   }
-
 }
