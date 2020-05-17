@@ -7,7 +7,7 @@ plugins {
 
 //group 'org.example'
 
-version '0.0.22-alpha-test'
+version '0.0.23-alpha-test'
 sourceCompatibility = 1.8
 
 repositories {
@@ -27,12 +27,13 @@ intellij {
 //    localPath 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-0\\193.6911.18'
 //    localPath 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-1\\201.6487.11'
 //    localPath 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-3\\191.8026.42'
-    localPath 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-2\\192.7142.36'
+//    localPath 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-2\\192.7142.36'
+    localPath 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-U\\ch-1\\192.7142.36'
 //    localPath 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-U\\ch-0\\201.6487.11'
 //    localPath 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\PyCharm-C\\ch-0\\193.5233.109'
 //    plugins += 'java'
 //    plugins += 'PsiViewer:201-SNAPSHOT'
-//    plugins += 'PsiViewer:192-SNAPSHOT'
+    plugins += 'PsiViewer:192-SNAPSHOT'
 
 }
 patchPluginXml {
@@ -40,7 +41,7 @@ patchPluginXml {
     untilBuild 202
 
     changeNotes """
-      0.0.2-alpha - see commits history for changes.<br>
+      0.0.2+      - see commits history for changes.<br>
       0.0.1-alpha - initial alpha release for inner testing.<br>      
     """
 }
@@ -59,18 +60,33 @@ task runIC_193(type: RunIdeTask){
     ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-0\\193.6911.18'
 }
 
+task runIU_192(type: RunIdeTask){
+    ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-U\\ch-1\\192.7142.36'
+}
+
 task runPC_193(type: RunIdeTask){
     jvmArgs '-Xmx2G'
     ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\PyCharm-C\\ch-0\\193.5233.109'
 }
 
 task runCLion_193(type: RunIdeTask){
+    jvmArgs '-Xmx2G'
     ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\CLion\\ch-0\\193.6494.38'
+}
+
+task runCLion_192(type: RunIdeTask){
+    jvmArgs '-Xmx2G'
+    ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\CLion\\ch-2\\192.7142.39'
 }
 
 task run_WS_201(type: RunIdeTask){
     jvmArgs '-Xmx2G'
     ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\WebStorm\\ch-0\\201.6668.106'
+}
+
+task run_WS_192(type: RunIdeTask){
+    jvmArgs '-Xmx2G'
+    ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\WebStorm\\ch-1\\192.7142.35'
 }
 
 task run_PC_193(type: RunIdeTask){

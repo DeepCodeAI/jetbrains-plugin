@@ -197,8 +197,8 @@ public final class DeepCodeUtils {
       supportedExtensions =
           new HashSet<>(
               Arrays.asList(
-                  "cc", "htm", "cpp", "c", "vue", "h", "hpp", "es6", "js", "py", "es", "jsx",
-                  "java", "tsx", "html", "ts"));
+                  "cc", "htm", "cpp", "cxx", "c", "vue", "h", "hpp", "hxx", "es6", "js", "py", "es",
+                  "jsx", "java", "tsx", "html", "ts"));
       supportedConfigFiles =
           new HashSet<>(
               Arrays.asList(

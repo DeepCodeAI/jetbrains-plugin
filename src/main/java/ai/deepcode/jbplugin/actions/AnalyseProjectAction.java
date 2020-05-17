@@ -16,6 +16,7 @@ public class AnalyseProjectAction extends AnAction {
   public void actionPerformed(@NotNull AnActionEvent e) {
     final Project project = e.getRequiredData(PlatformDataKeys.PROJECT);
     DCLogger.info("Re-Analyse Project requested for: " + project);
+    // fixme: ?? background task here to avoid potential freeze due to MUTEX lock
     AnalysisData.clearCache(project);
     if (DeepCodeUtils.isLogged(project, true)) {
       RunUtils.asyncAnalyseProjectAndUpdatePanel(project);

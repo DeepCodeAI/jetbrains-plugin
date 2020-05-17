@@ -41,20 +41,48 @@
         -->
 
         <!--        For Idea CE and those that doesn't include corresponding plugin-->
+        <!--  TODO: register annotators dynamically based on Languages provided      -->
         <externalAnnotator language="TEXT"
                            implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
         <externalAnnotator language=""
                            implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
         <externalAnnotator language="textmate"
-
                            implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <!--  java  -->
         <externalAnnotator language="JAVA"
                            implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <!--  js  -->
         <externalAnnotator language="JavaScript"
                            implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <!--  js  -->
+        <externalAnnotator language="JavaScript 1.5"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <!--  jsx  -->
+        <externalAnnotator language="JSX Harmony"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <!--  vue  -->
+        <externalAnnotator language="Vue"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <!--  ts  -->
+        <externalAnnotator language="TypeScript"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <!--  tsx  -->
+        <externalAnnotator language="TypeScript JSX"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <!--  py  -->
+        <externalAnnotator language="Python"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <!--  htm, html  -->
         <externalAnnotator language="HTML"
                            implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
-        <externalAnnotator language="Python"
+        <!--  cc, cpp, cxx, c, h, hpp, hxx     -->
+        <externalAnnotator language="ObjectiveC"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <!--  es  -->
+        <externalAnnotator language="ECMA Script Level 4"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <!--  es6, js  -->
+        <externalAnnotator language="ECMAScript 6"
                            implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
     </extensions>
 
