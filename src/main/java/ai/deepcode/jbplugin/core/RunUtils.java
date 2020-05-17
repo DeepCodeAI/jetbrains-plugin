@@ -60,7 +60,7 @@ public class RunUtils {
 
   private static long timeOfLastRescanRequest = 0;
   // BackgroundTaskQueue ??? com.intellij.openapi.wm.ex.StatusBarEx#getBackgroundProcesses ???
-  public static void rescanProject(@Nullable Project project, long delayMilliseconds) {
+  public static void rescanProject(@NotNull Project project, long delayMilliseconds) {
     runInBackground(
         project,
         () -> {
@@ -72,7 +72,7 @@ public class RunUtils {
         });
   }
 
-  public static void runInBackground(@Nullable Project project, @NotNull Runnable runnable) {
+  public static void runInBackground(@NotNull Project project, @NotNull Runnable runnable) {
     DCLogger.info("runInBackground requested");
     final ProgressManager progressManager = ProgressManager.getInstance();
     final MyBackgroundable myBackgroundable = new MyBackgroundable(project, runnable);
@@ -88,10 +88,10 @@ public class RunUtils {
       new ConcurrentHashMap<>();
 
   private static class MyBackgroundable extends Task.Backgroundable {
-    private @Nullable final Project project;
+    private @NotNull final Project project;
     private @NotNull final Runnable runnable;
 
-    public MyBackgroundable(@Nullable Project project, @NotNull Runnable runnable) {
+    public MyBackgroundable(@NotNull Project project, @NotNull Runnable runnable) {
       super(project, "DeepCode: Analysing Files...");
       this.project = project;
       this.runnable = runnable;
@@ -109,6 +109,8 @@ public class RunUtils {
     }
   }
 
+  // ??? list of all running background tasks
+  // com.intellij.openapi.wm.ex.StatusBarEx#getBackgroundProcesses
   public static void cancelRunningIndicators(@NotNull Project project) {
     String indicatorsList =
         mapProject2Indicators.getOrDefault(project, Collections.emptyList()).stream()
@@ -134,7 +136,12 @@ public class RunUtils {
               public void run(@NotNull ProgressIndicator indicator) {
                 ProgressIndicator prevProgressIndicator =
                     mapFileProcessed2CancellableIndicator.put(psiFile.getVirtualFile(), indicator);
-                if (prevProgressIndicator != null) {
+                if (prevProgressIndicator != null
+                    // can't use prevProgressIndicator.isRunning() due to
+                    // https://youtrack.jetbrains.com/issue/IDEA-241055
+                    && mapProject2Indicators
+                        .getOrDefault(psiFile.getProject(), Collections.emptyList())
+                        .contains(prevProgressIndicator)) {
                   DCLogger.info(
                       "Previous Process cancelling for "
                           + psiFile.getName()

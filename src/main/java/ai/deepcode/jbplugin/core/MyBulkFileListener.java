@@ -35,12 +35,14 @@ public class MyBulkFileListener implements BulkFileListener {
                 RunUtils.computeInReadActionInSmartMode(
                     project,
                     () ->
-                        getFilteredFilesOfEventTypes(
+                        getFilteredFilesByEventTypes(
                             project,
                             events,
                             (psiFile ->
                                 DeepCodeUtils.isSupportedFileFormat(psiFile)
-                                    // to prevent updating files already done by MyPsiTreeChangeAdapter
+                                    // to prevent updating files already done by
+                                    // MyPsiTreeChangeAdapter
+                                    // fixme: doesn't work, try to use isFromSave or isFromRefresh
                                     && AnalysisData.isHashChanged(psiFile)),
                             VFileContentChangeEvent.class,
                             VFileCreateEvent.class));
@@ -54,7 +56,7 @@ public class MyBulkFileListener implements BulkFileListener {
           });
 
       Set<PsiFile> gcignoreChangedFiles =
-          getFilteredFilesOfEventTypes(
+          getFilteredFilesByEventTypes(
               project,
               events,
               DeepCodeIgnoreInfoHolder::is_dcignoreFile,
@@ -79,7 +81,7 @@ public class MyBulkFileListener implements BulkFileListener {
     DCLogger.info("MyBulkFileListener.before begins");
     for (Project project : AnalysisData.getAllCachedProject()) {
       Set<PsiFile> filesRemoved =
-          getFilteredFilesOfEventTypes(
+          getFilteredFilesByEventTypes(
               project, events, DeepCodeUtils::isSupportedFileFormat, VFileDeleteEvent.class);
       if (!filesRemoved.isEmpty()) {
         RunUtils.runInBackground(
@@ -91,7 +93,7 @@ public class MyBulkFileListener implements BulkFileListener {
       }
 
       Set<PsiFile> ignoreFilesToRemove =
-          getFilteredFilesOfEventTypes(
+          getFilteredFilesByEventTypes(
               project, events, DeepCodeIgnoreInfoHolder::is_ignoreFile, VFileDeleteEvent.class);
       if (!ignoreFilesToRemove.isEmpty()) {
         RunUtils.runInBackground(
@@ -106,7 +108,7 @@ public class MyBulkFileListener implements BulkFileListener {
     DCLogger.info("MyBulkFileListener.before ends");
   }
 
-  private Set<PsiFile> getFilteredFilesOfEventTypes(
+  private Set<PsiFile> getFilteredFilesByEventTypes(
       @NotNull Project project,
       @NotNull List<? extends VFileEvent> events,
       @NotNull Predicate<PsiFile> fileFilter,
