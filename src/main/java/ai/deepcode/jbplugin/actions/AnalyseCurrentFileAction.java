@@ -1,6 +1,7 @@
 package ai.deepcode.jbplugin.actions;
 
 import ai.deepcode.jbplugin.DeepCodeNotifications;
+import ai.deepcode.jbplugin.core.LoginUtils;
 import ai.deepcode.jbplugin.core.RunUtils;
 import ai.deepcode.jbplugin.ui.myTodoView;
 import ai.deepcode.jbplugin.core.DeepCodeUtils;
@@ -31,7 +32,7 @@ public class AnalyseCurrentFileAction extends AnAction {
     final PsiFile psiFile = event.getRequiredData(PlatformDataKeys.PSI_FILE);
     Project project = psiFile.getProject();
 
-    if (!DeepCodeUtils.isLogged(project, true)) {
+    if (!LoginUtils.isLogged(project, true)) {
 //      DeepCodeNotifications.reShowLastNotification();
       return;
     }

@@ -2,6 +2,7 @@ package ai.deepcode.jbplugin.ui.utils;
 
 import ai.deepcode.jbplugin.core.AnalysisData;
 import ai.deepcode.jbplugin.core.DeepCodeUtils;
+import ai.deepcode.jbplugin.core.LoginUtils;
 import com.intellij.execution.process.ConsoleHighlighter;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.editor.DefaultLanguageHighlighterColors;
@@ -102,7 +103,7 @@ public class DeepCodeUIUtils {
           IconUtil.textToIcon("?", new JLabel(), fontToScale));
 
   public static Icon getSummaryIcon(@NotNull Project project) {
-    if (!DeepCodeUtils.isLogged(project, false) || AnalysisData.isUpdateAnalysisInProgress())
+    if (!LoginUtils.isLogged(project, false) || AnalysisData.isUpdateAnalysisInProgress())
       return EMPTY_EWI_ICON;
 
     DeepCodeUtils.ErrorsWarningsInfos ewi =

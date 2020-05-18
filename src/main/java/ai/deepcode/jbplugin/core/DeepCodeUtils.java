@@ -1,24 +1,14 @@
 package ai.deepcode.jbplugin.core;
 
 import ai.deepcode.javaclient.DeepCodeRestApi;
-import ai.deepcode.javaclient.responses.EmptyResponse;
 import ai.deepcode.javaclient.responses.GetFiltersResponse;
-import ai.deepcode.javaclient.responses.LoginResponse;
-import ai.deepcode.jbplugin.DeepCodeNotifications;
-import com.intellij.ide.BrowserUtil;
-import com.intellij.openapi.application.ApplicationInfo;
-import com.intellij.openapi.application.ApplicationNamesInfo;
-import com.intellij.openapi.application.ReadAction;
-import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.changes.ChangeListManager;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
-import com.intellij.util.concurrency.NonUrgentExecutor;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -28,11 +18,6 @@ public final class DeepCodeUtils {
 
   private static Set<String> supportedExtensions = Collections.emptySet();
   private static Set<String> supportedConfigFiles = Collections.emptySet();
-  private static final String userAgent =
-      "JetBrains-plugin-"
-          + ApplicationNamesInfo.getInstance().getProductName()
-          + "-"
-          + ApplicationInfo.getInstance().getFullVersion();
 
   static List<PsiFile> getAllSupportedFilesInProject(@NotNull Project project) {
     final List<PsiFile> result =
@@ -87,70 +72,6 @@ public final class DeepCodeUtils {
       }
     }
     return new ErrorsWarningsInfos(errors, warnings, infos);
-  }
-
-  /** network request! */
-  public static boolean isLogged(@Nullable Project project, boolean userActionNeeded) {
-    final String sessionToken = DeepCodeParams.getSessionToken();
-    final EmptyResponse response = DeepCodeRestApi.checkSession(sessionToken);
-    boolean isLogged = response.getStatusCode() == 200;
-    String message = response.getStatusDescription();
-    if (isLogged) {
-      DCLogger.info("Login check succeed." + " Token: " + sessionToken);
-    } else {
-      DCLogger.warn("Login check fails: " + message + " Token: " + sessionToken);
-    }
-    if (!isLogged && userActionNeeded) {
-      if (sessionToken.isEmpty() && response.getStatusCode() == 401) {
-        message = "Authenticate using your GitHub, Bitbucket or GitLab account";
-      }
-      DeepCodeNotifications.showLoginLink(project, message);
-    } else if (isLogged && project != null) {
-      if (DeepCodeParams.consentGiven(project)) {
-        DCLogger.info("Consent check succeed for: " + project);
-      } else {
-        DCLogger.warn("Consent check fail! Project: " + project.getName());
-        isLogged = false;
-        DeepCodeNotifications.showConsentRequest(project, userActionNeeded);
-      }
-    }
-    return isLogged;
-  }
-
-  /** network request! */
-  public static void requestNewLogin(@NotNull Project project) {
-    DeepCodeParams.clearLoginParams();
-    LoginResponse response = DeepCodeRestApi.newLogin(userAgent);
-    if (response.getStatusCode() == 200) {
-      DeepCodeParams.setSessionToken(response.getSessionToken());
-      DeepCodeParams.setLoginUrl(response.getLoginURL());
-      BrowserUtil.open(DeepCodeParams.getLoginUrl());
-      if (!isLoginCheckLoopStarted) {
-        ReadAction.nonBlocking(() -> startLoginCheckLoop(project))
-            .submit(NonUrgentExecutor.getInstance());
-      }
-    } else {
-      DeepCodeNotifications.showError(response.getStatusDescription(), project);
-    }
-  }
-
-  private static boolean isLoginCheckLoopStarted = false;
-
-  private static void startLoginCheckLoop(@NotNull Project project) {
-    isLoginCheckLoopStarted = true;
-    do {
-      try {
-        Thread.sleep(1000);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-        Thread.currentThread().interrupt();
-      }
-      ProgressManager.checkCanceled();
-    } while (!isLogged(project, false));
-    isLoginCheckLoopStarted = false;
-    DeepCodeNotifications.showInfo("Login succeed", project);
-    AnalysisData.clearCache(project);
-    RunUtils.asyncAnalyseProjectAndUpdatePanel(project);
   }
 
   private static final long MAX_FILE_SIZE = 5242880; // 5MB in bytes

@@ -1,7 +1,7 @@
 package ai.deepcode.jbplugin;
 
 import ai.deepcode.jbplugin.core.DeepCodeParams;
-import ai.deepcode.jbplugin.core.DeepCodeUtils;
+import ai.deepcode.jbplugin.core.LoginUtils;
 import ai.deepcode.jbplugin.core.RunUtils;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.notification.*;
@@ -47,7 +47,7 @@ public class DeepCodeNotifications {
           new Notification(groupNeedAction, title, message, NotificationType.WARNING)
               .addAction(
                   new ShowClickableLinkAction(
-                      "Login", () -> DeepCodeUtils.requestNewLogin(prj), true));
+                      "Login", () -> LoginUtils.requestNewLogin(prj), true));
       lastNotifications.add(notification);
       notification.notify(prj);
     }

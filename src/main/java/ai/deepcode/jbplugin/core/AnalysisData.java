@@ -141,7 +141,7 @@ public final class AnalysisData {
         .collect(Collectors.toList());
   }
 
-  private static boolean updateInProgress = false;
+  private static boolean updateInProgress = true;
 
   public static boolean isUpdateAnalysisInProgress() {
     return updateInProgress;
@@ -210,7 +210,7 @@ public final class AnalysisData {
       loginRequested = false;
       return false;
     } else if (response.getStatusCode() == 401) {
-      DeepCodeUtils.isLogged(project, !loginRequested);
+      LoginUtils.isLogged(project, !loginRequested);
       loginRequested = true;
     }
     warn(message + response.getStatusCode() + " " + response.getStatusDescription());
@@ -229,7 +229,7 @@ public final class AnalysisData {
     if (psiFiles.isEmpty() && filesToRemove.isEmpty()) {
       return Collections.emptyMap();
     }
-    if (!DeepCodeUtils.isLogged(project, false)) {
+    if (!LoginUtils.isLogged(project, false)) {
       return Collections.emptyMap();
     }
     Map<PsiFile, List<SuggestionForFile>> result;

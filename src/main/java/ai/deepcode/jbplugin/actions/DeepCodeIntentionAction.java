@@ -74,6 +74,7 @@ public class DeepCodeIntentionAction implements IntentionAction {
     return editor.getEditorKind() != EditorKind.PREVIEW
         // otherwise preview editor will close (no suggestion found) before description entered.
         && file.equals(myPsiFile)
+        && !AnalysisData.isUpdateAnalysisInProgress()
         && AnalysisData.getAnalysis(file).stream()
             .flatMap(s -> s.getRanges().stream())
             .anyMatch(r -> r.contains(myRange));

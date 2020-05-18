@@ -1,9 +1,6 @@
 package ai.deepcode.jbplugin.ui.config;
 
-import ai.deepcode.jbplugin.core.AnalysisData;
-import ai.deepcode.jbplugin.core.DeepCodeParams;
-import ai.deepcode.jbplugin.core.DeepCodeUtils;
-import ai.deepcode.jbplugin.core.RunUtils;
+import ai.deepcode.jbplugin.core.*;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
 import org.jetbrains.annotations.Nls;
@@ -80,7 +77,7 @@ public class DeepCodeConfigEntry implements Configurable {
     DeepCodeParams.setEnable(myForm.isPluginEnabled());
     if (needClearCachesAndRescan) {
       AnalysisData.clearCache(null);
-      if (DeepCodeUtils.isLogged(null, true)) {
+      if (LoginUtils.isLogged(null, true)) {
         RunUtils.asyncAnalyseProjectAndUpdatePanel(null);
       }
     }

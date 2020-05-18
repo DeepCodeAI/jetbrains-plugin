@@ -27,7 +27,7 @@ public class DeepCodeStartupActivity implements StartupActivity {
 
     AnalysisData.clearCache(project);
     // Initial logging if needed.
-    if (DeepCodeUtils.isLogged(project, true)) {
+    if (LoginUtils.isLogged(project, true)) {
       RunUtils.asyncAnalyseProjectAndUpdatePanel(project);
     }
     /*

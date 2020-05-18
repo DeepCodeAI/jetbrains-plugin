@@ -75,14 +75,15 @@ public class DCLogger {
     String progressIndicator =
         (currentProgressIndicator == null)
             ? ""
-            : "\nProgressIndicator [" + currentProgressIndicator.toString() + "]";
+            : "\n" + "ProgressIndicator [" + currentProgressIndicator.toString() + "]";
 
     final String[] lines = message.split("[\n\r]");
     for (int i = 0; i < lines.length; i++) {
       String line = lines[i];
       line = (i == 0 ? currentTime : "            ") + line;
       if (i == lines.length - 1) {
-        line += "\n" + rwAccess + mode + currentThread + myClassesStackTrace;
+        line += "\n" + rwAccess + mode + currentThread;
+        line += "\n" + myClassesStackTrace;
         line += progressIndicator;
       }
 

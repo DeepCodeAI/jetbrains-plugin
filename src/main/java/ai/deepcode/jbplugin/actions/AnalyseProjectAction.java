@@ -1,9 +1,6 @@
 package ai.deepcode.jbplugin.actions;
 
-import ai.deepcode.jbplugin.core.AnalysisData;
-import ai.deepcode.jbplugin.core.DCLogger;
-import ai.deepcode.jbplugin.core.DeepCodeUtils;
-import ai.deepcode.jbplugin.core.RunUtils;
+import ai.deepcode.jbplugin.core.*;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
@@ -18,7 +15,7 @@ public class AnalyseProjectAction extends AnAction {
     DCLogger.info("Re-Analyse Project requested for: " + project);
     // fixme: ?? background task here to avoid potential freeze due to MUTEX lock
     AnalysisData.clearCache(project);
-    if (DeepCodeUtils.isLogged(project, true)) {
+    if (LoginUtils.isLogged(project, true)) {
       RunUtils.asyncAnalyseProjectAndUpdatePanel(project);
     }
   }
