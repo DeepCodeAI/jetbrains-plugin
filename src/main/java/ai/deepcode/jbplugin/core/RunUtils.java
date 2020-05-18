@@ -76,7 +76,8 @@ public class RunUtils {
     DCLogger.info("runInBackground requested");
     final ProgressManager progressManager = ProgressManager.getInstance();
     final MyBackgroundable myBackgroundable = new MyBackgroundable(project, runnable);
-    if (progressManager.hasProgressIndicator()) {
+    if (progressManager.hasProgressIndicator()
+        && progressManager.getProgressIndicator().getText().contains("DeepCode")) {
       progressManager.runProcessWithProgressAsynchronously(
           myBackgroundable, progressManager.getProgressIndicator());
     } else {
@@ -111,6 +112,8 @@ public class RunUtils {
 
   // ??? list of all running background tasks
   // com.intellij.openapi.wm.ex.StatusBarEx#getBackgroundProcesses
+  // todo: Disposer.register(project, this)
+  // https://intellij-support.jetbrains.com/hc/en-us/community/posts/360008241759/comments/360001689399
   public static void cancelRunningIndicators(@NotNull Project project) {
     String indicatorsList =
         mapProject2Indicators.getOrDefault(project, Collections.emptyList()).stream()
