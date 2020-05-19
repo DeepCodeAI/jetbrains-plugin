@@ -51,9 +51,10 @@
         <!--  java  -->
         <externalAnnotator language="JAVA"
                            implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
-        <!--  js  -->
+        <!--  js - should be already handled below
         <externalAnnotator language="JavaScript"
                            implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        -->
         <!--  js  -->
         <externalAnnotator language="JavaScript 1.5"
                            implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>

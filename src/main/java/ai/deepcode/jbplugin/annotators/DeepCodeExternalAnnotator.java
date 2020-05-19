@@ -32,17 +32,22 @@ public class DeepCodeExternalAnnotator extends ExternalAnnotator<PsiFile, List<S
 
   private static final Logger LOG = LoggerFactory.getLogger("DeepCode.Annotator");
 
+/*
   @Nullable
   @Override
   public PsiFile collectInformation(@NotNull PsiFile psiFile) {
+    DCLogger.info("collectInformation(@NotNull PsiFile psiFile) for " + psiFile);
     return psiFile;
   }
 
+*/
   @Override
   @Nullable
   public PsiFile collectInformation(
       @NotNull PsiFile psiFile, @NotNull Editor editor, boolean hasErrors) {
-    return collectInformation(psiFile);
+    //DCLogger.info("collectInformation(@NotNull PsiFile psiFile, @NotNull Editor editor, boolean hasErrors) for " + psiFile);
+    return psiFile;
+    //return collectInformation(psiFile);
   }
 
   @Nullable
