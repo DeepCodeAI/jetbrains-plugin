@@ -1,6 +1,7 @@
 package ai.deepcode.jbplugin;
 
 import ai.deepcode.jbplugin.core.*;
+import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;

@@ -32,8 +32,8 @@ public class MyProjectManagerListener implements ProjectManagerListener {
 
   @Override
   public void projectClosing(@NotNull Project project) {
-    RunUtils.cancelRunningIndicators(project);
     // lets all running ProgressIndicators release MUTEX first
+    //RunUtils.cancelRunningIndicators(project);
     RunUtils.runInBackground(project, () -> AnalysisData.removeProjectFromCache(project));
   }
 

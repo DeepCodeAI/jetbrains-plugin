@@ -129,6 +129,8 @@ public final class AnalysisData {
   }
 
   static void removeProjectFromCache(@NotNull Project project) {
+    // lets all running ProgressIndicators release MUTEX first
+    RunUtils.cancelRunningIndicators(project);
     if (mapProject2BundleId.remove(project) != null) {
       info("Removed from cache: " + project);
     }
@@ -591,20 +593,13 @@ public final class AnalysisData {
     info("Cache clearance requested for project: " + project);
     mapPsiFile2Hash.clear();
     mapPsiFile2Content.clear();
-    if (project == null) {
-      try {
-        MUTEX.lock();
-        mapFile2Suggestions.clear();
-      } finally {
-        MUTEX.unlock();
-      }
-      mapProject2BundleId.clear();
-      for (Project prj : ProjectManager.getInstance().getOpenProjects()) {
-        ServiceManager.getService(prj, myTodoView.class).refresh();
-      }
-    } else {
-      removeProjectFromCache(project);
-      ServiceManager.getService(project, myTodoView.class).refresh();
+    final Project[] projects =
+        (project == null)
+            ? ProjectManager.getInstance().getOpenProjects()
+            : new Project[] {project};
+    for (Project prj : projects) {
+      removeProjectFromCache(prj);
+      ServiceManager.getService(prj, myTodoView.class).refresh();
     }
     analysisUrl = "";
   }
