@@ -31,6 +31,9 @@ public class DeepCodeStartupActivity implements StartupActivity {
     if (LoginUtils.isLogged(project, true)) {
       RunUtils.asyncAnalyseProjectAndUpdatePanel(project);
     }
+    // Keep commented - for DEBUG ONLY !!!!!!!!!!!!!!!!!
+    //throw new NullPointerException();
+
     /*
         // Update CurrentFile Panel if file Tab was changed in Editor
         MessageBusConnection connection = project.getMessageBus().connect();

@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>ai.deepcode.jetbrains-plugin</id>
     <name>DeepCode</name>
-    <vendor email="hello@deepcode.ai" url="www.deepcode.ai">DeepCode</vendor>
+    <vendor email="hello@deepcode.ai" url="http://www.deepcode.ai">DeepCode</vendor>
 
     <description><![CDATA[
     The IntelliJ IDEs extension provided by DeepCode.ai finds bugs and critical vulnerabilities in your code.
