@@ -45,6 +45,7 @@ public class MyBulkFileListener implements BulkFileListener {
                                     // fixme: doesn't work, try to use isFromSave or isFromRefresh
                                     && AnalysisData.isHashChanged(psiFile)),
                             VFileContentChangeEvent.class,
+                            // fixme doen't work for copy-past file
                             VFileCreateEvent.class));
             if (!filesChangedOrCreated.isEmpty()) {
               // fixme debug only

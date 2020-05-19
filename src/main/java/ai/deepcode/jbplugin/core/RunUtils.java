@@ -76,10 +76,11 @@ public class RunUtils {
     DCLogger.info("runInBackground requested");
     final ProgressManager progressManager = ProgressManager.getInstance();
     final MyBackgroundable myBackgroundable = new MyBackgroundable(project, runnable);
-    if (progressManager.hasProgressIndicator()
-        && progressManager.getProgressIndicator().getText().contains("DeepCode")) {
-      progressManager.runProcessWithProgressAsynchronously(
-          myBackgroundable, progressManager.getProgressIndicator());
+    final ProgressIndicator progressIndicator = progressManager.getProgressIndicator();
+    if (progressIndicator != null
+        && progressIndicator.getText() != null
+        && progressIndicator.getText().contains("DeepCode")) {
+      progressManager.runProcessWithProgressAsynchronously(myBackgroundable, progressIndicator);
     } else {
       progressManager.run(myBackgroundable);
     }
