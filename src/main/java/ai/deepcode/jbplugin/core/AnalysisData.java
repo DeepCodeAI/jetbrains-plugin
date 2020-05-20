@@ -193,6 +193,8 @@ public final class AnalysisData {
       } else if (!filesToRemove.isEmpty()) {
         info("Files to remove: " + filesToRemove.size() + " files: " + filesToRemove.toString());
         retrieveSuggestions(project, filesToProceed, filesToRemove);
+      } else {
+        warn("Nothing to update for " + psiFiles.size() + " files: " + psiFiles.toString());
       }
 
       ServiceManager.getService(project, myTodoView.class).refresh();

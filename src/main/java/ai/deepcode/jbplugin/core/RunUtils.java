@@ -77,17 +77,12 @@ public class RunUtils {
     final ProgressManager progressManager = ProgressManager.getInstance();
     final MyBackgroundable myBackgroundable = new MyBackgroundable(project, runnable);
     final ProgressIndicator progressIndicator = progressManager.getProgressIndicator();
-    if (progressIndicator != null
-        && progressIndicator.getText() != null
-        && progressIndicator.getText().contains("DeepCode")) {
+    if (getRunningIndicators(project).contains(progressIndicator)) {
       progressManager.runProcessWithProgressAsynchronously(myBackgroundable, progressIndicator);
     } else {
       progressManager.run(myBackgroundable);
     }
   }
-
-  private static final Map<Project, List<ProgressIndicator>> mapProject2Indicators =
-      new ConcurrentHashMap<>();
 
   private static class MyBackgroundable extends Task.Backgroundable {
     private @NotNull final Project project;
@@ -102,29 +97,34 @@ public class RunUtils {
     @Override
     public void run(@NotNull ProgressIndicator indicator) {
       DCLogger.info("New Process started at " + project);
-      mapProject2Indicators.computeIfAbsent(project, p -> new ArrayList<>()).add(indicator);
+      getRunningIndicators(project).add(indicator);
 
       runnable.run();
 
       DCLogger.info("Process ending at " + project);
-      mapProject2Indicators.getOrDefault(project, Collections.emptyList()).remove(indicator);
+      getRunningIndicators(project).remove(indicator);
     }
+  }
+
+  private static final Map<Project, Set<ProgressIndicator>> mapProject2Indicators =
+      new ConcurrentHashMap<>();
+
+  private static Set<ProgressIndicator> getRunningIndicators(@NotNull Project project) {
+    return mapProject2Indicators.computeIfAbsent(project, p -> new HashSet<>());
   }
 
   // ??? list of all running background tasks
   // com.intellij.openapi.wm.ex.StatusBarEx#getBackgroundProcesses
-  // todo: Disposer.register(project, this)
+  // todo? Disposer.register(project, this)
   // https://intellij-support.jetbrains.com/hc/en-us/community/posts/360008241759/comments/360001689399
   public static void cancelRunningIndicators(@NotNull Project project) {
     String indicatorsList =
-        mapProject2Indicators.getOrDefault(project, Collections.emptyList()).stream()
+        getRunningIndicators(project).stream()
             .map(ProgressIndicator::toString)
             .collect(Collectors.joining("\n"));
     DCLogger.info("Canceling ProgressIndicators:\n" + indicatorsList);
-    mapProject2Indicators
-        .getOrDefault(project, Collections.emptyList())
-        .forEach(ProgressIndicator::cancel);
-    mapProject2Indicators.remove(project);
+    getRunningIndicators(project).forEach(ProgressIndicator::cancel);
+    getRunningIndicators(project).clear();
   }
 
   private static final Map<VirtualFile, ProgressIndicator> mapFileProcessed2CancellableIndicator =
@@ -133,9 +133,10 @@ public class RunUtils {
   public static void runInBackgroundCancellable(
       @NotNull PsiFile psiFile, @NotNull Runnable runnable) {
     DCLogger.info("runInBackgroundCancellable requested for: " + psiFile.getName());
+    final Project project = psiFile.getProject();
     ProgressManager.getInstance()
         .run(
-            new Task.Backgroundable(psiFile.getProject(), "DeepCode: Analysing Files...") {
+            new Task.Backgroundable(project, "DeepCode: Analysing Files...") {
               @Override
               public void run(@NotNull ProgressIndicator indicator) {
                 ProgressIndicator prevProgressIndicator =
@@ -143,9 +144,7 @@ public class RunUtils {
                 if (prevProgressIndicator != null
                     // can't use prevProgressIndicator.isRunning() due to
                     // https://youtrack.jetbrains.com/issue/IDEA-241055
-                    && mapProject2Indicators
-                        .getOrDefault(psiFile.getProject(), Collections.emptyList())
-                        .contains(prevProgressIndicator)) {
+                    && getRunningIndicators(project).contains(prevProgressIndicator)) {
                   DCLogger.info(
                       "Previous Process cancelling for "
                           + psiFile.getName()
@@ -153,33 +152,14 @@ public class RunUtils {
                           + prevProgressIndicator.toString()
                           + "]");
                   prevProgressIndicator.cancel();
+                  getRunningIndicators(project).remove(prevProgressIndicator);
                 }
                 DCLogger.info("New Process started for " + psiFile.getName());
+                getRunningIndicators(project).add(indicator);
 
                 runnable.run();
 
                 DCLogger.info("Process ending for " + psiFile.getName());
-              }
-            });
-  }
-
-  private static final Set<String> skippingGroups = ContainerUtil.newConcurrentSet();
-
-  public static void runInBackgroundSkipping(
-      @Nullable Project project, @NotNull Runnable runnable, @NotNull String groupId) {
-    DCLogger.info("runInBackgroundSkipping requested");
-    if (skippingGroups.contains(groupId)) {
-      DCLogger.info("Previous Process is in progress. Request skipped in group: " + groupId);
-      return;
-    }
-    skippingGroups.add(groupId);
-    ProgressManager.getInstance()
-        .run(
-            new Task.Backgroundable(project, "DeepCode: Analysing Files...") {
-              @Override
-              public void run(@NotNull ProgressIndicator indicator) {
-                runnable.run();
-                skippingGroups.remove(groupId);
               }
             });
   }
