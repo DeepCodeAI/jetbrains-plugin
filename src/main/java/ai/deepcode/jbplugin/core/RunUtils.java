@@ -154,11 +154,13 @@ public class RunUtils {
                   prevProgressIndicator.cancel();
                   getRunningIndicators(project).remove(prevProgressIndicator);
                 }
-                DCLogger.info("New Process started for " + psiFile.getName());
                 getRunningIndicators(project).add(indicator);
 
-                runnable.run();
+                // small delay to let new consequent requests proceed and cancel current one
+                delay(100);
 
+                DCLogger.info("New Process started for " + psiFile.getName());
+                runnable.run();
                 DCLogger.info("Process ending for " + psiFile.getName());
               }
             });
