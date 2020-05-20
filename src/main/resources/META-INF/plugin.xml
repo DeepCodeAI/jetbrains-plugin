@@ -1,11 +1,10 @@
 <idea-plugin>
     <id>ai.deepcode.jetbrains-plugin</id>
-    <name>DeepCode</name>
-    <vendor email="hello@deepcode.ai" url="http://www.deepcode.ai">DeepCode</vendor>
+    <name>DeepCode (Beta)</name>
+    <vendor email="hello@deepcode.ai" url="https://www.deepcode.ai">DeepCode</vendor>
 
     <description><![CDATA[
-    The IntelliJ IDEs extension provided by DeepCode.ai finds bugs and critical vulnerabilities in your code.
-    We support Java, Python, JavaScript, TypeScript and HTML.<br>
+    DeepCode finds bugs, security vulnerabilities, performance and API issues based on AI. DeepCode's speed of analysis allow us to analyse your code in real time and deliver results when you hit the save button in your IDE. We support Java, C/C++, Python, JavaScript and TypeScript.<br>
     ]]></description>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html

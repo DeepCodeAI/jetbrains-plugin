@@ -6,7 +6,7 @@
 - Check if java is correctly installed (and your java version) with `java -version` command;
 - Place `java-client-{X.X.X}-all.jar` into `..\libs` dir (see [java-client](https://github.com/DeepCodeAI/java-client) repository for instruction how to build it);
 - At `build.gradle` file inside `intellij` block: uncomment `version` line and comment `localPath` line (or change `localPath` to pointing your locally installed Intellij Idea `2019.2` version instance);
-- Run `gradlew buildPlugin`
+- Run `source gradlew buildPlugin`
 - Look for resulting ZIP file at `..\build\distributions`
 
 ### Useful links
