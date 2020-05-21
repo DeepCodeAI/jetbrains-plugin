@@ -109,6 +109,7 @@ public final class AnalysisData {
   static void removeFilesFromCache(@NotNull Collection<PsiFile> files) {
     try {
       info("Request to remove from cache " + files.size() + " files: " + files);
+      // todo: do we really need mutex here?
       MUTEX.lock();
       int removeCounter = 0;
       for (PsiFile file : files) {
@@ -597,10 +598,8 @@ public final class AnalysisData {
     info("Cache clearance requested for project: " + project);
     mapPsiFile2Hash.clear();
     mapPsiFile2Content.clear();
-    final Project[] projects =
-        (project == null)
-            ? ProjectManager.getInstance().getOpenProjects()
-            : new Project[] {project};
+    final Set<Project> projects =
+        (project == null) ? getAllCachedProject() : Collections.singleton(project);
     for (Project prj : projects) {
       removeProjectFromCache(prj);
       ServiceManager.getService(prj, myTodoView.class).refresh();

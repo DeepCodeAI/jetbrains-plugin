@@ -81,6 +81,7 @@ public class MyBulkFileListener implements BulkFileListener {
   public void before(@NotNull List<? extends VFileEvent> events) {
     DCLogger.info("MyBulkFileListener.before begins");
     for (Project project : AnalysisData.getAllCachedProject()) {
+      if (project.isDisposed()) continue;
       Set<PsiFile> filesRemoved =
           getFilteredFilesByEventTypes(
               project, events, DeepCodeUtils::isSupportedFileFormat, VFileDeleteEvent.class);
