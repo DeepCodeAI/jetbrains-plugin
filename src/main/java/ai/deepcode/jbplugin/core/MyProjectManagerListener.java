@@ -33,7 +33,7 @@ public class MyProjectManagerListener implements ProjectManagerListener {
   @Override
   public void projectClosing(@NotNull Project project) {
     // lets all running ProgressIndicators release MUTEX first
-    //RunUtils.cancelRunningIndicators(project);
+    // RunUtils.cancelRunningIndicators(project);
     RunUtils.runInBackground(project, () -> AnalysisData.removeProjectFromCache(project));
   }
 
@@ -43,8 +43,11 @@ public class MyProjectManagerListener implements ProjectManagerListener {
       final PsiFile psiFile = event.getFile();
       if (psiFile == null) return;
       if (AnalysisData.isFileInCache(psiFile)) {
-        // immediate delete for visual updates in Panel, annotations, etc.
-        AnalysisData.removeFilesFromCache(Collections.singleton(psiFile));
+        // ?? immediate delete for visual updates in Panel, annotations, etc.
+        // should be done in background to wait MUTEX released in case of currently running update
+        RunUtils.runInBackground(
+            psiFile.getProject(),
+            () -> AnalysisData.removeFilesFromCache(Collections.singleton(psiFile)));
       }
       /*
             if (DeepCodeUtils.isSupportedFileFormat(psiFile)) {
