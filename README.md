@@ -1,6 +1,6 @@
 # Deepcode plugin for JetBrains IDEs
 
-**The Visual Studio Code extension provided by <a href="https://www.deepcode.ai">DeepCode.ai</a> finds bugs and critical vulnerabilities in your code. We support Java, C/C++, Python, JavaScript and TypeScript.**
+**The JetBrains IDE extension provided by <a href="https://www.deepcode.ai">DeepCode.ai</a> finds bugs and critical vulnerabilities in your code. We support Java, C/C++, Python, JavaScript and TypeScript.**
 
 # DeepCode extension
 
@@ -23,6 +23,8 @@ Java, C/C++, JavaScript, Python and TypeScript are currently supported.
 
 To Install plugin from disk refer to official [Install plugin from disk﻿
 ](https://www.jetbrains.com/help/idea/2020.1/managing-plugins.html?utm_campaign=IC&utm_content=2020.1&utm_medium=link&utm_source=product#install_plugin_from_disk) guide.
+
+Officially minimal supported version: 2019.2.4
 
 # How to use it?
 

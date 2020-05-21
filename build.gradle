@@ -7,7 +7,7 @@ plugins {
 
 //group 'org.example'
 
-version '0.0.29-alpha-test'
+version '1.0.0'
 sourceCompatibility = 1.8
 
 repositories {
@@ -25,12 +25,6 @@ intellij {
     pluginName "DeepCode-$project.name"
     version '2019.2.4'
 //    localPath '/Users/arvid/Library/Application Support/JetBrains/Toolbox/apps/IDEA-C/ch-0/201.7223.91/IntelliJ IDEA CE.app/Contents'
-//    localPath 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-0\\193.6911.18'
-//    localPath 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-1\\201.6487.11'
-//    localPath 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-3\\191.8026.42'
-//    localPath 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-2\\192.7142.36'
-//    localPath 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-U\\ch-1\\192.7142.36'
-//    localPath 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-U\\ch-0\\201.6487.11'
 //    localPath 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\PyCharm-C\\ch-0\\193.5233.109'
 //    plugins += 'java'
 //    plugins += 'PsiViewer:201-SNAPSHOT'
@@ -42,8 +36,7 @@ patchPluginXml {
     untilBuild 202
 
     changeNotes """
-      0.0.2+      - see commits history for changes.<br>
-      0.0.1-alpha - initial alpha release for inner testing.<br>      
+      1.0.0 - First public release.<br>      
     """
 }
 
