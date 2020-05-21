@@ -185,6 +185,7 @@ public final class AnalysisData {
       if (!filesToProceed.isEmpty()) {
         info("Files to proceed (not found in cache): " + filesToProceed.size());
         // fixme debug only
+        // deepcode ignore checkIsPresent~Optional: collection already checked to be not empty
         final PsiFile firstFile = filesToProceed.stream().findFirst().get();
         info("Hash for first file " + firstFile.getName() + " [" + getHash(firstFile) + "]");
 
@@ -320,6 +321,7 @@ public final class AnalysisData {
                   + " First broken missingFile: "
                   + filePath
                   + " Full file path example: "
+                  // deepcode ignore checkIsPresent~Optional: collection already is not empty
                   + psiFiles.stream().findFirst().get().getVirtualFile().getPath()
                   + " BaseDir path: "
                   + project.getBasePath();

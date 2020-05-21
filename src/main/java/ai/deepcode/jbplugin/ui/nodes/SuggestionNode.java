@@ -125,7 +125,7 @@ public class SuggestionNode extends BaseToDoNode<SuggestionForFile> {
     if (suggestion.getSeverity() == 1) severityIcon = AllIcons.General.Information;
     else if (suggestion.getSeverity() == 2) severityIcon = AllIcons.General.Warning;
     else if (suggestion.getSeverity() == 3) severityIcon = AllIcons.General.Error;
-    else severityIcon = AllIcons.General.Error;
+    else severityIcon = AllIcons.General.ShowWarning;
     presentation.setIcon(severityIcon);
   }
 

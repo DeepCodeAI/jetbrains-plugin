@@ -76,13 +76,7 @@ public class LoginUtils {
   private static void startLoginCheckLoop(@NotNull Project project) {
     isLoginCheckLoopStarted = true;
     do {
-      try {
-        Thread.sleep(1000);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-        Thread.currentThread().interrupt();
-      }
-      ProgressManager.checkCanceled();
+      RunUtils.delay(1000);
     } while (!isLogged(project, false));
     isLoginCheckLoopStarted = false;
     DeepCodeNotifications.showInfo("Login succeed", project);

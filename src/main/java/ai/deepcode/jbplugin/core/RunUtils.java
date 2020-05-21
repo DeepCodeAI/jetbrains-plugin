@@ -51,11 +51,11 @@ public class RunUtils {
   public static void delay(long millis) {
     try {
       Thread.sleep(millis);
-      ProgressManager.checkCanceled();
     } catch (InterruptedException e) {
-      e.printStackTrace();
+      DCLogger.warn("InterruptedException: " + e.getMessage());
       Thread.currentThread().interrupt();
     }
+    ProgressManager.checkCanceled();
   }
 
   private static long timeOfLastRescanRequest = 0;
