@@ -1,0 +1,142 @@
+<idea-plugin>
+    <id>ai.deepcode.jetbrains-plugin</id>
+    <name>DeepCode (Beta)</name>
+    <vendor email="hello@deepcode.ai" url="https://www.deepcode.ai">DeepCode</vendor>
+
+    <description><![CDATA[
+    DeepCode finds bugs, security vulnerabilities, performance and API issues based on AI. DeepCode's speed of analysis allow us to analyse your code in real time and deliver results when you hit the save button in your IDE. We support Java, C/C++, Python, JavaScript and TypeScript.<br>
+    ]]></description>
+
+    <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+         on how to target different products -->
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <postStartupActivity implementation="ai.deepcode.jbplugin.DeepCodeStartupActivity"/>
+        <!--
+                <toolWindow id="DeepCode(console)" anchor="bottom" factoryClass="ai.deepcode.jbplugin.DeepCodeConsoleToolWindowFactory"/>
+        -->
+        <toolWindow id="DeepCode" anchor="bottom" factoryClass="ai.deepcode.jbplugin.DeepCodeToolWindowFactory"
+                    canCloseContents="true" icon="/icons/DeepCodeLogo.svg" order="last"/>
+        <projectService serviceImplementation="ai.deepcode.jbplugin.ui.myTodoView"/>
+        <projectService serviceImplementation="ai.deepcode.jbplugin.ui.nodes.TodoTreeHelper"/>
+        <applicationConfigurable instance="ai.deepcode.jbplugin.ui.config.DeepCodeConfigEntry"/>
+
+        <!-- Add your extensions here
+        <annotator language="TEXT"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
+        <annotator language=""
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
+        <annotator language="textmate"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
+        <annotator language="JAVA"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
+        <annotator language="JavaScript"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
+        <annotator language="HTML"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
+        <annotator language="Python"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
+        -->
+
+        <!--        For Idea CE and those that doesn't include corresponding plugin-->
+        <!--  TODO: register annotators dynamically based on Languages provided      -->
+        <externalAnnotator language="TEXT"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <externalAnnotator language=""
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <externalAnnotator language="textmate"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <!--  java  -->
+        <externalAnnotator language="JAVA"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <!--  js - should be already handled below
+        <externalAnnotator language="JavaScript"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        -->
+        <!--  js  -->
+        <externalAnnotator language="JavaScript 1.5"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <!--  jsx  -->
+        <externalAnnotator language="JSX Harmony"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <!--  vue  -->
+        <externalAnnotator language="Vue"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <!--  ts  -->
+        <externalAnnotator language="TypeScript"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <!--  tsx  -->
+        <externalAnnotator language="TypeScript JSX"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <!--  py  -->
+        <externalAnnotator language="Python"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <!--  htm, html  -->
+        <externalAnnotator language="HTML"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <!--  cc, cpp, cxx, c, h, hpp, hxx     -->
+        <externalAnnotator language="ObjectiveC"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <!--  es  -->
+        <externalAnnotator language="ECMA Script Level 4"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+        <!--  es6, js  -->
+        <externalAnnotator language="ECMAScript 6"
+                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+    </extensions>
+
+    <actions>
+        <!-- Add your actions here -->
+        <group id="ai.deepcode.jbplugin.DeepCodeGroup" text="DeepCode.ai" popup="true" icon="/icons/DeepCodeLogo.svg">
+            <action id="ai.deepcode.jbplugin.ToolsMenu.AnalyseProjectAction"
+                    class="ai.deepcode.jbplugin.actions.AnalyseProjectAction"
+                    text="Re-Analyse Project" description="Re-analyse all files in the Project with DeepCode.ai"
+                    icon="AllIcons.Actions.Show">
+                <keyboard-shortcut keymap="$default" first-keystroke="shift alt Y"/>
+            </action>
+            <action id="ai.deepcode.jbplugin.ToolsMenu.ShowSettingsAction"
+                    class="ai.deepcode.jbplugin.actions.ShowSettingsAction"
+                    text="DeepCode Settings" description="Configuration for the DeepCode plugin"
+                    icon="AllIcons.General.Settings">
+            </action>
+            <action id="ai.deepcode.jbplugin.ToolsMenu.SeeResultsInBrowserAction"
+                    class="ai.deepcode.jbplugin.actions.SeeResultsInBrowserAction"
+                    text="Open Results in Browser" description="Open analysis results in browser"
+                    icon="AllIcons.General.Web">
+            </action>
+            <!--
+                        <action id="ai.deepcode.jbplugin.ToolsMenu.InvalidateCachesAction" class="ai.deepcode.jbplugin.actions.InvalidateCachesAction"
+                                text="Clear Results" description="Invalidate caches for all current Project files"
+                                icon="AllIcons.Actions.GC">
+                        </action>
+            -->
+
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </group>
+
+        <!-- see TodoMainGroup and TodoViewGroupByGroup -->
+        <group id="DeepCodeMainGroup">
+            <add-to-group group-id="Other.KeymapGroup"/>
+            <group id="DeepCodeViewGroupByGroup" class="ai.deepcode.jbplugin.ui.TodoPanel$GroupByActionGroup"
+                   popup="true">
+                <separator text="Group By"/>
+                <action class="ai.deepcode.jbplugin.ui.TodoPanel$MyShowModulesAction"
+                        id="DeepCodeViewGroupByShowModules"/>
+                <action class="ai.deepcode.jbplugin.ui.TodoPanel$MyShowPackagesAction"
+                        id="DeepCodeViewGroupByShowPackages"/>
+                <action class="ai.deepcode.jbplugin.ui.TodoPanel$MyFlattenPackagesAction"
+                        id="DeepCodeViewGroupByFlattenPackage"/>
+            </group>
+        </group>
+
+        <!--
+                <action id="ai.deepcode.jbplugin.EditorPopupMenu.AnalyseCurrentFileAction" class="ai.deepcode.jbplugin.actions.AnalyseCurrentFileAction"
+                        icon="AllIcons.Actions.ShowHiddens"
+                        text="DeepCode Analyse Current File" description="Analyse current file with DeepCode.ai">
+                    <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+                    <keyboard-shortcut keymap="$default" first-keystroke="shift alt T"/>
+                </action>
+        -->
+    </actions>
+</idea-plugin>
