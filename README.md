@@ -1,4 +1,4 @@
-# Deepcode plugin for JetBrains IDEs
+# DeepCode plugin for JetBrains IDEs
 
 **The JetBrains IDE extension provided by <a href="https://www.deepcode.ai">DeepCode.ai</a> finds bugs and critical vulnerabilities in your code. We support Java, C/C++, Python, JavaScript and TypeScript.**
 

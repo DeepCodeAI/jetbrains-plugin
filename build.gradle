@@ -36,7 +36,7 @@ patchPluginXml {
     untilBuild 202
 
     changeNotes """
-      1.0.0 - First public release.<br>      
+      1.0.0 - First public beta release.<br>      
     """
 }
 
