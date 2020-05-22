@@ -91,7 +91,14 @@ task run_PC_193(type: RunIdeTask){
 
 task run_AS_40(type: RunIdeTask){
     jvmArgs '-Xmx2G'
+    jbrVersion '8u202b1483.24'
     ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\AndroidStudio\\ch-0\\193.6453388'
+}
+
+task run_AS_36(type: RunIdeTask){
+    jvmArgs '-Xmx2G'
+    jbrVersion '8u202b1483.24'
+    ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\AndroidStudio\\ch-1\\192.6392135'
 }
 
 tasks.withType(RunIdeTask).forEach {task -> task.dependsOn(prepareSandbox)}
