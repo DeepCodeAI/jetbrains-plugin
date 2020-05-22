@@ -45,7 +45,7 @@ Open _Settings Menu_ then _PlugIns_, make sure you are searching in _Marketplace
 
 DeepCode wants you to accept the general terms and conditions, and authenticate. _Login_ will redirect you to your default browser to login with either GitHub, GitLab, or Bitbucket and generate a token that is saved in the configuration.
 
-![Authentication](authenticate.png)
+![Authentication](images/authenticate.png)
 
 # How to use it?
 
@@ -88,7 +88,7 @@ The disabling functions are interesting if you want to flag testing code. DeepCo
 
 ## .dcignore file 
 
-If you want to ignore certain files/folders (like *node_modules* for example), create a _.dcignore_ file. You can create it in any folder on any level starting from the directory where your project resides. The file syntax is identical to _.gitignore_.
+If you want to ignore certain files/folders (like *node_modules* for example), create a _.dcignore_ file. You can create it in any folder on any level starting from the directory where your project resides. The file syntax is identical to _.gitignore_. See also [DeepCode Documentation on .dcignore](https://deepcode.freshdesk.com/support/solutions/articles/60000531055-how-can-i-ignore-files-).
 
 # Settings
 
