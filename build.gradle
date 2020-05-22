@@ -36,6 +36,7 @@ patchPluginXml {
     untilBuild 202
 
     changeNotes """
+      1.0.1 - Updated Java-client and added support for Java 8, required for Android Studio<br>
       1.0.0 - First public beta release.<br>      
     """
 }
