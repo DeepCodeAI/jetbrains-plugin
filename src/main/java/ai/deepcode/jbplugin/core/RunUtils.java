@@ -109,7 +109,7 @@ public class RunUtils {
   private static final Map<Project, Set<ProgressIndicator>> mapProject2Indicators =
       new ConcurrentHashMap<>();
 
-  private static Set<ProgressIndicator> getRunningIndicators(@NotNull Project project) {
+  private static synchronized Set<ProgressIndicator> getRunningIndicators(@NotNull Project project) {
     return mapProject2Indicators.computeIfAbsent(project, p -> new HashSet<>());
   }
 
@@ -130,17 +130,28 @@ public class RunUtils {
   private static final Map<VirtualFile, ProgressIndicator> mapFileProcessed2CancellableIndicator =
       new ConcurrentHashMap<>();
 
+  private static final Map<VirtualFile, Runnable> mapFile2Runnable = new ConcurrentHashMap<>();
+
   public static void runInBackgroundCancellable(
       @NotNull PsiFile psiFile, @NotNull Runnable runnable) {
     DCLogger.info("runInBackgroundCancellable requested for: " + psiFile.getName());
+    final VirtualFile virtualFile = psiFile.getVirtualFile();
+
+    // To proceed multiple PSI events in a bunch (every 100 milliseconds)
+    Runnable prevRunnable = mapFile2Runnable.put(virtualFile, runnable);
+    if (prevRunnable != null) return;
+    DCLogger.info("new Background task registered for: " + psiFile.getName());
+
     final Project project = psiFile.getProject();
     ProgressManager.getInstance()
         .run(
             new Task.Backgroundable(project, "DeepCode: Analysing Files...") {
               @Override
               public void run(@NotNull ProgressIndicator indicator) {
+
+                // To let new event cancel the currently running one
                 ProgressIndicator prevProgressIndicator =
-                    mapFileProcessed2CancellableIndicator.put(psiFile.getVirtualFile(), indicator);
+                    mapFileProcessed2CancellableIndicator.put(virtualFile, indicator);
                 if (prevProgressIndicator != null
                     // can't use prevProgressIndicator.isRunning() due to
                     // https://youtrack.jetbrains.com/issue/IDEA-241055
@@ -160,7 +171,13 @@ public class RunUtils {
                 delay(100);
 
                 DCLogger.info("New Process started for " + psiFile.getName());
-                runnable.run();
+                Runnable actualRunnable = mapFile2Runnable.get(virtualFile);
+                mapFile2Runnable.remove(virtualFile);
+                if (actualRunnable != null) {
+                  actualRunnable.run();
+                } else {
+                  DCLogger.warn("No actual Runnable found for: " + psiFile.getName());
+                }
                 DCLogger.info("Process ending for " + psiFile.getName());
               }
             });

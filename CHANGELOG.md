@@ -1,3 +1,6 @@
+## [1.0.1] - 2019-05-22
+- Updated Java-client and added support for Java 8, required for Android Studio
+
 ## [1.0.0] - 2019-05-21
 ### Added
 - First public beta release

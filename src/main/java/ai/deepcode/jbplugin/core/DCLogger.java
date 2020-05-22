@@ -53,7 +53,9 @@ public class DCLogger {
         String s =
             ste.getClassName().substring(ste.getClassName().lastIndexOf('.') + 1)
                 + "."
-                + ste.getMethodName();
+                + ste.getMethodName()
+                + ":"
+                + ste.getLineNumber();
         joiner.add(s);
       }
     }
