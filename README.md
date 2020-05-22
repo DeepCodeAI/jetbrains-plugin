@@ -103,5 +103,5 @@ In _Settings_, you can find _DeepCode Settings_.
   
 # Feedback and contact
 
-- In case you need to contact us or provide feedback, we would love to hear from you - [here is how to get in touch with us](https://www.deepcode.ai/feedback).
-- If you need to update this file, you can do so by [editing this README.md](https://github.com/DeepCodeAI/jetbrains-plugin/edit/master/README.md).
+- In case you need to contact us or you want to provide feedback, we love to hear from you - [here is how to get in touch with us](https://www.deepcode.ai/feedback).
+- If you need to update this file, you can do so by [editing this README.md](https://github.com/DeepCodeAI/vscode-extension/edit/master/README.md).
