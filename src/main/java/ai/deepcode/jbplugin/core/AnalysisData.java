@@ -42,7 +42,7 @@ public final class AnalysisData {
 
   private static final Logger LOG = LoggerFactory.getLogger("DeepCode.AnalysisData");
   private static final Map<PsiFile, List<SuggestionForFile>> EMPTY_MAP = Collections.emptyMap();
-  private static String analysisUrl = "";
+  private static Map<Project, String> mapProject2analysisUrl = new ConcurrentHashMap<>();
 
   // todo: keep few latest file versions (Guava com.google.common.cache.CacheBuilder ?)
   private static final Map<PsiFile, List<SuggestionForFile>> mapFile2Suggestions =
@@ -94,8 +94,8 @@ public final class AnalysisData {
     return result;
   }
 
-  public static String getAnalysisUrl() {
-    return analysisUrl;
+  public static String getAnalysisUrl(@NotNull Project project) {
+    return mapProject2analysisUrl.computeIfAbsent(project, p -> "");
   }
 
   static boolean addProjectToCache(@NotNull Project project) {
@@ -353,7 +353,7 @@ public final class AnalysisData {
     progress.setText(WAITING_FOR_ANALYSIS_TEXT);
     ProgressManager.checkCanceled();
     GetAnalysisResponse getAnalysisResponse = doRetrieveSuggestions(project, bundleId, progress);
-    result = parseGetAnalysisResponse(psiFiles, getAnalysisResponse, progress);
+    result = parseGetAnalysisResponse(project, psiFiles, getAnalysisResponse, progress);
     info("--- Get Analysis took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
     //    progress.stop();
     return result;
@@ -512,13 +512,14 @@ public final class AnalysisData {
 
   @NotNull
   private static Map<PsiFile, List<SuggestionForFile>> parseGetAnalysisResponse(
-      @NotNull Collection<PsiFile> psiFiles,
+          @NotNull Project project,
+          @NotNull Collection<PsiFile> psiFiles,
       GetAnalysisResponse response,
       @NotNull ProgressIndicator progressIndicator) {
     Map<PsiFile, List<SuggestionForFile>> result = new HashMap<>();
     if (!response.getStatus().equals("DONE")) return EMPTY_MAP;
     AnalysisResults analysisResults = response.getAnalysisResults();
-    analysisUrl = response.getAnalysisURL();
+    mapProject2analysisUrl.put(project, response.getAnalysisURL());
     if (analysisResults == null) {
       LOG.error("AnalysisResults is null for: {}", response);
       return EMPTY_MAP;
@@ -603,7 +604,7 @@ public final class AnalysisData {
     for (Project prj : projects) {
       removeProjectFromCache(prj);
       ServiceManager.getService(prj, myTodoView.class).refresh();
+      mapProject2analysisUrl.put(prj, "");
     }
-    analysisUrl = "";
   }
 }
