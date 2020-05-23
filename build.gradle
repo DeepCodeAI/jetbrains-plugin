@@ -27,7 +27,6 @@ intellij {
 //    localPath '/Users/arvid/Library/Application Support/JetBrains/Toolbox/apps/IDEA-C/ch-0/201.7223.91/IntelliJ IDEA CE.app/Contents'
 //    localPath 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\PyCharm-C\\ch-0\\193.5233.109'
 //    plugins += 'java'
-//    plugins += 'PsiViewer:201-SNAPSHOT'
 //    plugins += 'PsiViewer:192-SNAPSHOT'
 
 }
