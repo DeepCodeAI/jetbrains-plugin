@@ -389,6 +389,7 @@ public final class AnalysisData {
     return bundleResponse;
   }
 
+  // ?? com.intellij.openapi.util.text.StringUtil.toHexString
   // https://www.baeldung.com/sha-256-hashing-java#message-digest
   private static String bytesToHex(byte[] hash) {
     StringBuilder hexString = new StringBuilder();
