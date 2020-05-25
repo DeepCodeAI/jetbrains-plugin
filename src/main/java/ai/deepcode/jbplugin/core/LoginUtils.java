@@ -18,7 +18,7 @@ public class LoginUtils {
   private LoginUtils() {}
 
   private static final String userAgent =
-      "JetBrains-plugin-"
+      "JetBrains-"
           + ApplicationNamesInfo.getInstance().getProductName()
           + "-"
           + ApplicationInfo.getInstance().getFullVersion();
