@@ -47,7 +47,7 @@ public class DeepCodeNotifications {
           new Notification(groupNeedAction, title, message, NotificationType.WARNING)
               .addAction(
                   new ShowClickableLinkAction(
-                      "Login", () -> LoginUtils.requestNewLogin(prj), true));
+                      "Login", () -> LoginUtils.requestNewLogin(prj, true), true));
       lastNotifications.add(notification);
       notification.notify(prj);
     }
@@ -58,10 +58,8 @@ public class DeepCodeNotifications {
   public static void showConsentRequest(@NotNull Project project, boolean userActionNeeded) {
     if (!userActionNeeded && consentRequestShown) return;
     lastNotificationRunnable = () -> showConsentRequest(project, userActionNeeded);
-    final String message =
-        "Confirm remote analysis of "
-            + project.getBasePath();
-//            + " (<a href=\"https://www.deepcode.ai/tc\">Terms & Conditions</a>)";
+    final String message = "Confirm remote analysis of " + project.getBasePath();
+    //            + " (<a href=\"https://www.deepcode.ai/tc\">Terms & Conditions</a>)";
     final Notification notification =
         new ConsentNotification(
                 groupNeedAction,
@@ -109,7 +107,7 @@ public class DeepCodeNotifications {
     }
   }
 
-  private static void expireNotification(@NotNull Notification notification){
+  private static void expireNotification(@NotNull Notification notification) {
     if (notification instanceof ConsentNotification) {
       ((ConsentNotification) notification).consentExpired();
     } else {

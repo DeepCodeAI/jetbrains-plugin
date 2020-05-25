@@ -18,7 +18,7 @@ public class LoginUtils {
   private LoginUtils() {}
 
   private static final String userAgent =
-      "JetBrains-plugin-"
+      "JetBrains-"
           + ApplicationNamesInfo.getInstance().getProductName()
           + "-"
           + ApplicationInfo.getInstance().getFullVersion();
@@ -54,15 +54,17 @@ public class LoginUtils {
   }
 
   /** network request! */
-  public static void requestNewLogin(@NotNull Project project) {
+  public static void requestNewLogin(@NotNull Project project, boolean openBrowser) {
     DCLogger.info("New Login requested.");
     DeepCodeParams.clearLoginParams();
     LoginResponse response = DeepCodeRestApi.newLogin(userAgent);
     if (response.getStatusCode() == 200) {
-    DCLogger.info("New Login request succeed. New Token: " + response.getSessionToken());
+      DCLogger.info("New Login request succeed. New Token: " + response.getSessionToken());
       DeepCodeParams.setSessionToken(response.getSessionToken());
       DeepCodeParams.setLoginUrl(response.getLoginURL());
-      BrowserUtil.open(DeepCodeParams.getLoginUrl());
+      if (openBrowser) {
+        BrowserUtil.open(DeepCodeParams.getLoginUrl());
+      }
       if (!isLoginCheckLoopStarted) {
         ReadAction.nonBlocking(() -> startLoginCheckLoop(project))
             .submit(NonUrgentExecutor.getInstance());

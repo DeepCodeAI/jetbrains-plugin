@@ -26,7 +26,7 @@ public class MyBulkFileListener implements BulkFileListener {
   @Override
   public void after(@NotNull List<? extends VFileEvent> events) {
     // fixme debug only
-    DCLogger.info("MyBulkFileListener.after begins");
+    DCLogger.info("MyBulkFileListener.after begins for: " + events);
     for (Project project : AnalysisData.getAllCachedProject()) {
       RunUtils.runInBackground(
           project,
@@ -48,11 +48,16 @@ public class MyBulkFileListener implements BulkFileListener {
                             // fixme doen't work for copy-past file ( VFileMoveEvent ?)
                             VFileCreateEvent.class));
             if (!filesChangedOrCreated.isEmpty()) {
-              // fixme debug only
               DCLogger.info(
                   filesChangedOrCreated.size() + " files changed: " + filesChangedOrCreated);
-              AnalysisData.removeFilesFromCache(filesChangedOrCreated);
-              RunUtils.asyncAnalyseAndUpdatePanel(project, filesChangedOrCreated);
+              for (PsiFile psiFile : filesChangedOrCreated) {
+                RunUtils.runInBackgroundCancellable(
+                    psiFile,
+                    () -> {
+                      AnalysisData.removeFilesFromCache(Collections.singleton(psiFile));
+                      RunUtils.asyncAnalyseAndUpdatePanel(project, Collections.singleton(psiFile));
+                    });
+              }
             }
           });
 
@@ -74,12 +79,12 @@ public class MyBulkFileListener implements BulkFileListener {
       }
     }
     // fixme debug only
-    DCLogger.info("MyBulkFileListener.after ends");
+    DCLogger.info("MyBulkFileListener.after ends for: " + events);
   }
 
   @Override
   public void before(@NotNull List<? extends VFileEvent> events) {
-    DCLogger.info("MyBulkFileListener.before begins");
+    DCLogger.info("MyBulkFileListener.before begins for: " + events);
     for (Project project : AnalysisData.getAllCachedProject()) {
       if (project.isDisposed()) continue;
       Set<PsiFile> filesRemoved =
@@ -107,7 +112,7 @@ public class MyBulkFileListener implements BulkFileListener {
             });
       }
     }
-    DCLogger.info("MyBulkFileListener.before ends");
+    DCLogger.info("MyBulkFileListener.before ends for: " + events);
   }
 
   private Set<PsiFile> getFilteredFilesByEventTypes(

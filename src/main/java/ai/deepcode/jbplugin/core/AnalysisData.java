@@ -42,7 +42,7 @@ public final class AnalysisData {
 
   private static final Logger LOG = LoggerFactory.getLogger("DeepCode.AnalysisData");
   private static final Map<PsiFile, List<SuggestionForFile>> EMPTY_MAP = Collections.emptyMap();
-  private static String analysisUrl = "";
+  private static Map<Project, String> mapProject2analysisUrl = new ConcurrentHashMap<>();
 
   // todo: keep few latest file versions (Guava com.google.common.cache.CacheBuilder ?)
   private static final Map<PsiFile, List<SuggestionForFile>> mapFile2Suggestions =
@@ -94,8 +94,8 @@ public final class AnalysisData {
     return result;
   }
 
-  public static String getAnalysisUrl() {
-    return analysisUrl;
+  public static String getAnalysisUrl(@NotNull Project project) {
+    return mapProject2analysisUrl.computeIfAbsent(project, p -> "");
   }
 
   static boolean addProjectToCache(@NotNull Project project) {
@@ -184,11 +184,17 @@ public final class AnalysisData {
               .filter(file -> !mapFile2Suggestions.containsKey(file))
               .collect(Collectors.toSet());
       if (!filesToProceed.isEmpty()) {
-        info("Files to proceed (not found in cache): " + filesToProceed.size());
-        // fixme debug only
         // deepcode ignore checkIsPresent~Optional: collection already checked to be not empty
         final PsiFile firstFile = filesToProceed.stream().findFirst().get();
-        info("Hash for first file " + firstFile.getName() + " [" + getHash(firstFile) + "]");
+        info(
+            "Files to proceed (not found in cache): "
+                + filesToProceed.size()
+                // fixme debug only
+                + "\nHash for first file "
+                + firstFile.getName()
+                + " ["
+                + getHash(firstFile)
+                + "]");
 
         mapFile2Suggestions.putAll(retrieveSuggestions(project, filesToProceed, filesToRemove));
 
@@ -251,10 +257,6 @@ public final class AnalysisData {
     info(PREPARE_FILES_TEXT);
     ProgressManager.checkCanceled();
     mapPsiFile2Content.clear();
-    List<String> removedFiles =
-        filesToRemove.stream()
-            .map(DeepCodeUtils::getDeepCodedFilePath)
-            .collect(Collectors.toList());
     Map<String, String> mapPath2Hash = new HashMap<>();
     long sizePath2Hash = 0;
     int fileCounter = 0;
@@ -280,7 +282,7 @@ public final class AnalysisData {
       }
     }
     // todo break removeFiles in chunks less then MAX_BANDLE_SIZE
-    CreateBundleResponse createBundleResponse = makeNewBundle(project, mapPath2Hash, removedFiles);
+    CreateBundleResponse createBundleResponse = makeNewBundle(project, mapPath2Hash, filesToRemove);
     if (isNotSucceed(project, createBundleResponse, "Bad Create/Extend Bundle request: "))
       return EMPTY_MAP;
     info(
@@ -353,7 +355,7 @@ public final class AnalysisData {
     progress.setText(WAITING_FOR_ANALYSIS_TEXT);
     ProgressManager.checkCanceled();
     GetAnalysisResponse getAnalysisResponse = doRetrieveSuggestions(project, bundleId, progress);
-    result = parseGetAnalysisResponse(psiFiles, getAnalysisResponse, progress);
+    result = parseGetAnalysisResponse(project, psiFiles, getAnalysisResponse, progress);
     info("--- Get Analysis took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
     //    progress.stop();
     return result;
@@ -362,9 +364,21 @@ public final class AnalysisData {
   private static CreateBundleResponse makeNewBundle(
       @NotNull Project project,
       @NotNull Map<String, String> mapPath2Hash,
-      @NotNull List<String> removedFiles) {
+      @NotNull Collection<PsiFile> filesToRemove) {
     final FileHashRequest fileHashRequest = new FileHashRequest(mapPath2Hash);
     final String parentBundleId = mapProject2BundleId.getOrDefault(project, "");
+    if (!parentBundleId.isEmpty()
+        && !filesToRemove.isEmpty()
+        && mapPath2Hash.isEmpty()
+        && filesToRemove.containsAll(cachedFilesOfProject(project))) {
+      warn(
+          "Attempt to Extending a bundle by removing all the parent bundle's files: "
+              + filesToRemove);
+    }
+    List<String> removedFiles =
+        filesToRemove.stream()
+            .map(DeepCodeUtils::getDeepCodedFilePath)
+            .collect(Collectors.toList());
     String message =
         (parentBundleId.isEmpty()
                 ? "Creating new Bundle with "
@@ -385,10 +399,19 @@ public final class AnalysisData {
               parentBundleId,
               new ExtendBundleRequest(fileHashRequest.getFiles(), removedFiles));
     }
-    mapProject2BundleId.put(project, bundleResponse.getBundleId());
+    String newBundleId = bundleResponse.getBundleId();
+    // By man: "Extending a bundle by removing all the parent bundle's files is not allowed."
+    // In reality new bundle returned with next bundleID:
+    // gh/ArtsiomCh/DEEPCODE_PRIVATE_BUNDLE/0000000000000000000000000000000000000000000000000000000000000000
+    if (newBundleId.equals(
+        "gh/ArtsiomCh/DEEPCODE_PRIVATE_BUNDLE/0000000000000000000000000000000000000000000000000000000000000000")) {
+      newBundleId = "";
+    }
+    mapProject2BundleId.put(project, newBundleId);
     return bundleResponse;
   }
 
+  // ?? com.intellij.openapi.util.text.StringUtil.toHexString
   // https://www.baeldung.com/sha-256-hashing-java#message-digest
   private static String bytesToHex(byte[] hash) {
     StringBuilder hexString = new StringBuilder();
@@ -512,13 +535,14 @@ public final class AnalysisData {
 
   @NotNull
   private static Map<PsiFile, List<SuggestionForFile>> parseGetAnalysisResponse(
+      @NotNull Project project,
       @NotNull Collection<PsiFile> psiFiles,
       GetAnalysisResponse response,
       @NotNull ProgressIndicator progressIndicator) {
     Map<PsiFile, List<SuggestionForFile>> result = new HashMap<>();
     if (!response.getStatus().equals("DONE")) return EMPTY_MAP;
     AnalysisResults analysisResults = response.getAnalysisResults();
-    analysisUrl = response.getAnalysisURL();
+    mapProject2analysisUrl.put(project, response.getAnalysisURL());
     if (analysisResults == null) {
       LOG.error("AnalysisResults is null for: {}", response);
       return EMPTY_MAP;
@@ -603,7 +627,7 @@ public final class AnalysisData {
     for (Project prj : projects) {
       removeProjectFromCache(prj);
       ServiceManager.getService(prj, myTodoView.class).refresh();
+      mapProject2analysisUrl.put(prj, "");
     }
-    analysisUrl = "";
   }
 }
