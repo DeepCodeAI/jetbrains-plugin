@@ -46,8 +46,7 @@ public final class AnalysisData {
 
   // todo: keep few latest file versions (Guava com.google.common.cache.CacheBuilder ?)
   private static final Map<PsiFile, List<SuggestionForFile>> mapFile2Suggestions =
-      // deepcode ignore ApiMigration~java.util.Hashtable: we need read and write full data lock
-      new Hashtable<>(); // new ConcurrentHashMap<>();
+      new ConcurrentHashMap<>();
 
   private static final Map<PsiFile, String> mapPsiFile2Hash = new ConcurrentHashMap<>();
 
@@ -111,6 +110,7 @@ public final class AnalysisData {
       info("Request to remove from cache " + files.size() + " files: " + files);
       // todo: do we really need mutex here?
       MUTEX.lock();
+      info("MUTEX LOCK");
       int removeCounter = 0;
       for (PsiFile file : files) {
         if (file != null && isFileInCache(file)) {
@@ -125,6 +125,7 @@ public final class AnalysisData {
               + " files. Were not in cache: "
               + (files.size() - removeCounter));
     } finally {
+      info("MUTEX RELEASED");
       MUTEX.unlock();
     }
   }
@@ -178,6 +179,7 @@ public final class AnalysisData {
     Collection<PsiFile> filesToProceed = null;
     try {
       MUTEX.lock();
+      info("MUTEX LOCK");
       updateInProgress = true;
       filesToProceed =
           // DeepCodeUtils.computeNonBlockingReadAction(
@@ -213,7 +215,8 @@ public final class AnalysisData {
       updateInProgress = false;
 
     } finally {
-      if (filesToProceed != null && !filesToProceed.isEmpty()) info("MUTEX RELEASED");
+      //if (filesToProceed != null && !filesToProceed.isEmpty())
+        info("MUTEX RELEASED");
       MUTEX.unlock();
     }
   }
@@ -611,7 +614,7 @@ public final class AnalysisData {
   public static Set<PsiFile> getAllFilesWithSuggestions(@NotNull final Project project) {
     return mapFile2Suggestions.entrySet().stream()
         .filter(e -> e.getKey().getProject().equals(project))
-        // otherwise ai.deepcode.jbplugin.ui.TodoTreeBuilder.getAllFiles will fail
+        // otherwise ai.deepcode.jbplugin.ui.TodoTreeBuilder.getAllFiles may fail
         .filter(e -> e.getKey().isValid())
         .filter(e -> !e.getValue().isEmpty())
         .map(Map.Entry::getKey)

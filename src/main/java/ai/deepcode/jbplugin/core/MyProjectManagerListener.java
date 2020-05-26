@@ -64,7 +64,9 @@ public class MyProjectManagerListener implements ProjectManagerListener {
     @Override
     public void childrenChanged(@NotNull PsiTreeChangeEvent event) {
       final PsiFile psiFile = event.getFile();
-      if (psiFile == null || RunUtils.inBulkMode(psiFile.getProject())) return;
+      if (psiFile == null) return;
+      final Project project = psiFile.getProject();
+      if (RunUtils.inBulkMode(project)) return;
 
       if (DeepCodeUtils.isSupportedFileFormat(psiFile)) {
         RunUtils.runInBackgroundCancellable(
@@ -76,14 +78,14 @@ public class MyProjectManagerListener implements ProjectManagerListener {
                 // but in case of update finished between beforeChildrenChange and now.
                 AnalysisData.removeFilesFromCache(psiFileSet);
               }
-              RunUtils.updateCachedAnalysisResults(psiFile.getProject(), psiFileSet);
+              RunUtils.updateCachedAnalysisResults(project, psiFileSet);
             });
       }
 
       if (DeepCodeIgnoreInfoHolder.is_dcignoreFile(psiFile)) {
         DeepCodeIgnoreInfoHolder.update_dcignoreFileContent(psiFile);
         // delayed to prevent unnecessary updates in case of continuous typing by user
-        RunUtils.rescanProject(psiFile.getProject(), 1000);
+        RunUtils.runInBackground(project, () -> RunUtils.rescanProject(project, 1000));
       }
       // .gitignore content delay to be parsed https://youtrack.jetbrains.com/issue/IDEA-239773
       final VirtualFile virtualFile = psiFile.getVirtualFile();
@@ -92,7 +94,7 @@ public class MyProjectManagerListener implements ProjectManagerListener {
         if (document != null) {
           FileDocumentManager.getInstance().saveDocument(document);
           // delayed to let git update it meta-info
-          RunUtils.rescanProject(psiFile.getProject(), 1000);
+          RunUtils.runInBackground(project, () -> RunUtils.rescanProject(project, 1000));
         }
       }
     }
@@ -100,12 +102,14 @@ public class MyProjectManagerListener implements ProjectManagerListener {
     @Override
     public void beforeChildRemoval(@NotNull PsiTreeChangeEvent event) {
       PsiFile psiFile = (event.getChild() instanceof PsiFile) ? (PsiFile) event.getChild() : null;
-      if (psiFile == null || RunUtils.inBulkMode(psiFile.getProject())) return;
+      if (psiFile == null) return;
+      final Project project = psiFile.getProject();
+      if (RunUtils.inBulkMode(project)) return;
 
       if (DeepCodeIgnoreInfoHolder.is_ignoreFile(psiFile)) {
         DeepCodeIgnoreInfoHolder.remove_dcignoreFileContent(psiFile);
-        // small delay to prevent duplicated delete with MyBulkFileListener
-        RunUtils.rescanProject(psiFile.getProject(), 100);
+        // ??? small delay to prevent duplicated delete with MyBulkFileListener
+        RunUtils.runInBackground(project, () -> RunUtils.rescanProject(psiFile.getProject(), 100));
       }
     }
   }

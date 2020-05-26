@@ -53,8 +53,8 @@ public class RunUtils {
   }
 
   public static void forceUnsetBulkMode(@NotNull Project project) {
-      mapProject2RequestsCounter.put(project, 0);
-      DCLogger.info("BulkMode OFF forced");
+    mapProject2RequestsCounter.put(project, 0);
+    DCLogger.info("BulkMode OFF forced");
   }
 
   public static void asyncUpdateCurrentFilePanel(PsiFile psiFile) {}
@@ -88,18 +88,14 @@ public class RunUtils {
   private static long timeOfLastRescanRequest = 0;
   // BackgroundTaskQueue ??? com.intellij.openapi.wm.ex.StatusBarEx#getBackgroundProcesses ???
   public static void rescanProject(@NotNull Project project, long delayMilliseconds) {
-    runInBackground(
-        project,
-        () -> {
-          if (delayMilliseconds > 0) {
-            long timeOfThisRequest = timeOfLastRescanRequest = System.currentTimeMillis();
-            delay(delayMilliseconds);
-            if (timeOfLastRescanRequest > timeOfThisRequest) return;
-          }
-          AnalysisData.removeAllFilesFromCache(project);
-          // AnalysisData.clearCache(project);
-          asyncAnalyseProjectAndUpdatePanel(project);
-        });
+    long timeOfThisRequest = timeOfLastRescanRequest = System.currentTimeMillis();
+    DCLogger.info("Full rescan requested. Timestamp: " + timeOfThisRequest);
+    delay(delayMilliseconds);
+    if (timeOfLastRescanRequest > timeOfThisRequest) return;
+    DCLogger.info("Full rescan PERFORMED with Timestamp: " + timeOfThisRequest);
+    AnalysisData.removeAllFilesFromCache(project);
+    // AnalysisData.clearCache(project);
+    updateCachedAnalysisResults(project, null);
   }
 
   public static void runInBackground(@NotNull Project project, @NotNull Runnable runnable) {
