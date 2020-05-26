@@ -22,22 +22,7 @@
         <projectService serviceImplementation="ai.deepcode.jbplugin.ui.nodes.TodoTreeHelper"/>
         <applicationConfigurable instance="ai.deepcode.jbplugin.ui.config.DeepCodeConfigEntry"/>
 
-        <!-- Add your extensions here
-        <annotator language="TEXT"
-                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
-        <annotator language=""
-                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
-        <annotator language="textmate"
-                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
-        <annotator language="JAVA"
-                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
-        <annotator language="JavaScript"
-                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
-        <annotator language="HTML"
-                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
-        <annotator language="Python"
-                           implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeAnnotator"/>
-        -->
+        <!-- Add your extensions here        -->
 
         <!--        For Idea CE and those that doesn't include corresponding plugin-->
         <!--  TODO: register annotators dynamically based on Languages provided      -->

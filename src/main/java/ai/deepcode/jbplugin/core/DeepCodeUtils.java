@@ -3,6 +3,7 @@ package ai.deepcode.jbplugin.core;
 import ai.deepcode.javaclient.DeepCodeRestApi;
 import ai.deepcode.javaclient.responses.GetFiltersResponse;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectUtil;
 import com.intellij.openapi.vcs.changes.ChangeListManager;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDirectory;
@@ -42,8 +43,17 @@ public final class DeepCodeUtils {
 
   private static List<PsiFile> allProjectFiles(@NotNull Project project) {
     final PsiManager psiManager = PsiManager.getInstance(project);
-    final PsiDirectory prjDirectory = psiManager.findDirectory(project.getBaseDir());
-    return prjDirectory != null ? getFilesRecursively(prjDirectory) : Collections.emptyList();
+    final VirtualFile projectDir = ProjectUtil.guessProjectDir(project);
+    if (projectDir == null) {
+      DCLogger.warn("Project directory not found for: " + project);
+      return Collections.emptyList();
+    }
+    final PsiDirectory prjDirectory = psiManager.findDirectory(projectDir);
+    if (prjDirectory == null) {
+      DCLogger.warn("Project directory not found for: " + project);
+      return Collections.emptyList();
+    }
+    return getFilesRecursively(prjDirectory);
   }
 
   private static List<PsiFile> getFilesRecursively(@NotNull PsiDirectory psiDirectory) {
