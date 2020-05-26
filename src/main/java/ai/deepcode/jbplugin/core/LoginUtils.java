@@ -28,6 +28,7 @@ public class LoginUtils {
   /** network request! */
   public static boolean isLogged(@Nullable Project project, boolean userActionNeeded) {
     final String sessionToken = DeepCodeParams.getSessionToken();
+    ProgressManager.checkCanceled();
     final EmptyResponse response = DeepCodeRestApi.checkSession(sessionToken);
     boolean isLogged = response.getStatusCode() == 200;
     String message = response.getStatusDescription();

@@ -129,13 +129,17 @@ public final class AnalysisData {
     }
   }
 
+  static void removeAllFilesFromCache(@NotNull Project project) {
+    removeFilesFromCache(cachedFilesOfProject(project));
+  }
+
   static void removeProjectFromCache(@NotNull Project project) {
     // lets all running ProgressIndicators release MUTEX first
     RunUtils.cancelRunningIndicators(project);
     if (mapProject2BundleId.remove(project) != null) {
       info("Removed from cache: " + project);
     }
-    removeFilesFromCache(cachedFilesOfProject(project));
+    removeAllFilesFromCache(project);
   }
 
   private static Collection<PsiFile> cachedFilesOfProject(@NotNull Project project) {
@@ -285,16 +289,14 @@ public final class AnalysisData {
     CreateBundleResponse createBundleResponse = makeNewBundle(project, mapPath2Hash, filesToRemove);
     if (isNotSucceed(project, createBundleResponse, "Bad Create/Extend Bundle request: "))
       return EMPTY_MAP;
+    final String bundleId = createBundleResponse.getBundleId();
+    final List<String> missingFiles = createBundleResponse.getMissingFiles();
     info(
         "--- Create/Extend Bundle took: "
             + (System.currentTimeMillis() - startTime)
-            + " milliseconds");
-
-    final String bundleId = createBundleResponse.getBundleId();
-    info("bundleId: " + bundleId);
-
-    final List<String> missingFiles = createBundleResponse.getMissingFiles();
-    info("missingFiles: " + missingFiles.size());
+            + " milliseconds"
+            + "\nbundleId: " + bundleId
+            + "\nmissingFiles: " + missingFiles.size());
 
     // ---------------------------------------- Upload Files
     startTime = System.currentTimeMillis();
@@ -609,6 +611,8 @@ public final class AnalysisData {
   public static Set<PsiFile> getAllFilesWithSuggestions(@NotNull final Project project) {
     return mapFile2Suggestions.entrySet().stream()
         .filter(e -> e.getKey().getProject().equals(project))
+        // otherwise ai.deepcode.jbplugin.ui.TodoTreeBuilder.getAllFiles will fail
+        .filter(e -> e.getKey().isValid())
         .filter(e -> !e.getValue().isEmpty())
         .map(Map.Entry::getKey)
         .collect(Collectors.toSet());
@@ -618,6 +622,7 @@ public final class AnalysisData {
     return mapFile2Suggestions.containsKey(psiFile);
   }
 
+  /** Remove project from all Caches and <b>CANCEL</b> all background tasks for it */
   public static void clearCache(@Nullable final Project project) {
     info("Cache clearance requested for project: " + project);
     mapPsiFile2Hash.clear();

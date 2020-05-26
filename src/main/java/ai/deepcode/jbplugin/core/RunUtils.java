@@ -21,16 +21,43 @@ import java.util.stream.Collectors;
 public class RunUtils {
   private RunUtils() {}
 
-  public static void asyncUpdateCurrentFilePanel(PsiFile psiFile) {
-    /*
-        ApplicationManager.getApplication()
-            .invokeLater(
-                () ->
-                    WriteCommandAction.runWriteCommandAction(
-                        psiFile.getProject(),
-                        () -> DeepCodeConsoleToolWindowFactory.updateCurrentFilePanel(psiFile)));
-    */
+  private static final Map<Project, Integer> mapProject2RequestsCounter = new ConcurrentHashMap<>();
+
+  private static int getBulkRequestsCount(@NotNull Project project) {
+    return mapProject2RequestsCounter.computeIfAbsent(project, p -> 0);
   }
+
+  /** No events for individual files should be processed */
+  public static boolean inBulkMode(@NotNull Project project) {
+    return getBulkRequestsCount(project) > 0;
+  }
+
+  public static void setBulkMode(@NotNull Project project) {
+    final int counter = getBulkRequestsCount(project) + 1;
+    if (counter == 1) {
+      // cancel all running tasks first
+      cancelRunningIndicators(project);
+    }
+    DCLogger.info("BulkMode ON with " + counter + " total requests");
+    mapProject2RequestsCounter.put(project, counter);
+  }
+
+  public static void unsetBulkMode(@NotNull Project project) {
+    final int counter = getBulkRequestsCount(project) - 1;
+    if (counter >= 0) {
+      mapProject2RequestsCounter.put(project, counter);
+      DCLogger.info("BulkMode OFF with " + counter + " total requests");
+    } else {
+      DCLogger.warn("BulkMode OFF request with already " + counter + " total requests");
+    }
+  }
+
+  public static void forceUnsetBulkMode(@NotNull Project project) {
+      mapProject2RequestsCounter.put(project, 0);
+      DCLogger.info("BulkMode OFF forced");
+  }
+
+  public static void asyncUpdateCurrentFilePanel(PsiFile psiFile) {}
 
   public static <T> T computeInReadActionInSmartMode(
       @NotNull Project project, @NotNull final Computable<T> computation) {
@@ -64,10 +91,13 @@ public class RunUtils {
     runInBackground(
         project,
         () -> {
-          long timeOfThisRequest = timeOfLastRescanRequest = System.currentTimeMillis();
-          delay(delayMilliseconds);
-          if (timeOfLastRescanRequest > timeOfThisRequest) return;
-          AnalysisData.clearCache(project);
+          if (delayMilliseconds > 0) {
+            long timeOfThisRequest = timeOfLastRescanRequest = System.currentTimeMillis();
+            delay(delayMilliseconds);
+            if (timeOfLastRescanRequest > timeOfThisRequest) return;
+          }
+          AnalysisData.removeAllFilesFromCache(project);
+          // AnalysisData.clearCache(project);
           asyncAnalyseProjectAndUpdatePanel(project);
         });
   }
@@ -109,7 +139,8 @@ public class RunUtils {
   private static final Map<Project, Set<ProgressIndicator>> mapProject2Indicators =
       new ConcurrentHashMap<>();
 
-  private static synchronized Set<ProgressIndicator> getRunningIndicators(@NotNull Project project) {
+  private static synchronized Set<ProgressIndicator> getRunningIndicators(
+      @NotNull Project project) {
     return mapProject2Indicators.computeIfAbsent(project, p -> new HashSet<>());
   }
 
@@ -123,6 +154,8 @@ public class RunUtils {
             .map(ProgressIndicator::toString)
             .collect(Collectors.joining("\n"));
     DCLogger.info("Canceling ProgressIndicators:\n" + indicatorsList);
+    // in case any indicator holds Bulk mode process
+    forceUnsetBulkMode(project);
     getRunningIndicators(project).forEach(ProgressIndicator::cancel);
     getRunningIndicators(project).clear();
   }
@@ -134,7 +167,12 @@ public class RunUtils {
 
   public static void runInBackgroundCancellable(
       @NotNull PsiFile psiFile, @NotNull Runnable runnable) {
-    DCLogger.info("runInBackgroundCancellable requested for: " + psiFile.getName());
+    final String runId = runnable.toString();
+    DCLogger.info(
+        "runInBackgroundCancellable requested for: "
+            + psiFile.getName()
+            + " with Runnable "
+            + runId.substring(runId.lastIndexOf('/'), runId.length() - 1));
     final VirtualFile virtualFile = psiFile.getVirtualFile();
 
     // To proceed multiple PSI events in a bunch (every 100 milliseconds)
@@ -170,10 +208,15 @@ public class RunUtils {
                 // small delay to let new consequent requests proceed and cancel current one
                 delay(100);
 
-                DCLogger.info("New Process started for " + psiFile.getName());
                 Runnable actualRunnable = mapFile2Runnable.get(virtualFile);
-                mapFile2Runnable.remove(virtualFile);
                 if (actualRunnable != null) {
+                  final String runId = actualRunnable.toString();
+                  DCLogger.info(
+                      "New Process started for "
+                          + psiFile.getName()
+                          + " with Runnable "
+                          + runId.substring(runId.lastIndexOf('/'), runId.length() - 1));
+                  mapFile2Runnable.remove(virtualFile);
                   actualRunnable.run();
                 } else {
                   DCLogger.warn("No actual Runnable found for: " + psiFile.getName());
@@ -184,33 +227,29 @@ public class RunUtils {
   }
 
   public static void asyncAnalyseProjectAndUpdatePanel(@Nullable Project project) {
-    if (project == null) {
-      for (Project prj : ProjectManager.getInstance().getOpenProjects()) {
-        asyncAnalyseAndUpdatePanel(prj, null);
-      }
-    } else asyncAnalyseAndUpdatePanel(project, null);
+    final Project[] projects =
+        (project == null)
+            ? ProjectManager.getInstance().getOpenProjects()
+            : new Project[] {project};
+    for (Project prj : projects) {
+      //    DumbService.getInstance(project).runWhenSmart(() ->
+      runInBackground(prj, () -> updateCachedAnalysisResults(prj, null));
+    }
   }
 
-  public static void asyncAnalyseAndUpdatePanel(
+  public static void updateCachedAnalysisResults(
       @NotNull Project project, @Nullable Collection<PsiFile> psiFiles) {
-    asyncAnalyseAndUpdatePanel(project, psiFiles, Collections.emptyList());
+    updateCachedAnalysisResults(project, psiFiles, Collections.emptyList());
   }
 
-  public static void asyncAnalyseAndUpdatePanel(
+  public static void updateCachedAnalysisResults(
       @NotNull Project project,
       @Nullable Collection<PsiFile> psiFiles,
       @NotNull Collection<PsiFile> filesToRemove) {
-    //    DumbService.getInstance(project)
-    //        .runWhenSmart(
-    //            () ->
-    runInBackground(
+    AnalysisData.updateCachedResultsForFiles(
         project,
-        () -> {
-          AnalysisData.updateCachedResultsForFiles(
-              project,
-              (psiFiles != null) ? psiFiles : DeepCodeUtils.getAllSupportedFilesInProject(project),
-              filesToRemove);
-          //      StatusBarUtil.setStatusBarInfo(project, message);
-        });
+        (psiFiles != null) ? psiFiles : DeepCodeUtils.getAllSupportedFilesInProject(project),
+        filesToRemove);
+    //      StatusBarUtil.setStatusBarInfo(project, message);
   }
 }

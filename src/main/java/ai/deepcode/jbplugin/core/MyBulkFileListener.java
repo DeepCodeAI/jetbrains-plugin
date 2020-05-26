@@ -1,11 +1,9 @@
 package ai.deepcode.jbplugin.core;
 
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.vfs.newvfs.BulkFileListener;
-import com.intellij.openapi.vfs.newvfs.events.VFileContentChangeEvent;
-import com.intellij.openapi.vfs.newvfs.events.VFileCreateEvent;
-import com.intellij.openapi.vfs.newvfs.events.VFileDeleteEvent;
-import com.intellij.openapi.vfs.newvfs.events.VFileEvent;
+import com.intellij.openapi.vfs.newvfs.events.*;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
 import com.intellij.psi.util.PsiTreeUtil;
@@ -26,15 +24,20 @@ public class MyBulkFileListener implements BulkFileListener {
   @Override
   public void after(@NotNull List<? extends VFileEvent> events) {
     // fixme debug only
-    DCLogger.info("MyBulkFileListener.after begins for: " + events);
+    DCLogger.info("MyBulkFileListener.after begins for " + events.size() + " events " + events);
+    for (Project project : ProjectManager.getInstance().getOpenProjects()) {
+/*
     for (Project project : AnalysisData.getAllCachedProject()) {
       RunUtils.runInBackground(
           project,
           () -> {
+*/
             Set<PsiFile> filesChangedOrCreated =
+/*
                 RunUtils.computeInReadActionInSmartMode(
                     project,
                     () ->
+*/
                         getFilteredFilesByEventTypes(
                             project,
                             events,
@@ -43,23 +46,38 @@ public class MyBulkFileListener implements BulkFileListener {
                                     // to prevent updating files already done by
                                     // MyPsiTreeChangeAdapter
                                     // fixme: doesn't work, try to use isFromSave or isFromRefresh
-                                    && AnalysisData.isHashChanged(psiFile)),
+                                    //&& AnalysisData.isHashChanged(psiFile)
+                                ),
                             VFileContentChangeEvent.class,
-                            // fixme doen't work for copy-past file ( VFileMoveEvent ?)
-                            VFileCreateEvent.class));
+                            VFileMoveEvent.class,
+                            VFileCopyEvent.class,
+                            VFileCreateEvent.class);
             if (!filesChangedOrCreated.isEmpty()) {
               DCLogger.info(
                   filesChangedOrCreated.size() + " files changed: " + filesChangedOrCreated);
-              for (PsiFile psiFile : filesChangedOrCreated) {
-                RunUtils.runInBackgroundCancellable(
-                    psiFile,
+              if (filesChangedOrCreated.size() > 10) {
+                // if too many files changed then it's easier to do full rescan
+                RunUtils.setBulkMode(project);
+                RunUtils.runInBackground(
+                    project,
                     () -> {
-                      AnalysisData.removeFilesFromCache(Collections.singleton(psiFile));
-                      RunUtils.asyncAnalyseAndUpdatePanel(project, Collections.singleton(psiFile));
+                      AnalysisData.removeFilesFromCache(filesChangedOrCreated);
+                      RunUtils.updateCachedAnalysisResults(project, filesChangedOrCreated);
+                      RunUtils.unsetBulkMode(project);
                     });
+              } else {
+                for (PsiFile psiFile : filesChangedOrCreated) {
+                  RunUtils.runInBackgroundCancellable(
+                      psiFile,
+                      () -> {
+                        AnalysisData.removeFilesFromCache(Collections.singleton(psiFile));
+                        RunUtils.updateCachedAnalysisResults(
+                            project, Collections.singleton(psiFile));
+                      });
+                }
               }
             }
-          });
+//          });
 
       Set<PsiFile> gcignoreChangedFiles =
           getFilteredFilesByEventTypes(
@@ -69,33 +87,39 @@ public class MyBulkFileListener implements BulkFileListener {
               VFileContentChangeEvent.class,
               VFileCreateEvent.class);
       if (!gcignoreChangedFiles.isEmpty()) {
+        RunUtils.setBulkMode(project);
         RunUtils.runInBackground(
             project,
             () -> {
               gcignoreChangedFiles.forEach(DeepCodeIgnoreInfoHolder::update_dcignoreFileContent);
-              // small delay to prevent duplicated delete with MyPsiTreeChangeAdapter
-              RunUtils.rescanProject(project, 100);
+              // ??? small delay to prevent duplicated delete with MyPsiTreeChangeAdapter
+              RunUtils.rescanProject(project, 0);
+              RunUtils.unsetBulkMode(project);
             });
       }
     }
     // fixme debug only
-    DCLogger.info("MyBulkFileListener.after ends for: " + events);
+    DCLogger.info("MyBulkFileListener.after ends");
   }
 
   @Override
   public void before(@NotNull List<? extends VFileEvent> events) {
-    DCLogger.info("MyBulkFileListener.before begins for: " + events);
-    for (Project project : AnalysisData.getAllCachedProject()) {
+    DCLogger.info("MyBulkFileListener.before begins for " + events.size() + " events " + events);
+    for (Project project : ProjectManager.getInstance().getOpenProjects()) {
+    //for (Project project : AnalysisData.getAllCachedProject()) {
       if (project.isDisposed()) continue;
       Set<PsiFile> filesRemoved =
           getFilteredFilesByEventTypes(
               project, events, DeepCodeUtils::isSupportedFileFormat, VFileDeleteEvent.class);
       if (!filesRemoved.isEmpty()) {
+        DCLogger.info("Found " + filesRemoved.size() + " files to remove: " + filesRemoved);
+        RunUtils.setBulkMode(project);
         RunUtils.runInBackground(
             project,
             () -> {
               AnalysisData.removeFilesFromCache(filesRemoved);
-              RunUtils.asyncAnalyseAndUpdatePanel(project, Collections.emptyList(), filesRemoved);
+              RunUtils.updateCachedAnalysisResults(project, Collections.emptyList(), filesRemoved);
+              RunUtils.unsetBulkMode(project);
             });
       }
 
@@ -103,16 +127,18 @@ public class MyBulkFileListener implements BulkFileListener {
           getFilteredFilesByEventTypes(
               project, events, DeepCodeIgnoreInfoHolder::is_ignoreFile, VFileDeleteEvent.class);
       if (!ignoreFilesToRemove.isEmpty()) {
+        RunUtils.setBulkMode(project);
         RunUtils.runInBackground(
             project,
             () -> {
               ignoreFilesToRemove.forEach(DeepCodeIgnoreInfoHolder::remove_dcignoreFileContent);
-              // small delay to prevent duplicated delete with MyPsiTreeChangeAdapter
-              RunUtils.rescanProject(project, 100);
+              // ??? small delay to prevent duplicated delete with MyPsiTreeChangeAdapter
+              RunUtils.rescanProject(project, 0);
+              RunUtils.unsetBulkMode(project);
             });
       }
     }
-    DCLogger.info("MyBulkFileListener.before ends for: " + events);
+    DCLogger.info("MyBulkFileListener.before ends");
   }
 
   private Set<PsiFile> getFilteredFilesByEventTypes(
