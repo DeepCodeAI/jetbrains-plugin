@@ -208,8 +208,8 @@ public final class AnalysisData {
       updateInProgress = false;
 
     } finally {
-      //if (filesToProceed != null && !filesToProceed.isEmpty())
-        info("MUTEX RELEASED");
+      // if (filesToProceed != null && !filesToProceed.isEmpty())
+      info("MUTEX RELEASED");
       MUTEX.unlock();
     }
   }
@@ -290,21 +290,57 @@ public final class AnalysisData {
     if (isNotSucceed(project, createBundleResponse, "Bad Create/Extend Bundle request: "))
       return EMPTY_MAP;
     final String bundleId = createBundleResponse.getBundleId();
-    final List<String> missingFiles = createBundleResponse.getMissingFiles();
+    List<String> missingFiles = createBundleResponse.getMissingFiles();
     info(
         "--- Create/Extend Bundle took: "
             + (System.currentTimeMillis() - startTime)
             + " milliseconds"
-            + "\nbundleId: " + bundleId
-            + "\nmissingFiles: " + missingFiles.size());
+            + "\nbundleId: "
+            + bundleId
+            + "\nmissingFiles: "
+            + missingFiles.size());
 
     // ---------------------------------------- Upload Files
     startTime = System.currentTimeMillis();
     progress.setText(UPLOADING_FILES_TEXT);
     ProgressManager.checkCanceled();
 
-    fileCounter = 0;
-    totalFiles = missingFiles.size();
+    for (int counter = 0; counter < 10; counter++) {
+      uploadFiles(project, psiFiles, missingFiles, bundleId, progress);
+      missingFiles = checkBundle(project, bundleId, progress);
+      if (missingFiles.isEmpty()) {
+        break;
+      } else {
+        warn(
+            "Check Bundle found some missingFiles to be NOT uploaded, will try to upload "
+                + (10 - counter)
+                + " more times:\nmissingFiles = "
+                + missingFiles);
+      }
+    }
+    //    mapPsiFile2Hash.clear();
+    mapPsiFile2Content.clear();
+    info("--- Upload Files took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
+
+    // ---------------------------------------- Get Analysis
+    startTime = System.currentTimeMillis();
+    progress.setText(WAITING_FOR_ANALYSIS_TEXT);
+    ProgressManager.checkCanceled();
+    GetAnalysisResponse getAnalysisResponse = doRetrieveSuggestions(project, bundleId, progress);
+    result = parseGetAnalysisResponse(project, psiFiles, getAnalysisResponse, progress);
+    info("--- Get Analysis took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
+    //    progress.stop();
+    return result;
+  }
+
+  private static void uploadFiles(
+      @NotNull Project project,
+      @NotNull Collection<PsiFile> psiFiles,
+      @NotNull List<String> missingFiles,
+      @NotNull String bundleId,
+      @NotNull ProgressIndicator progress) {
+    int fileCounter = 0;
+    int totalFiles = missingFiles.size();
     long fileChunkSize = 0;
     int brokenMissingFilesCount = 0;
     String brokenMissingFilesMessage = "";
@@ -337,7 +373,7 @@ public final class AnalysisData {
       final long fileSize = psiFile.getVirtualFile().getLength();
       if (fileChunkSize + fileSize > MAX_BUNDLE_SIZE) {
         info("Files-chunk size: " + fileChunkSize);
-        uploadFiles(project, filesChunk, bundleId, progress);
+        doUploadFiles(project, filesChunk, bundleId, progress);
         fileChunkSize = 0;
         filesChunk.clear();
       }
@@ -346,21 +382,18 @@ public final class AnalysisData {
     }
     if (brokenMissingFilesCount > 0) warn(brokenMissingFilesCount + brokenMissingFilesMessage);
     info("Last files-chunk size: " + fileChunkSize);
-    uploadFiles(project, filesChunk, bundleId, progress);
+    doUploadFiles(project, filesChunk, bundleId, progress);
+  }
 
-    //    mapPsiFile2Hash.clear();
-    mapPsiFile2Content.clear();
-    info("--- Upload Files took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
-
-    // ---------------------------------------- Get Analysis
-    startTime = System.currentTimeMillis();
-    progress.setText(WAITING_FOR_ANALYSIS_TEXT);
-    ProgressManager.checkCanceled();
-    GetAnalysisResponse getAnalysisResponse = doRetrieveSuggestions(project, bundleId, progress);
-    result = parseGetAnalysisResponse(project, psiFiles, getAnalysisResponse, progress);
-    info("--- Get Analysis took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
-    //    progress.stop();
-    return result;
+  @NotNull
+  private static List<String> checkBundle(
+      @NotNull Project project, @NotNull String bundleId, @NotNull ProgressIndicator progress) {
+    CreateBundleResponse checkBundleResponse =
+        DeepCodeRestApi.checkBundle(DeepCodeParams.getSessionToken(), bundleId);
+    if (isNotSucceed(project, checkBundleResponse, "Bad CheckBundle request: ")) {
+      return Collections.emptyList();
+    }
+    return checkBundleResponse.getMissingFiles();
   }
 
   private static CreateBundleResponse makeNewBundle(
@@ -481,7 +514,7 @@ public final class AnalysisData {
     */
   }
 
-  private static void uploadFiles(
+  private static void doUploadFiles(
       @NotNull Project project,
       @NotNull Collection<PsiFile> psiFiles,
       @NotNull String bundleId,
