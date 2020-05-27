@@ -12,7 +12,6 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
@@ -130,17 +129,11 @@ public final class AnalysisData {
     }
   }
 
-  static void removeAllFilesFromCache(@NotNull Project project) {
-    removeFilesFromCache(cachedFilesOfProject(project));
-  }
-
   static void removeProjectFromCache(@NotNull Project project) {
-    // lets all running ProgressIndicators release MUTEX first
-    RunUtils.cancelRunningIndicators(project);
     if (mapProject2BundleId.remove(project) != null) {
       info("Removed from cache: " + project);
     }
-    removeAllFilesFromCache(project);
+    removeFilesFromCache(cachedFilesOfProject(project));
   }
 
   private static Collection<PsiFile> cachedFilesOfProject(@NotNull Project project) {
@@ -273,6 +266,10 @@ public final class AnalysisData {
       ProgressManager.checkCanceled();
       progress.setFraction(((double) fileCounter++) / totalFiles);
       progress.setText(PREPARE_FILES_TEXT + fileCounter + " of " + totalFiles + " files done.");
+      if (!file.isValid()) {
+        DCLogger.warn("Invalid PsiFile: " + psiFiles);
+        continue;
+      }
       final String path = DeepCodeUtils.getDeepCodedFilePath(file);
       // info("getHash requested");
       final String hash = getHash(file);
@@ -633,6 +630,8 @@ public final class AnalysisData {
     final Set<Project> projects =
         (project == null) ? getAllCachedProject() : Collections.singleton(project);
     for (Project prj : projects) {
+      // lets all running ProgressIndicators release MUTEX first
+      RunUtils.cancelRunningIndicators(prj);
       removeProjectFromCache(prj);
       ServiceManager.getService(prj, myTodoView.class).refresh();
       mapProject2analysisUrl.put(prj, "");

@@ -31,7 +31,11 @@ public class MyProjectManagerListener implements ProjectManagerListener {
 
   @Override
   public void projectClosing(@NotNull Project project) {
-    RunUtils.runInBackground(project, () -> AnalysisData.removeProjectFromCache(project));
+    RunUtils.runInBackground(project, () -> {
+      // lets all running ProgressIndicators release MUTEX first
+      RunUtils.cancelRunningIndicators(project);
+      AnalysisData.removeProjectFromCache(project);
+    });
   }
 
   private static class MyPsiTreeChangeAdapter extends PsiTreeChangeAdapter {
@@ -85,7 +89,7 @@ public class MyProjectManagerListener implements ProjectManagerListener {
       if (DeepCodeIgnoreInfoHolder.is_dcignoreFile(psiFile)) {
         DeepCodeIgnoreInfoHolder.update_dcignoreFileContent(psiFile);
         // delayed to prevent unnecessary updates in case of continuous typing by user
-        RunUtils.runInBackground(project, () -> RunUtils.rescanProject(project, 1000));
+        RunUtils.rescanInBackgroundCancellableDelayed(project, 1000, false);
       }
       // .gitignore content delay to be parsed https://youtrack.jetbrains.com/issue/IDEA-239773
       final VirtualFile virtualFile = psiFile.getVirtualFile();
@@ -94,7 +98,7 @@ public class MyProjectManagerListener implements ProjectManagerListener {
         if (document != null) {
           FileDocumentManager.getInstance().saveDocument(document);
           // delayed to let git update it meta-info
-          RunUtils.runInBackground(project, () -> RunUtils.rescanProject(project, 1000));
+          RunUtils.rescanInBackgroundCancellableDelayed(project, 1000, false);
         }
       }
     }
@@ -109,7 +113,7 @@ public class MyProjectManagerListener implements ProjectManagerListener {
       if (DeepCodeIgnoreInfoHolder.is_ignoreFile(psiFile)) {
         DeepCodeIgnoreInfoHolder.remove_dcignoreFileContent(psiFile);
         // ??? small delay to prevent duplicated delete with MyBulkFileListener
-        RunUtils.runInBackground(project, () -> RunUtils.rescanProject(psiFile.getProject(), 100));
+        RunUtils.rescanInBackgroundCancellableDelayed(project, 100, false);
       }
     }
   }

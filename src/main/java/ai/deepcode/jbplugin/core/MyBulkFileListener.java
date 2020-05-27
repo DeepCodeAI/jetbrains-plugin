@@ -56,17 +56,8 @@ public class MyBulkFileListener implements BulkFileListener {
         if (filesChangedOrCreated.size() > 10) {
           // if too many files changed then it's easier to do Bulk Mode full rescan
           RunUtils.setBulkMode(project);
-          RunUtils.runInBackground(
-              project,
-              () -> {
-                // small delay to prevent multiple rescan
-                RunUtils.rescanProject(project, 100);
-/*
-                AnalysisData.removeFilesFromCache(filesChangedOrCreated);
-                RunUtils.updateCachedAnalysisResults(project, filesChangedOrCreated);
-*/
-                RunUtils.unsetBulkMode(project);
-              });
+          // small delay to prevent multiple rescan Background tasks
+          RunUtils.rescanInBackgroundCancellableDelayed(project, 100, true);
         } else {
           for (PsiFile psiFile : filesChangedOrCreated) {
             RunUtils.runInBackgroundCancellable(
@@ -89,14 +80,13 @@ public class MyBulkFileListener implements BulkFileListener {
               VFileCreateEvent.class);
       if (!gcignoreChangedFiles.isEmpty()) {
         RunUtils.setBulkMode(project);
-        RunUtils.runInBackground(
-            project,
-            () -> {
-              gcignoreChangedFiles.forEach(DeepCodeIgnoreInfoHolder::update_dcignoreFileContent);
-              // small delay to prevent multiple rescan
-              RunUtils.rescanProject(project, 100);
-              RunUtils.unsetBulkMode(project);
-            });
+        for (PsiFile gcignoreFile : gcignoreChangedFiles) {
+          RunUtils.runInBackgroundCancellable(
+              gcignoreFile,
+              () -> DeepCodeIgnoreInfoHolder.update_dcignoreFileContent(gcignoreFile));
+        }
+        // small delay to prevent multiple rescan Background tasks
+        RunUtils.rescanInBackgroundCancellableDelayed(project, 100, true);
       }
     }
     // fixme debug only
@@ -114,24 +104,18 @@ public class MyBulkFileListener implements BulkFileListener {
               project, events, DeepCodeUtils::isSupportedFileFormat, VFileDeleteEvent.class);
       if (!filesRemoved.isEmpty()) {
         DCLogger.info("Found " + filesRemoved.size() + " files to remove: " + filesRemoved);
-        RunUtils.setBulkMode(project);
+        // if too many files removed then it's easier to do full rescan
         if (filesRemoved.size() > 10) {
-          // if too many files removed then it's easier to do full rescan
-          RunUtils.runInBackground(
-              project,
-              () -> {
-                // small delay to prevent multiple rescan
-                RunUtils.rescanProject(project, 100);
-                RunUtils.unsetBulkMode(project);
-              });
-        } else {
+          RunUtils.setBulkMode(project);
+          // small delay to prevent multiple rescan Background tasks
+          RunUtils.rescanInBackgroundCancellableDelayed(project, 100, true);
+        } else if (!RunUtils.isFullRescanRequested(project)) {
           RunUtils.runInBackground(
               project,
               () -> {
                 AnalysisData.removeFilesFromCache(filesRemoved);
                 RunUtils.updateCachedAnalysisResults(
                     project, Collections.emptyList(), filesRemoved);
-                RunUtils.unsetBulkMode(project);
               });
         }
       }
@@ -141,14 +125,18 @@ public class MyBulkFileListener implements BulkFileListener {
               project, events, DeepCodeIgnoreInfoHolder::is_ignoreFile, VFileDeleteEvent.class);
       if (!ignoreFilesToRemove.isEmpty()) {
         RunUtils.setBulkMode(project);
-        RunUtils.runInBackground(
-            project,
-            () -> {
-              ignoreFilesToRemove.forEach(DeepCodeIgnoreInfoHolder::remove_dcignoreFileContent);
-              // small delay to prevent multiple rescan
-              RunUtils.rescanProject(project, 100);
-              RunUtils.unsetBulkMode(project);
-            });
+        // small delay to prevent multiple rescan Background tasks
+        RunUtils.rescanInBackgroundCancellableDelayed(project, 100, true);
+        /*
+                RunUtils.rescanInBackgroundCancellableDelayed(
+                    project,
+                    100, // small delay to prevent multiple rescan
+                    () -> {
+                      ignoreFilesToRemove.forEach(DeepCodeIgnoreInfoHolder::remove_dcignoreFileContent);
+                      RunUtils.rescanProject(project);
+                      RunUtils.unsetBulkMode(project);
+                    });
+        */
       }
     }
     DCLogger.info("MyBulkFileListener.before ends");

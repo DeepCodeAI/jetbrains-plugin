@@ -85,19 +85,6 @@ public class RunUtils {
     ProgressManager.checkCanceled();
   }
 
-  private static long timeOfLastRescanRequest = 0;
-  // BackgroundTaskQueue ??? com.intellij.openapi.wm.ex.StatusBarEx#getBackgroundProcesses ???
-  public static void rescanProject(@NotNull Project project, long delayMilliseconds) {
-    long timeOfThisRequest = timeOfLastRescanRequest = System.currentTimeMillis();
-    DCLogger.info("Full rescan requested. Timestamp: " + timeOfThisRequest);
-    delay(delayMilliseconds);
-    if (timeOfLastRescanRequest > timeOfThisRequest) return;
-    DCLogger.info("Full rescan PERFORMED with Timestamp: " + timeOfThisRequest);
-    AnalysisData.removeAllFilesFromCache(project);
-    // AnalysisData.clearCache(project);
-    updateCachedAnalysisResults(project, null);
-  }
-
   public static void runInBackground(@NotNull Project project, @NotNull Runnable runnable) {
     DCLogger.info("runInBackground requested");
     final ProgressManager progressManager = ProgressManager.getInstance();
@@ -154,6 +141,7 @@ public class RunUtils {
     forceUnsetBulkMode(project);
     getRunningIndicators(project).forEach(ProgressIndicator::cancel);
     getRunningIndicators(project).clear();
+    projectsWithFullRescanRequested.remove(project);
   }
 
   private static final Map<VirtualFile, ProgressIndicator> mapFileProcessed2CancellableIndicator =
@@ -163,18 +151,20 @@ public class RunUtils {
 
   public static void runInBackgroundCancellable(
       @NotNull PsiFile psiFile, @NotNull Runnable runnable) {
-    final String runId = runnable.toString();
+    final String s = runnable.toString();
+    final String runId = s.substring(s.lastIndexOf('/'), s.length() - 1);
     DCLogger.info(
         "runInBackgroundCancellable requested for: "
             + psiFile.getName()
             + " with Runnable "
-            + runId.substring(runId.lastIndexOf('/'), runId.length() - 1));
+            + runId);
     final VirtualFile virtualFile = psiFile.getVirtualFile();
 
     // To proceed multiple PSI events in a bunch (every 100 milliseconds)
     Runnable prevRunnable = mapFile2Runnable.put(virtualFile, runnable);
     if (prevRunnable != null) return;
-    DCLogger.info("new Background task registered for: " + psiFile.getName());
+    DCLogger.info(
+        "new Background task registered for: " + psiFile.getName() + " with Runnable " + runId);
 
     final Project project = psiFile.getProject();
     ProgressManager.getInstance()
@@ -206,18 +196,114 @@ public class RunUtils {
 
                 Runnable actualRunnable = mapFile2Runnable.get(virtualFile);
                 if (actualRunnable != null) {
-                  final String runId = actualRunnable.toString();
+                  final String s1 = actualRunnable.toString();
+                  final String runId = s1.substring(s1.lastIndexOf('/'), s1.length() - 1);
                   DCLogger.info(
-                      "New Process started for "
-                          + psiFile.getName()
-                          + " with Runnable "
-                          + runId.substring(runId.lastIndexOf('/'), runId.length() - 1));
+                      "New Process started for " + psiFile.getName() + " with Runnable " + runId);
                   mapFile2Runnable.remove(virtualFile);
                   actualRunnable.run();
                 } else {
                   DCLogger.warn("No actual Runnable found for: " + psiFile.getName());
                 }
                 DCLogger.info("Process ending for " + psiFile.getName());
+              }
+            });
+  }
+
+  public static boolean isFullRescanRequested(@NotNull Project project) {
+    return projectsWithFullRescanRequested.contains(project);
+  }
+
+  private static final Set<Project> projectsWithFullRescanRequested =
+      ContainerUtil.newConcurrentSet();
+
+  private static final Map<Project, ProgressIndicator> mapProject2CancellableIndicator =
+      new ConcurrentHashMap<>();
+  private static final Map<Project, Long> mapProject2CancellableRequestId =
+      new ConcurrentHashMap<>();
+
+  private static final Map<Project, Long> mapProject2RequestId = new ConcurrentHashMap<>();
+  private static final Set<Long> bulkModeRequests = ContainerUtil.newConcurrentSet();
+
+  public static void rescanInBackgroundCancellableDelayed(
+      @NotNull Project project, long delayMilliseconds, boolean inBulkMode) {
+    final long requestId = System.currentTimeMillis();
+    DCLogger.info(
+        "rescanInBackgroundCancellableDelayed requested for: "
+            + project.getName()
+            + "] with RequestId "
+            + requestId);
+    projectsWithFullRescanRequested.add(project);
+
+    // To proceed multiple events in a bunch (every <delayMilliseconds>)
+    Long prevRequestId = mapProject2RequestId.put(project, requestId);
+    if (inBulkMode) bulkModeRequests.add(requestId);
+    if (prevRequestId != null) {
+      if (bulkModeRequests.remove(prevRequestId)) {
+        RunUtils.unsetBulkMode(project);
+      }
+      return;
+    }
+    DCLogger.info(
+        "new Background Rescan task registered for ["
+            + project.getName()
+            + "] with RequestId "
+            + requestId);
+
+    ProgressManager.getInstance()
+        .run(
+            new Task.Backgroundable(project, "DeepCode: Analysing Files...") {
+              @Override
+              public void run(@NotNull ProgressIndicator indicator) {
+
+                // To let new event cancel the currently running one
+                ProgressIndicator prevProgressIndicator =
+                    mapProject2CancellableIndicator.put(project, indicator);
+                if (prevProgressIndicator != null
+                    // can't use prevProgressIndicator.isRunning() due to
+                    // https://youtrack.jetbrains.com/issue/IDEA-241055
+                    && getRunningIndicators(project).remove(prevProgressIndicator)) {
+                  DCLogger.info(
+                      "Previous Rescan cancelling for "
+                          + project.getName()
+                          + "\nProgressIndicator ["
+                          + prevProgressIndicator.toString()
+                          + "]");
+                  prevProgressIndicator.cancel();
+                }
+                getRunningIndicators(project).add(indicator);
+
+                // unset BulkMode if cancelled process did run under BulkMode
+                Long prevRequestId = mapProject2CancellableRequestId.put(project, requestId);
+                if (prevRequestId != null && bulkModeRequests.remove(prevRequestId)) {
+                  RunUtils.unsetBulkMode(project);
+                }
+
+                // delay to let new consequent requests proceed and cancel current one
+                // or to let Idea proceed internal events (.gitignore update)
+                delay(delayMilliseconds);
+
+                Long actualRequestId = mapProject2RequestId.get(project);
+                if (actualRequestId != null) {
+                  DCLogger.info(
+                      "New Rescan started for ["
+                          + project.getName()
+                          + "] with RequestId "
+                          + actualRequestId);
+                  mapProject2RequestId.remove(project);
+
+                  // actual rescan
+                  AnalysisData.removeProjectFromCache(project);
+                  updateCachedAnalysisResults(project, null);
+
+                  if (bulkModeRequests.remove(actualRequestId)) {
+                    RunUtils.unsetBulkMode(project);
+                  }
+                } else {
+                  DCLogger.warn("No actual RequestId found for: " + project.getName());
+                }
+                projectsWithFullRescanRequested.remove(project);
+                DCLogger.info("Rescan ending for " + project.getName());
               }
             });
   }
