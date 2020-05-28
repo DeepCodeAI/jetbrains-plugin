@@ -2,7 +2,6 @@ package ai.deepcode.jbplugin.core;
 
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
-import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManagerListener;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -32,16 +31,18 @@ public class MyProjectManagerListener implements ProjectManagerListener {
 
   @Override
   public void projectClosing(@NotNull Project project) {
-    // lets all running ProgressIndicators release MUTEX first
-    // RunUtils.cancelRunningIndicators(project);
-    RunUtils.runInBackground(project, () -> AnalysisData.removeProjectFromCache(project));
+    RunUtils.runInBackground(project, () -> {
+      // lets all running ProgressIndicators release MUTEX first
+      RunUtils.cancelRunningIndicators(project);
+      AnalysisData.removeProjectFromCache(project);
+    });
   }
 
   private static class MyPsiTreeChangeAdapter extends PsiTreeChangeAdapter {
     @Override
     public void beforeChildrenChange(@NotNull PsiTreeChangeEvent event) {
       final PsiFile psiFile = event.getFile();
-      if (psiFile == null) return;
+      if (psiFile == null || RunUtils.inBulkMode(psiFile.getProject())) return;
       if (AnalysisData.isFileInCache(psiFile)) {
         // ?? immediate delete for visual updates in Panel, annotations, etc.
         // should be done in background to wait MUTEX released in case of currently running update
@@ -68,6 +69,8 @@ public class MyProjectManagerListener implements ProjectManagerListener {
     public void childrenChanged(@NotNull PsiTreeChangeEvent event) {
       final PsiFile psiFile = event.getFile();
       if (psiFile == null) return;
+      final Project project = psiFile.getProject();
+      if (RunUtils.inBulkMode(project)) return;
 
       if (DeepCodeUtils.isSupportedFileFormat(psiFile)) {
         RunUtils.runInBackgroundCancellable(
@@ -79,14 +82,14 @@ public class MyProjectManagerListener implements ProjectManagerListener {
                 // but in case of update finished between beforeChildrenChange and now.
                 AnalysisData.removeFilesFromCache(psiFileSet);
               }
-              RunUtils.asyncAnalyseAndUpdatePanel(psiFile.getProject(), psiFileSet);
+              RunUtils.updateCachedAnalysisResults(project, psiFileSet);
             });
       }
 
       if (DeepCodeIgnoreInfoHolder.is_dcignoreFile(psiFile)) {
         DeepCodeIgnoreInfoHolder.update_dcignoreFileContent(psiFile);
         // delayed to prevent unnecessary updates in case of continuous typing by user
-        RunUtils.rescanProject(psiFile.getProject(), 1000);
+        RunUtils.rescanInBackgroundCancellableDelayed(project, 1000, false);
       }
       // .gitignore content delay to be parsed https://youtrack.jetbrains.com/issue/IDEA-239773
       final VirtualFile virtualFile = psiFile.getVirtualFile();
@@ -95,7 +98,7 @@ public class MyProjectManagerListener implements ProjectManagerListener {
         if (document != null) {
           FileDocumentManager.getInstance().saveDocument(document);
           // delayed to let git update it meta-info
-          RunUtils.rescanProject(psiFile.getProject(), 1000);
+          RunUtils.rescanInBackgroundCancellableDelayed(project, 1000, false);
         }
       }
     }
@@ -103,10 +106,14 @@ public class MyProjectManagerListener implements ProjectManagerListener {
     @Override
     public void beforeChildRemoval(@NotNull PsiTreeChangeEvent event) {
       PsiFile psiFile = (event.getChild() instanceof PsiFile) ? (PsiFile) event.getChild() : null;
-      if (psiFile != null && DeepCodeIgnoreInfoHolder.is_ignoreFile(psiFile)) {
+      if (psiFile == null) return;
+      final Project project = psiFile.getProject();
+      if (RunUtils.inBulkMode(project)) return;
+
+      if (DeepCodeIgnoreInfoHolder.is_ignoreFile(psiFile)) {
         DeepCodeIgnoreInfoHolder.remove_dcignoreFileContent(psiFile);
-        // small delay to prevent duplicated delete with MyBulkFileListener
-        RunUtils.rescanProject(psiFile.getProject(), 100);
+        // ??? small delay to prevent duplicated delete with MyBulkFileListener
+        RunUtils.rescanInBackgroundCancellableDelayed(project, 100, false);
       }
     }
   }

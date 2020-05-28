@@ -16,6 +16,7 @@ import com.intellij.openapi.editor.highlighter.EditorHighlighter;
 import com.intellij.openapi.editor.highlighter.HighlighterIterator;
 import com.intellij.openapi.editor.markup.TextAttributes;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.Queryable;
 import com.intellij.openapi.util.Comparing;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.search.TodoItem;
@@ -23,6 +24,7 @@ import com.intellij.ui.HighlightedRegion;
 import com.intellij.util.containers.ContainerUtil;
 import com.intellij.util.text.CharArrayUtil;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
@@ -194,8 +196,15 @@ public final class TodoItemNode extends BaseToDoNode<SmartTodoItemPointer> imple
     return myAdditionalLines.size() + 1;
   }
 
+/*
   @Override
   public String getTestPresentation() {
+    return "Item: " + getValue().getTodoItem().getTextRange();
+  }
+*/
+
+  @Override
+  public String toTestString(@Nullable Queryable.PrintInfo printInfo) {
     return "Item: " + getValue().getTodoItem().getTextRange();
   }
 
