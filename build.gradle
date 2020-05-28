@@ -35,6 +35,7 @@ patchPluginXml {
     untilBuild 202
 
     changeNotes """
+      1.0.3 - Bugfixing and optimization of bulk file changes<br>
       1.0.2 - Bugfixing and better support for refactoring<br>
       1.0.1 - Updated Java-client and added support for Java 8, required for Android Studio<br>
       1.0.0 - First public beta release.<br>      

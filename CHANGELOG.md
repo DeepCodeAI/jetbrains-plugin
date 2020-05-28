@@ -1,3 +1,8 @@
+## [1.0.3] - 2019-05-28
+- Fix multiple rescan requests and add ignoring events while rescan running
+- Fix cache invalidation in Bulk mode for files update
+- CheckBundle after uploadFiles to ensure no missingFiles left
+
 ## [1.0.2] - 2019-05-25
 - Bugfixing and better support for refactoring
 
