@@ -1,3 +1,6 @@
+## [1.0.2] - 2019-05-25
+- Bugfixing and better support for refactoring
+
 ## [1.0.1] - 2019-05-22
 - Updated Java-client and added support for Java 8, required for Android Studio
 
