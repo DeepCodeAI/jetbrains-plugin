@@ -21,16 +21,43 @@ import java.util.stream.Collectors;
 public class RunUtils {
   private RunUtils() {}
 
-  public static void asyncUpdateCurrentFilePanel(PsiFile psiFile) {
-    /*
-        ApplicationManager.getApplication()
-            .invokeLater(
-                () ->
-                    WriteCommandAction.runWriteCommandAction(
-                        psiFile.getProject(),
-                        () -> DeepCodeConsoleToolWindowFactory.updateCurrentFilePanel(psiFile)));
-    */
+  private static final Map<Project, Integer> mapProject2RequestsCounter = new ConcurrentHashMap<>();
+
+  private static int getBulkRequestsCount(@NotNull Project project) {
+    return mapProject2RequestsCounter.computeIfAbsent(project, p -> 0);
   }
+
+  /** No events for individual files should be processed */
+  public static boolean inBulkMode(@NotNull Project project) {
+    return getBulkRequestsCount(project) > 0;
+  }
+
+  public static void setBulkMode(@NotNull Project project) {
+    final int counter = getBulkRequestsCount(project) + 1;
+    if (counter == 1) {
+      // cancel all running tasks first
+      cancelRunningIndicators(project);
+    }
+    DCLogger.info("BulkMode ON with " + counter + " total requests");
+    mapProject2RequestsCounter.put(project, counter);
+  }
+
+  public static void unsetBulkMode(@NotNull Project project) {
+    final int counter = getBulkRequestsCount(project) - 1;
+    if (counter >= 0) {
+      mapProject2RequestsCounter.put(project, counter);
+      DCLogger.info("BulkMode OFF with " + counter + " total requests");
+    } else {
+      DCLogger.warn("BulkMode OFF request with already " + counter + " total requests");
+    }
+  }
+
+  public static void forceUnsetBulkMode(@NotNull Project project) {
+    mapProject2RequestsCounter.put(project, 0);
+    DCLogger.info("BulkMode OFF forced");
+  }
+
+  public static void asyncUpdateCurrentFilePanel(PsiFile psiFile) {}
 
   public static <T> T computeInReadActionInSmartMode(
       @NotNull Project project, @NotNull final Computable<T> computation) {
@@ -56,20 +83,6 @@ public class RunUtils {
       Thread.currentThread().interrupt();
     }
     ProgressManager.checkCanceled();
-  }
-
-  private static long timeOfLastRescanRequest = 0;
-  // BackgroundTaskQueue ??? com.intellij.openapi.wm.ex.StatusBarEx#getBackgroundProcesses ???
-  public static void rescanProject(@NotNull Project project, long delayMilliseconds) {
-    runInBackground(
-        project,
-        () -> {
-          long timeOfThisRequest = timeOfLastRescanRequest = System.currentTimeMillis();
-          delay(delayMilliseconds);
-          if (timeOfLastRescanRequest > timeOfThisRequest) return;
-          AnalysisData.clearCache(project);
-          asyncAnalyseProjectAndUpdatePanel(project);
-        });
   }
 
   public static void runInBackground(@NotNull Project project, @NotNull Runnable runnable) {
@@ -109,7 +122,8 @@ public class RunUtils {
   private static final Map<Project, Set<ProgressIndicator>> mapProject2Indicators =
       new ConcurrentHashMap<>();
 
-  private static synchronized Set<ProgressIndicator> getRunningIndicators(@NotNull Project project) {
+  private static synchronized Set<ProgressIndicator> getRunningIndicators(
+      @NotNull Project project) {
     return mapProject2Indicators.computeIfAbsent(project, p -> new HashSet<>());
   }
 
@@ -123,8 +137,11 @@ public class RunUtils {
             .map(ProgressIndicator::toString)
             .collect(Collectors.joining("\n"));
     DCLogger.info("Canceling ProgressIndicators:\n" + indicatorsList);
+    // in case any indicator holds Bulk mode process
+    forceUnsetBulkMode(project);
     getRunningIndicators(project).forEach(ProgressIndicator::cancel);
     getRunningIndicators(project).clear();
+    projectsWithFullRescanRequested.remove(project);
   }
 
   private static final Map<VirtualFile, ProgressIndicator> mapFileProcessed2CancellableIndicator =
@@ -134,13 +151,20 @@ public class RunUtils {
 
   public static void runInBackgroundCancellable(
       @NotNull PsiFile psiFile, @NotNull Runnable runnable) {
-    DCLogger.info("runInBackgroundCancellable requested for: " + psiFile.getName());
+    final String s = runnable.toString();
+    final String runId = s.substring(s.lastIndexOf('/'), s.length() - 1);
+    DCLogger.info(
+        "runInBackgroundCancellable requested for: "
+            + psiFile.getName()
+            + " with Runnable "
+            + runId);
     final VirtualFile virtualFile = psiFile.getVirtualFile();
 
     // To proceed multiple PSI events in a bunch (every 100 milliseconds)
     Runnable prevRunnable = mapFile2Runnable.put(virtualFile, runnable);
     if (prevRunnable != null) return;
-    DCLogger.info("new Background task registered for: " + psiFile.getName());
+    DCLogger.info(
+        "new Background task registered for: " + psiFile.getName() + " with Runnable " + runId);
 
     final Project project = psiFile.getProject();
     ProgressManager.getInstance()
@@ -170,10 +194,13 @@ public class RunUtils {
                 // small delay to let new consequent requests proceed and cancel current one
                 delay(100);
 
-                DCLogger.info("New Process started for " + psiFile.getName());
                 Runnable actualRunnable = mapFile2Runnable.get(virtualFile);
-                mapFile2Runnable.remove(virtualFile);
                 if (actualRunnable != null) {
+                  final String s1 = actualRunnable.toString();
+                  final String runId = s1.substring(s1.lastIndexOf('/'), s1.length() - 1);
+                  DCLogger.info(
+                      "New Process started for " + psiFile.getName() + " with Runnable " + runId);
+                  mapFile2Runnable.remove(virtualFile);
                   actualRunnable.run();
                 } else {
                   DCLogger.warn("No actual Runnable found for: " + psiFile.getName());
@@ -183,34 +210,128 @@ public class RunUtils {
             });
   }
 
-  public static void asyncAnalyseProjectAndUpdatePanel(@Nullable Project project) {
-    if (project == null) {
-      for (Project prj : ProjectManager.getInstance().getOpenProjects()) {
-        asyncAnalyseAndUpdatePanel(prj, null);
+  public static boolean isFullRescanRequested(@NotNull Project project) {
+    return projectsWithFullRescanRequested.contains(project);
+  }
+
+  private static final Set<Project> projectsWithFullRescanRequested =
+      ContainerUtil.newConcurrentSet();
+
+  private static final Map<Project, ProgressIndicator> mapProject2CancellableIndicator =
+      new ConcurrentHashMap<>();
+  private static final Map<Project, Long> mapProject2CancellableRequestId =
+      new ConcurrentHashMap<>();
+
+  private static final Map<Project, Long> mapProject2RequestId = new ConcurrentHashMap<>();
+  private static final Set<Long> bulkModeRequests = ContainerUtil.newConcurrentSet();
+
+  public static void rescanInBackgroundCancellableDelayed(
+      @NotNull Project project, long delayMilliseconds, boolean inBulkMode) {
+    final long requestId = System.currentTimeMillis();
+    DCLogger.info(
+        "rescanInBackgroundCancellableDelayed requested for: "
+            + project.getName()
+            + "] with RequestId "
+            + requestId);
+    projectsWithFullRescanRequested.add(project);
+
+    // To proceed multiple events in a bunch (every <delayMilliseconds>)
+    Long prevRequestId = mapProject2RequestId.put(project, requestId);
+    if (inBulkMode) bulkModeRequests.add(requestId);
+    if (prevRequestId != null) {
+      if (bulkModeRequests.remove(prevRequestId)) {
+        RunUtils.unsetBulkMode(project);
       }
-    } else asyncAnalyseAndUpdatePanel(project, null);
+      return;
+    }
+    DCLogger.info(
+        "new Background Rescan task registered for ["
+            + project.getName()
+            + "] with RequestId "
+            + requestId);
+
+    ProgressManager.getInstance()
+        .run(
+            new Task.Backgroundable(project, "DeepCode: Analysing Files...") {
+              @Override
+              public void run(@NotNull ProgressIndicator indicator) {
+
+                // To let new event cancel the currently running one
+                ProgressIndicator prevProgressIndicator =
+                    mapProject2CancellableIndicator.put(project, indicator);
+                if (prevProgressIndicator != null
+                    // can't use prevProgressIndicator.isRunning() due to
+                    // https://youtrack.jetbrains.com/issue/IDEA-241055
+                    && getRunningIndicators(project).remove(prevProgressIndicator)) {
+                  DCLogger.info(
+                      "Previous Rescan cancelling for "
+                          + project.getName()
+                          + "\nProgressIndicator ["
+                          + prevProgressIndicator.toString()
+                          + "]");
+                  prevProgressIndicator.cancel();
+                }
+                getRunningIndicators(project).add(indicator);
+
+                // unset BulkMode if cancelled process did run under BulkMode
+                Long prevRequestId = mapProject2CancellableRequestId.put(project, requestId);
+                if (prevRequestId != null && bulkModeRequests.remove(prevRequestId)) {
+                  RunUtils.unsetBulkMode(project);
+                }
+
+                // delay to let new consequent requests proceed and cancel current one
+                // or to let Idea proceed internal events (.gitignore update)
+                delay(delayMilliseconds);
+
+                Long actualRequestId = mapProject2RequestId.get(project);
+                if (actualRequestId != null) {
+                  DCLogger.info(
+                      "New Rescan started for ["
+                          + project.getName()
+                          + "] with RequestId "
+                          + actualRequestId);
+                  mapProject2RequestId.remove(project);
+
+                  // actual rescan
+                  AnalysisData.removeProjectFromCache(project);
+                  updateCachedAnalysisResults(project, null);
+
+                  if (bulkModeRequests.remove(actualRequestId)) {
+                    RunUtils.unsetBulkMode(project);
+                  }
+                } else {
+                  DCLogger.warn("No actual RequestId found for: " + project.getName());
+                }
+                projectsWithFullRescanRequested.remove(project);
+                DCLogger.info("Rescan ending for " + project.getName());
+              }
+            });
   }
 
-  public static void asyncAnalyseAndUpdatePanel(
+  public static void asyncAnalyseProjectAndUpdatePanel(@Nullable Project project) {
+    final Project[] projects =
+        (project == null)
+            ? ProjectManager.getInstance().getOpenProjects()
+            : new Project[] {project};
+    for (Project prj : projects) {
+      //    DumbService.getInstance(project).runWhenSmart(() ->
+      runInBackground(prj, () -> updateCachedAnalysisResults(prj, null));
+    }
+  }
+
+  public static void updateCachedAnalysisResults(
       @NotNull Project project, @Nullable Collection<PsiFile> psiFiles) {
-    asyncAnalyseAndUpdatePanel(project, psiFiles, Collections.emptyList());
+    updateCachedAnalysisResults(project, psiFiles, Collections.emptyList());
   }
 
-  public static void asyncAnalyseAndUpdatePanel(
+  public static void updateCachedAnalysisResults(
       @NotNull Project project,
       @Nullable Collection<PsiFile> psiFiles,
       @NotNull Collection<PsiFile> filesToRemove) {
-    //    DumbService.getInstance(project)
-    //        .runWhenSmart(
-    //            () ->
-    runInBackground(
+    AnalysisData.updateCachedResultsForFiles(
         project,
-        () -> {
-          AnalysisData.updateCachedResultsForFiles(
-              project,
-              (psiFiles != null) ? psiFiles : DeepCodeUtils.getAllSupportedFilesInProject(project),
-              filesToRemove);
-          //      StatusBarUtil.setStatusBarInfo(project, message);
-        });
+        (psiFiles != null) ? psiFiles : DeepCodeUtils.getAllSupportedFilesInProject(project),
+        filesToRemove);
+    //      StatusBarUtil.setStatusBarInfo(project, message);
   }
 }

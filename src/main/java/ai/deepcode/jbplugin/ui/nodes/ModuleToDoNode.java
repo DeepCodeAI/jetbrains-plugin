@@ -13,11 +13,13 @@ import com.intellij.openapi.module.ModuleType;
 import com.intellij.openapi.module.ModuleUtilCore;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ModuleRootManager;
+import com.intellij.openapi.ui.Queryable;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.search.TodoItem;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -82,8 +84,15 @@ public class ModuleToDoNode extends BaseToDoNode<Module> {
     presentation.setPresentableText(newName);
   }
 
+/*
   @Override
   public String getTestPresentation() {
+    return "Module";
+  }
+*/
+
+  @Override
+  public String toTestString(@Nullable Queryable.PrintInfo printInfo) {
     return "Module";
   }
 
