@@ -17,9 +17,6 @@ import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
@@ -44,8 +41,6 @@ public final class AnalysisData {
   // todo: keep few latest file versions (Guava com.google.common.cache.CacheBuilder ?)
   private static final Map<PsiFile, List<SuggestionForFile>> mapFile2Suggestions =
       new ConcurrentHashMap<>();
-
-  private static final Map<PsiFile, String> mapPsiFile2Hash = new ConcurrentHashMap<>();
 
   private static final Map<Project, String> mapProject2BundleId = new ConcurrentHashMap<>();
 
@@ -112,7 +107,7 @@ public final class AnalysisData {
       for (PsiFile file : files) {
         if (file != null && isFileInCache(file)) {
           mapFile2Suggestions.remove(file);
-          mapPsiFile2Hash.remove(file);
+          HashContentUtils.removeHashContent(file);
           removeCounter++;
         }
       }
@@ -127,7 +122,9 @@ public final class AnalysisData {
     }
   }
 
-  static void removeProjectFromCache(@NotNull Project project) {
+  static void removeProjectFromCaches(@NotNull Project project) {
+    info("Caches clearance requested for project: " + project);
+    HashContentUtils.removeHashContent(project);
     if (mapProject2BundleId.remove(project) != null) {
       info("Removed from cache: " + project);
     }
@@ -190,7 +187,7 @@ public final class AnalysisData {
                 + "\nHash for first file "
                 + firstFile.getName()
                 + " ["
-                + getHash(firstFile)
+                + HashContentUtils.getHash(firstFile)
                 + "]");
 
         mapFile2Suggestions.putAll(retrieveSuggestions(project, filesToProceed, filesToRemove));
@@ -228,7 +225,6 @@ public final class AnalysisData {
   }
 
   static final int MAX_BUNDLE_SIZE = 4000000; // bytes
-  private static final Map<PsiFile, String> mapPsiFile2Content = new ConcurrentHashMap<>();
 
   /** Perform costly network request. <b>No cache checks!</b> */
   @NotNull
@@ -254,19 +250,18 @@ public final class AnalysisData {
     progress.setText(PREPARE_FILES_TEXT);
     info(PREPARE_FILES_TEXT);
     ProgressManager.checkCanceled();
-    mapPsiFile2Content.clear();
     Map<String, String> mapPath2Hash = new HashMap<>();
     long sizePath2Hash = 0;
     int fileCounter = 0;
     int totalFiles = psiFiles.size();
     for (PsiFile file : psiFiles) {
-      mapPsiFile2Hash.remove(file);
+      HashContentUtils.removeHashContent(file);
       ProgressManager.checkCanceled();
       progress.setFraction(((double) fileCounter++) / totalFiles);
       progress.setText(PREPARE_FILES_TEXT + fileCounter + " of " + totalFiles + " files done.");
       final String path = DeepCodeUtils.getDeepCodedFilePath(file);
       // info("getHash requested");
-      final String hash = getHash(file);
+      final String hash = HashContentUtils.getHash(file);
       // info("getHash done");
       mapPath2Hash.put(path, hash);
       sizePath2Hash += (path.length() + hash.length()) * 2; // rough estimation of bytes occupied
@@ -299,7 +294,8 @@ public final class AnalysisData {
     progress.setText(UPLOADING_FILES_TEXT);
     ProgressManager.checkCanceled();
 
-    for (int counter = 0; counter < 10; counter++) {
+    final int attempts = 5;
+    for (int counter = 0; counter < attempts; counter++) {
       uploadFiles(project, psiFiles, missingFiles, bundleId, progress);
       missingFiles = checkBundle(project, bundleId, progress);
       if (missingFiles.isEmpty()) {
@@ -307,13 +303,13 @@ public final class AnalysisData {
       } else {
         warn(
             "Check Bundle found some missingFiles to be NOT uploaded, will try to upload "
-                + (10 - counter)
+                + (attempts - counter)
                 + " more times:\nmissingFiles = "
                 + missingFiles);
       }
     }
     //    mapPsiFile2Hash.clear();
-    mapPsiFile2Content.clear();
+    // HashContentUtils.mapPsiFile2Content.clear();
     info("--- Upload Files took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
 
     // ---------------------------------------- Get Analysis
@@ -445,78 +441,6 @@ public final class AnalysisData {
     return bundleResponse;
   }
 
-  // ?? com.intellij.openapi.util.text.StringUtil.toHexString
-  // https://www.baeldung.com/sha-256-hashing-java#message-digest
-  private static String bytesToHex(byte[] hash) {
-    StringBuilder hexString = new StringBuilder();
-    for (byte b : hash) {
-      String hex = Integer.toHexString(0xff & b);
-      if (hex.length() == 1) hexString.append('0');
-      hexString.append(hex);
-    }
-    return hexString.toString();
-  }
-
-  /** check if Hash for PsiFile was changed comparing to cached hash */
-  public static boolean isHashChanged(@NotNull PsiFile psiFile) {
-    // fixme debug only
-    // DCLogger.info("hash check started");
-    String newHash = doGetHash(doGetFileContent(psiFile));
-    String oldHash = mapPsiFile2Hash.put(psiFile, newHash);
-    // fixme debug only
-    DCLogger.info(
-        "Hash check (if file been changed) for "
-            + psiFile.getName()
-            + "\noldHash = "
-            + oldHash
-            + "\nnewHash = "
-            + newHash);
-
-    return !newHash.equals(oldHash);
-  }
-
-  private static String getHash(@NotNull PsiFile psiFile) {
-    return mapPsiFile2Hash.computeIfAbsent(psiFile, AnalysisData::doGetHash);
-  }
-
-  private static String doGetHash(@NotNull PsiFile psiFile) {
-    return doGetHash(getFileContent(psiFile));
-  }
-
-  private static String doGetHash(@NotNull String fileText) {
-    MessageDigest messageDigest;
-    try {
-      messageDigest = MessageDigest.getInstance("SHA-256");
-    } catch (NoSuchAlgorithmException e) {
-      throw new RuntimeException(e);
-    }
-    byte[] encodedHash = messageDigest.digest(fileText.getBytes(StandardCharsets.UTF_8));
-    return bytesToHex(encodedHash);
-  }
-
-  @NotNull
-  private static String getFileContent(@NotNull PsiFile psiFile) {
-    // potential OutOfMemoryException for too large projects
-    return mapPsiFile2Content.computeIfAbsent(psiFile, AnalysisData::doGetFileContent);
-  }
-
-  @NotNull
-  private static String doGetFileContent(@NotNull PsiFile psiFile) {
-    // psiFile.getText() is NOT expensive as it's goes to VirtualFileContent.getText()
-    return RunUtils.computeInReadActionInSmartMode(
-        psiFile.getProject(), () -> getPsiFileText(psiFile));
-  }
-
-  /** Should be run inside <b>Read action</b> !!! */
-  @NotNull
-  private static String getPsiFileText(@NotNull PsiFile psiFile) {
-    if (!psiFile.isValid()) {
-      DCLogger.warn("Invalid PsiFile: " + psiFile);
-      return "";
-    }
-    return psiFile.getText();
-  }
-
   private static void doUploadFiles(
       @NotNull Project project,
       @NotNull Collection<PsiFile> psiFiles,
@@ -526,7 +450,7 @@ public final class AnalysisData {
     info("Uploading " + psiFiles.size() + " files... ");
     for (PsiFile psiFile : psiFiles) {
       progress.checkCanceled();
-      listHash2Content.add(new FileHash2ContentRequest(getHash(psiFile), getFileContent(psiFile)));
+      listHash2Content.add(new FileHash2ContentRequest(HashContentUtils.getHash(psiFile), HashContentUtils.getFileContent(psiFile)));
       //      logDeepCode("Uploading file: " + getPath(psiFile));
     }
     if (listHash2Content.isEmpty()) return;
@@ -646,7 +570,7 @@ public final class AnalysisData {
   }
 
   private static FileContent createFileContent(PsiFile psiFile) {
-    return new FileContent(DeepCodeUtils.getDeepCodedFilePath(psiFile), getFileContent(psiFile));
+    return new FileContent(DeepCodeUtils.getDeepCodedFilePath(psiFile), HashContentUtils.getFileContent(psiFile));
   }
 
   public static Set<PsiFile> getAllFilesWithSuggestions(@NotNull final Project project) {
@@ -662,16 +586,13 @@ public final class AnalysisData {
   }
 
   /** Remove project from all Caches and <b>CANCEL</b> all background tasks for it */
-  public static void clearCache(@Nullable final Project project) {
-    info("Cache clearance requested for project: " + project);
-    mapPsiFile2Hash.clear();
-    mapPsiFile2Content.clear();
+  public static void resetCachesAndTasks(@Nullable final Project project) {
     final Set<Project> projects =
         (project == null) ? getAllCachedProject() : Collections.singleton(project);
     for (Project prj : projects) {
       // lets all running ProgressIndicators release MUTEX first
       RunUtils.cancelRunningIndicators(prj);
-      removeProjectFromCache(prj);
+      removeProjectFromCaches(prj);
       ServiceManager.getService(prj, myTodoView.class).refresh();
       mapProject2analysisUrl.put(prj, "");
     }

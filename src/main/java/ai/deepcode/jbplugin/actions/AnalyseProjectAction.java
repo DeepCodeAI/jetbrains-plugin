@@ -14,7 +14,7 @@ public class AnalyseProjectAction extends AnAction {
     final Project project = e.getRequiredData(PlatformDataKeys.PROJECT);
     DCLogger.info("Re-Analyse Project requested for: " + project);
     // fixme: ?? background task here to avoid potential freeze due to MUTEX lock
-    AnalysisData.clearCache(project);
+    AnalysisData.resetCachesAndTasks(project);
     if (LoginUtils.isLogged(project, true)) {
       RunUtils.asyncAnalyseProjectAndUpdatePanel(project);
     }

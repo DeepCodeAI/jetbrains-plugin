@@ -34,7 +34,7 @@ public class MyProjectManagerListener implements ProjectManagerListener {
     RunUtils.runInBackground(project, () -> {
       // lets all running ProgressIndicators release MUTEX first
       RunUtils.cancelRunningIndicators(project);
-      AnalysisData.removeProjectFromCache(project);
+      AnalysisData.removeProjectFromCaches(project);
     });
   }
 

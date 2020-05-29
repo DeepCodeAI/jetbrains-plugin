@@ -1,7 +1,6 @@
 package ai.deepcode.jbplugin;
 
 import ai.deepcode.jbplugin.core.*;
-import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
@@ -26,7 +25,7 @@ public class DeepCodeStartupActivity implements StartupActivity {
     // Keep commented - for DEBUG ONLY !!!!!!!!!!!!!!!!!
     //PropertiesComponent.getInstance(project).setValue("consentGiven", false);
 
-    AnalysisData.clearCache(project);
+    AnalysisData.resetCachesAndTasks(project);
     // Initial logging if needed.
     if (LoginUtils.isLogged(project, true)) {
       RunUtils.asyncAnalyseProjectAndUpdatePanel(project);

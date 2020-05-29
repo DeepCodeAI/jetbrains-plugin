@@ -76,7 +76,7 @@ public class DeepCodeConfigEntry implements Configurable {
     DeepCodeParams.setUseLinter(myForm.isLintersEnabled());
     DeepCodeParams.setEnable(myForm.isPluginEnabled());
     if (needClearCachesAndRescan) {
-      AnalysisData.clearCache(null);
+      AnalysisData.resetCachesAndTasks(null);
       if (LoginUtils.isLogged(null, true)) {
         RunUtils.asyncAnalyseProjectAndUpdatePanel(null);
       }

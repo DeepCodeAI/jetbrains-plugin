@@ -293,7 +293,7 @@ public class RunUtils {
                   mapProject2RequestId.remove(project);
 
                   // actual rescan
-                  AnalysisData.removeProjectFromCache(project);
+                  AnalysisData.removeProjectFromCaches(project);
                   updateCachedAnalysisResults(project, null);
 
                   if (bulkModeRequests.remove(actualRequestId)) {
