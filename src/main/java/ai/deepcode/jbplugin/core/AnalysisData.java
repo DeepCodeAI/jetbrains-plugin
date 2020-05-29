@@ -320,7 +320,7 @@ public final class AnalysisData {
     startTime = System.currentTimeMillis();
     progress.setText(WAITING_FOR_ANALYSIS_TEXT);
     ProgressManager.checkCanceled();
-    GetAnalysisResponse getAnalysisResponse = doRetrieveSuggestions(project, bundleId, progress);
+    GetAnalysisResponse getAnalysisResponse = doGetAnalysis(project, bundleId, progress);
     result = parseGetAnalysisResponse(project, psiFiles, getAnalysisResponse, progress);
     info("--- Get Analysis took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
     //    progress.stop();
@@ -353,12 +353,12 @@ public final class AnalysisData {
         if (brokenMissingFilesCount == 0) {
           brokenMissingFilesMessage =
               " files requested in missingFiles not found in psiFiles (skipped to upload)."
-                  + " First broken missingFile: "
+                  + "\nFirst broken missingFile: "
                   + filePath
-                  + " Full file path example: "
+                  + "\nFull file path example: "
                   // deepcode ignore checkIsPresent~Optional: collection already is not empty
                   + psiFiles.stream().findFirst().get().getVirtualFile().getPath()
-                  + " BaseDir path: "
+                  + "\nBaseDir path: "
                   + project.getBasePath();
         }
         brokenMissingFilesCount++;
@@ -537,7 +537,7 @@ public final class AnalysisData {
   }
 
   @NotNull
-  private static GetAnalysisResponse doRetrieveSuggestions(
+  private static GetAnalysisResponse doGetAnalysis(
       @NotNull Project project,
       @NotNull String bundleId,
       @NotNull ProgressIndicator progressIndicator) {
@@ -563,6 +563,10 @@ public final class AnalysisData {
       progressIndicator.setText(WAITING_FOR_ANALYSIS_TEXT + (int) (progress * 100) + "% done");
       // fixme
       if (counter == 200) break;
+      if (response.getStatus().equals("FAILED")) {
+        warn("FAILED getAnalysis request. Full project rescan requested.");
+        RunUtils.rescanInBackgroundCancellableDelayed(project, 500, false);
+      }
       counter++;
     } while (!response.getStatus().equals("DONE")
     // !!!! keep commented in production, for debug only: to emulate long processing
