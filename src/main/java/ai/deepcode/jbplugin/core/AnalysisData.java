@@ -16,8 +16,6 @@ import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -39,7 +37,7 @@ public final class AnalysisData {
 
   private AnalysisData() {}
 
-  private static final Logger LOG = LoggerFactory.getLogger("DeepCode.AnalysisData");
+  //  private static final Logger LOG = LoggerFactory.getLogger("DeepCode.AnalysisData");
   private static final Map<PsiFile, List<SuggestionForFile>> EMPTY_MAP = Collections.emptyMap();
   private static Map<Project, String> mapProject2analysisUrl = new ConcurrentHashMap<>();
 
@@ -266,10 +264,6 @@ public final class AnalysisData {
       ProgressManager.checkCanceled();
       progress.setFraction(((double) fileCounter++) / totalFiles);
       progress.setText(PREPARE_FILES_TEXT + fileCounter + " of " + totalFiles + " files done.");
-      if (!file.isValid()) {
-        DCLogger.warn("Invalid PsiFile: " + psiFiles);
-        continue;
-      }
       final String path = DeepCodeUtils.getDeepCodedFilePath(file);
       // info("getHash requested");
       final String hash = getHash(file);
@@ -385,6 +379,11 @@ public final class AnalysisData {
     doUploadFiles(project, filesChunk, bundleId, progress);
   }
 
+  /**
+   * Checks the status of a bundle: if there are still missing files after uploading
+   *
+   * @return list of the current missingFiles.
+   */
   @NotNull
   private static List<String> checkBundle(
       @NotNull Project project, @NotNull String bundleId, @NotNull ProgressIndicator progress) {
@@ -504,14 +503,18 @@ public final class AnalysisData {
   @NotNull
   private static String doGetFileContent(@NotNull PsiFile psiFile) {
     // psiFile.getText() is NOT expensive as it's goes to VirtualFileContent.getText()
-    return RunUtils.computeInReadActionInSmartMode(psiFile.getProject(), psiFile::getText);
-    /*
-        try {
-          return new String(Files.readAllBytes(Paths.get(getPath(psiFile))), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
-    */
+    return RunUtils.computeInReadActionInSmartMode(
+        psiFile.getProject(), () -> getPsiFileText(psiFile));
+  }
+
+  /** Should be run inside <b>Read action</b> !!! */
+  @NotNull
+  private static String getPsiFileText(@NotNull PsiFile psiFile) {
+    if (!psiFile.isValid()) {
+      DCLogger.warn("Invalid PsiFile: " + psiFile);
+      return "";
+    }
+    return psiFile.getText();
   }
 
   private static void doUploadFiles(
@@ -579,7 +582,7 @@ public final class AnalysisData {
     AnalysisResults analysisResults = response.getAnalysisResults();
     mapProject2analysisUrl.put(project, response.getAnalysisURL());
     if (analysisResults == null) {
-      LOG.error("AnalysisResults is null for: {}", response);
+      warn("AnalysisResults is null for: " + response);
       return EMPTY_MAP;
     }
     for (PsiFile psiFile : psiFiles) {
@@ -592,7 +595,7 @@ public final class AnalysisData {
       }
       final Suggestions suggestions = analysisResults.getSuggestions();
       if (suggestions == null) {
-        LOG.error("Suggestions is empty for: {}", response);
+        warn("Suggestions is empty for: " + response);
         return EMPTY_MAP;
       }
       ProgressManager.checkCanceled();
@@ -604,7 +607,7 @@ public final class AnalysisData {
       // fixme debug only
       // DCLogger.info("parseGetAnalysisResponse after Document requested");
       if (document == null) {
-        LOG.error("Document not found for file: {}  GetAnalysisResponse: {}", psiFile, response);
+        warn("Document not found for file: " + psiFile + "\nGetAnalysisResponse: " + response);
         return EMPTY_MAP;
       }
 
@@ -612,10 +615,11 @@ public final class AnalysisData {
       for (String suggestionIndex : fileSuggestions.keySet()) {
         final Suggestion suggestion = suggestions.get(suggestionIndex);
         if (suggestion == null) {
-          LOG.error(
-              "Suggestion not found for suggestionIndex: {}  GetAnalysisResponse: {}",
-              suggestionIndex,
-              response);
+          warn(
+              "Suggestion not found for suggestionIndex: "
+                  + suggestionIndex
+                  + "\nGetAnalysisResponse: "
+                  + response);
           return EMPTY_MAP;
         }
         final List<TextRange> ranges = new ArrayList<>();
@@ -638,14 +642,12 @@ public final class AnalysisData {
   }
 
   private static FileContent createFileContent(PsiFile psiFile) {
-    return new FileContent(DeepCodeUtils.getDeepCodedFilePath(psiFile), psiFile.getText());
+    return new FileContent(DeepCodeUtils.getDeepCodedFilePath(psiFile), getFileContent(psiFile));
   }
 
   public static Set<PsiFile> getAllFilesWithSuggestions(@NotNull final Project project) {
     return mapFile2Suggestions.entrySet().stream()
         .filter(e -> e.getKey().getProject().equals(project))
-        // otherwise ai.deepcode.jbplugin.ui.TodoTreeBuilder.getAllFiles may fail
-        .filter(e -> e.getKey().isValid())
         .filter(e -> !e.getValue().isEmpty())
         .map(Map.Entry::getKey)
         .collect(Collectors.toSet());

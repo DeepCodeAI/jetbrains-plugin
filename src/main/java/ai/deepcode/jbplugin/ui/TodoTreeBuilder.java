@@ -178,7 +178,10 @@ public abstract class TodoTreeBuilder implements Disposable {
    *         The reason why we return such "dirty" iterator is the performance.
    */
   public Iterator<PsiFile> getAllFiles() {
-    return AnalysisData.getAllFilesWithSuggestions(myProject).iterator();
+    return AnalysisData.getAllFilesWithSuggestions(myProject).stream()
+            // safe to call isValid as it (should be) called from ReadAction.
+            .filter(PsiFile::isValid)
+            .iterator();
 /*
     final Iterator<VirtualFile> iterator = myFileTree.getFileIterator();
     return new Iterator<PsiFile>() {

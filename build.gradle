@@ -7,7 +7,7 @@ plugins {
 
 //group 'org.example'
 
-version '1.0.3'
+version '1.0.4'
 sourceCompatibility = 1.8
 
 repositories {
@@ -35,6 +35,7 @@ patchPluginXml {
     untilBuild 202
 
     changeNotes """
+      1.0.4 - Bugfixing internals<br>
       1.0.3 - Bugfixing and optimization of bulk file changes<br>
       1.0.2 - Bugfixing and better support for refactoring<br>
       1.0.1 - Updated Java-client and added support for Java 8, required for Android Studio<br>
@@ -85,9 +86,9 @@ task run_WS_192(type: RunIdeTask){
     ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\WebStorm\\ch-1\\192.7142.35'
 }
 
-task run_PC_193(type: RunIdeTask){
+task run_PC_201(type: RunIdeTask){
     jvmArgs '-Xmx2G'
-    ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\PyCharm-C\\ch-0\\193.5233.109'
+    ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\PyCharm-C\\ch-0\\201.7223.92'
 }
 
 task run_AS_40(type: RunIdeTask){
