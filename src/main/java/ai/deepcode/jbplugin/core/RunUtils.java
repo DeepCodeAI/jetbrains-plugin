@@ -21,42 +21,6 @@ import java.util.stream.Collectors;
 public class RunUtils {
   private RunUtils() {}
 
-  private static final Map<Project, Integer> mapProject2RequestsCounter = new ConcurrentHashMap<>();
-
-  private static int getBulkRequestsCount(@NotNull Project project) {
-    return mapProject2RequestsCounter.computeIfAbsent(project, p -> 0);
-  }
-
-  /** No events for individual files should be processed */
-  public static boolean inBulkMode(@NotNull Project project) {
-    return getBulkRequestsCount(project) > 0;
-  }
-
-  public static void setBulkMode(@NotNull Project project) {
-    final int counter = getBulkRequestsCount(project) + 1;
-    if (counter == 1) {
-      // cancel all running tasks first
-      cancelRunningIndicators(project);
-    }
-    DCLogger.info("BulkMode ON with " + counter + " total requests");
-    mapProject2RequestsCounter.put(project, counter);
-  }
-
-  public static void unsetBulkMode(@NotNull Project project) {
-    final int counter = getBulkRequestsCount(project) - 1;
-    if (counter >= 0) {
-      mapProject2RequestsCounter.put(project, counter);
-      DCLogger.info("BulkMode OFF with " + counter + " total requests");
-    } else {
-      DCLogger.warn("BulkMode OFF request with already " + counter + " total requests");
-    }
-  }
-
-  public static void forceUnsetBulkMode(@NotNull Project project) {
-    mapProject2RequestsCounter.put(project, 0);
-    DCLogger.info("BulkMode OFF forced");
-  }
-
   public static void asyncUpdateCurrentFilePanel(PsiFile psiFile) {}
 
   public static <T> T computeInReadActionInSmartMode(
@@ -138,7 +102,7 @@ public class RunUtils {
             .collect(Collectors.joining("\n"));
     DCLogger.info("Canceling ProgressIndicators:\n" + indicatorsList);
     // in case any indicator holds Bulk mode process
-    forceUnsetBulkMode(project);
+    BulkMode.forceUnset(project);
     getRunningIndicators(project).forEach(ProgressIndicator::cancel);
     getRunningIndicators(project).clear();
     projectsWithFullRescanRequested.remove(project);
@@ -240,7 +204,7 @@ public class RunUtils {
     if (inBulkMode) bulkModeRequests.add(requestId);
     if (prevRequestId != null) {
       if (bulkModeRequests.remove(prevRequestId)) {
-        RunUtils.unsetBulkMode(project);
+        BulkMode.unset(project);
       }
       return;
     }
@@ -276,7 +240,7 @@ public class RunUtils {
                 // unset BulkMode if cancelled process did run under BulkMode
                 Long prevRequestId = mapProject2CancellableRequestId.put(project, requestId);
                 if (prevRequestId != null && bulkModeRequests.remove(prevRequestId)) {
-                  RunUtils.unsetBulkMode(project);
+                  BulkMode.unset(project);
                 }
 
                 // delay to let new consequent requests proceed and cancel current one
@@ -297,7 +261,7 @@ public class RunUtils {
                   updateCachedAnalysisResults(project, null);
 
                   if (bulkModeRequests.remove(actualRequestId)) {
-                    RunUtils.unsetBulkMode(project);
+                    BulkMode.unset(project);
                   }
                 } else {
                   DCLogger.warn("No actual RequestId found for: " + project.getName());
