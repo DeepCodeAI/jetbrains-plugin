@@ -275,6 +275,7 @@ public final class AnalysisData {
       }
     }
     // todo break removeFiles in chunks less then MAX_BANDLE_SIZE
+    //  needed ?? we do full rescan for large amount of files to remove
     CreateBundleResponse createBundleResponse = makeNewBundle(project, mapPath2Hash, filesToRemove);
     if (isNotSucceed(project, createBundleResponse, "Bad Create/Extend Bundle request: "))
       return EMPTY_MAP;
@@ -329,6 +330,8 @@ public final class AnalysisData {
       @NotNull List<String> missingFiles,
       @NotNull String bundleId,
       @NotNull ProgressIndicator progress) {
+    Map<String, PsiFile> mapPath2File =
+        psiFiles.stream().collect(Collectors.toMap(DeepCodeUtils::getDeepCodedFilePath, it -> it));
     int fileCounter = 0;
     int totalFiles = missingFiles.size();
     long fileChunkSize = 0;
@@ -340,11 +343,8 @@ public final class AnalysisData {
       progress.checkCanceled();
       progress.setFraction(((double) fileCounter++) / totalFiles);
       progress.setText(UPLOADING_FILES_TEXT + fileCounter + " of " + totalFiles + " files done.");
-      PsiFile psiFile =
-          psiFiles.stream()
-              .filter(f -> DeepCodeUtils.getDeepCodedFilePath(f).equals(filePath))
-              .findAny()
-              .orElse(null);
+
+      PsiFile psiFile = mapPath2File.get(filePath);
       if (psiFile == null) {
         if (brokenMissingFilesCount == 0) {
           brokenMissingFilesMessage =
