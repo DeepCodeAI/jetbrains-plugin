@@ -450,8 +450,9 @@ public final class AnalysisData {
     info("Uploading " + psiFiles.size() + " files... ");
     for (PsiFile psiFile : psiFiles) {
       progress.checkCanceled();
-      listHash2Content.add(new FileHash2ContentRequest(HashContentUtils.getHash(psiFile), HashContentUtils.getFileContent(psiFile)));
-      //      logDeepCode("Uploading file: " + getPath(psiFile));
+      listHash2Content.add(
+          new FileHash2ContentRequest(
+              HashContentUtils.getHash(psiFile), HashContentUtils.getFileContent(psiFile)));
     }
     if (listHash2Content.isEmpty()) return;
 
@@ -488,8 +489,12 @@ public final class AnalysisData {
       // fixme
       if (counter == 200) break;
       if (response.getStatus().equals("FAILED")) {
-        warn("FAILED getAnalysis request. Full project rescan requested.");
-        RunUtils.rescanInBackgroundCancellableDelayed(project, 500, false);
+        warn("FAILED getAnalysis request.");
+        // if Failed then we have inconsistent caches, better to do full rescan
+        if (!RunUtils.isFullRescanRequested(project)) {
+          RunUtils.rescanInBackgroundCancellableDelayed(project, 500, false);
+        }
+        break;
       }
       counter++;
     } while (!response.getStatus().equals("DONE")
@@ -570,7 +575,8 @@ public final class AnalysisData {
   }
 
   private static FileContent createFileContent(PsiFile psiFile) {
-    return new FileContent(DeepCodeUtils.getDeepCodedFilePath(psiFile), HashContentUtils.getFileContent(psiFile));
+    return new FileContent(
+        DeepCodeUtils.getDeepCodedFilePath(psiFile), HashContentUtils.getFileContent(psiFile));
   }
 
   public static Set<PsiFile> getAllFilesWithSuggestions(@NotNull final Project project) {
