@@ -483,7 +483,7 @@ public final class AnalysisData {
         return new GetAnalysisResponse();
       ProgressManager.checkCanceled();
       double progress = response.getProgress();
-      if (progress == 0) progress = ((double) counter) / 200;
+      if (progress <= 0 || progress > 1) progress = ((double) counter) / 200;
       progressIndicator.setFraction(progress);
       progressIndicator.setText(WAITING_FOR_ANALYSIS_TEXT + (int) (progress * 100) + "% done");
       // fixme
