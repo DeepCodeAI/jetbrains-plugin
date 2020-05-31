@@ -230,19 +230,18 @@ public final class AnalysisData {
   @NotNull
   private static Map<PsiFile, List<SuggestionForFile>> retrieveSuggestions(
       @NotNull Project project,
-      @NotNull Collection<PsiFile> psiFiles,
+      @NotNull Collection<PsiFile> filesToProceed,
       @NotNull Collection<PsiFile> filesToRemove) {
-    if (psiFiles.isEmpty() && filesToRemove.isEmpty()) {
-      return Collections.emptyMap();
+    if (filesToProceed.isEmpty() && filesToRemove.isEmpty()) {
+      warn("Both filesToProceed and filesToRemove are empty");
+      return EMPTY_MAP;
     }
-    if (!LoginUtils.isLogged(project, false)) {
-      return Collections.emptyMap();
-    }
+    // no needs to check login here as it will be checked anyway during every api response's check
+    // if (!LoginUtils.isLogged(project, false)) return EMPTY_MAP;
     Map<PsiFile, List<SuggestionForFile>> result;
     ProgressIndicator progress =
         ProgressManager.getInstance().getProgressIndicator(); // new StatusBarProgress();
     progress.setIndeterminate(false);
-    //    progress.start();
 
     long startTime;
     // ---------------------------------------- Create Bundle
@@ -253,8 +252,8 @@ public final class AnalysisData {
     Map<String, String> mapPath2Hash = new HashMap<>();
     long sizePath2Hash = 0;
     int fileCounter = 0;
-    int totalFiles = psiFiles.size();
-    for (PsiFile file : psiFiles) {
+    int totalFiles = filesToProceed.size();
+    for (PsiFile file : filesToProceed) {
       HashContentUtils.removeHashContent(file);
       ProgressManager.checkCanceled();
       progress.setFraction(((double) fileCounter++) / totalFiles);
@@ -268,8 +267,6 @@ public final class AnalysisData {
       if (sizePath2Hash > MAX_BUNDLE_SIZE) {
         CreateBundleResponse tempBundleResponse =
             makeNewBundle(project, mapPath2Hash, Collections.emptyList());
-        if (isNotSucceed(project, tempBundleResponse, "Bad Create/Extend Bundle request: "))
-          return EMPTY_MAP;
         sizePath2Hash = 0;
         mapPath2Hash.clear();
       }
@@ -277,9 +274,10 @@ public final class AnalysisData {
     // todo break removeFiles in chunks less then MAX_BANDLE_SIZE
     //  needed ?? we do full rescan for large amount of files to remove
     CreateBundleResponse createBundleResponse = makeNewBundle(project, mapPath2Hash, filesToRemove);
-    if (isNotSucceed(project, createBundleResponse, "Bad Create/Extend Bundle request: "))
-      return EMPTY_MAP;
+
     final String bundleId = createBundleResponse.getBundleId();
+    if (bundleId.isEmpty()) return EMPTY_MAP; // no sense to proceed without bundleId
+
     List<String> missingFiles = createBundleResponse.getMissingFiles();
     info(
         "--- Create/Extend Bundle took: "
@@ -297,7 +295,7 @@ public final class AnalysisData {
 
     final int attempts = 5;
     for (int counter = 0; counter < attempts; counter++) {
-      uploadFiles(project, psiFiles, missingFiles, bundleId, progress);
+      uploadFiles(project, filesToProceed, missingFiles, bundleId, progress);
       missingFiles = checkBundle(project, bundleId, progress);
       if (missingFiles.isEmpty()) {
         break;
@@ -318,7 +316,7 @@ public final class AnalysisData {
     progress.setText(WAITING_FOR_ANALYSIS_TEXT);
     ProgressManager.checkCanceled();
     GetAnalysisResponse getAnalysisResponse = doGetAnalysis(project, bundleId, progress);
-    result = parseGetAnalysisResponse(project, psiFiles, getAnalysisResponse, progress);
+    result = parseGetAnalysisResponse(project, filesToProceed, getAnalysisResponse, progress);
     info("--- Get Analysis took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
     //    progress.stop();
     return result;
@@ -330,6 +328,10 @@ public final class AnalysisData {
       @NotNull List<String> missingFiles,
       @NotNull String bundleId,
       @NotNull ProgressIndicator progress) {
+    if (missingFiles.isEmpty()) {
+      info("No missingFiles to Upload");
+      return;
+    }
     Map<String, PsiFile> mapPath2File =
         psiFiles.stream().collect(Collectors.toMap(DeepCodeUtils::getDeepCodedFilePath, it -> it));
     int fileCounter = 0;
@@ -417,6 +419,7 @@ public final class AnalysisData {
             + " files"
             + (removedFiles.isEmpty() ? "" : " and remove " + removedFiles.size() + " files");
     info(message);
+    // todo make network request in parallel with collecting data
     final CreateBundleResponse bundleResponse;
     // check if bundleID for the project already been created
     if (parentBundleId.isEmpty())
@@ -438,6 +441,7 @@ public final class AnalysisData {
       newBundleId = "";
     }
     mapProject2BundleId.put(project, newBundleId);
+    isNotSucceed(project, bundleResponse, "Bad Create/Extend Bundle request: ");
     return bundleResponse;
   }
 
@@ -446,8 +450,9 @@ public final class AnalysisData {
       @NotNull Collection<PsiFile> psiFiles,
       @NotNull String bundleId,
       @NotNull ProgressIndicator progress) {
-    List<FileHash2ContentRequest> listHash2Content = new ArrayList<>(psiFiles.size());
     info("Uploading " + psiFiles.size() + " files... ");
+    if (psiFiles.isEmpty()) return;
+    List<FileHash2ContentRequest> listHash2Content = new ArrayList<>(psiFiles.size());
     for (PsiFile psiFile : psiFiles) {
       progress.checkCanceled();
       listHash2Content.add(
@@ -456,6 +461,7 @@ public final class AnalysisData {
     }
     if (listHash2Content.isEmpty()) return;
 
+    // todo make network request in parallel with collecting data
     EmptyResponse uploadFilesResponse =
         DeepCodeRestApi.UploadFiles(DeepCodeParams.getSessionToken(), bundleId, listHash2Content);
     isNotSucceed(project, uploadFilesResponse, "Bad UploadFiles request: ");
