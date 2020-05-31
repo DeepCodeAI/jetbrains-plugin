@@ -266,6 +266,7 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
 
   public void refresh() {
     Map<TodoPanel, Set<VirtualFile>> files = new HashMap<>();
+    Icon[] summaryIcon = {DeepCodeUIUtils.EMPTY_EWI_ICON};
     ReadAction.nonBlocking(() -> {
       if (myAllTodos == null) {
         return;
@@ -276,6 +277,7 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
           return true;
         });
       }
+      summaryIcon[0] = DeepCodeUIUtils.getSummaryIcon(myProject);
     })
       .finishOnUiThread(ModalityState.NON_MODAL, (__) -> {
         for (TodoPanel panel : myPanels) {
@@ -284,7 +286,9 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
           notifyUpdateFinished();
         }
         ToolWindow myToolWindow = ToolWindowManager.getInstance(myProject).getToolWindow("DeepCode");
-        if (myToolWindow != null) myToolWindow.setIcon(DeepCodeUIUtils.getSummaryIcon(myProject));
+        if (myToolWindow != null) {
+          myToolWindow.setIcon(summaryIcon[0]);
+        }
       })
       .inSmartMode(myProject)
       .submit(NonUrgentExecutor.getInstance());

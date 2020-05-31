@@ -90,7 +90,7 @@ public final class AnalysisData {
     return mapProject2BundleId.putIfAbsent(project, "") == null;
   }
 
-  static Set<Project> getAllCachedProject() {
+  public static Set<Project> getAllCachedProject() {
     return mapProject2BundleId.keySet();
   }
 
@@ -201,8 +201,8 @@ public final class AnalysisData {
       } else {
         warn("Nothing to update for " + psiFiles.size() + " files: " + psiFiles.toString());
       }
-      ServiceManager.getService(project, myTodoView.class).refresh();
       updateInProgress = false;
+      ServiceManager.getService(project, myTodoView.class).refresh();
     } finally {
       // if (filesToProceed != null && !filesToProceed.isEmpty())
       info("MUTEX RELEASED");
