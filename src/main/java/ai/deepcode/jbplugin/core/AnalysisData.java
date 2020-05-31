@@ -142,6 +142,7 @@ public final class AnalysisData {
 
   public static void waitForUpdateAnalysisFinish() {
     while (updateInProgress) {
+      // delay should be less or equal to runInBackgroundCancellable delay
       RunUtils.delay(100);
     }
   }
@@ -177,13 +178,11 @@ public final class AnalysisData {
         info(
             "Files to proceed (not found in cache): "
                 + filesToProceed.size()
-                // fixme debug only
                 + "\nHash for first file "
                 + firstFile.getName()
                 + " ["
                 + fileHash
                 + "]");
-
         if (filesToProceed.size() == 1 && filesToRemove.isEmpty()) {
           // if only one file updates then its most likely from annotator. So we need to get
           // suggestions asap:
@@ -194,20 +193,16 @@ public final class AnalysisData {
               firstFile,
               () -> retrieveSuggestions(project, filesToProceed, filesToRemove));
         } else {
-
           mapFile2Suggestions.putAll(retrieveSuggestions(project, filesToProceed, filesToRemove));
         }
-
       } else if (!filesToRemove.isEmpty()) {
         info("Files to remove: " + filesToRemove.size() + " files: " + filesToRemove.toString());
         retrieveSuggestions(project, filesToProceed, filesToRemove);
       } else {
         warn("Nothing to update for " + psiFiles.size() + " files: " + psiFiles.toString());
       }
-
       ServiceManager.getService(project, myTodoView.class).refresh();
       updateInProgress = false;
-
     } finally {
       // if (filesToProceed != null && !filesToProceed.isEmpty())
       info("MUTEX RELEASED");

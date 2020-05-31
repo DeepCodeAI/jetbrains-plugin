@@ -154,6 +154,7 @@ public class RunUtils {
                           + "]");
                   prevProgressIndicator.cancel();
                   getRunningIndicators(project).remove(prevProgressIndicator);
+                  HashContentUtils.removeHashContent(psiFile);
                 }
                 getRunningIndicators(project).add(indicator);
 
