@@ -74,6 +74,7 @@ public class RunUtils {
     @Override
     public void run(@NotNull ProgressIndicator indicator) {
       DCLogger.info("New Process started at " + project);
+      indicator.setIndeterminate(false);
       getRunningIndicators(project).add(indicator);
 
       runnable.run();
@@ -136,6 +137,7 @@ public class RunUtils {
             new Task.Backgroundable(project, "DeepCode: Analysing Files...") {
               @Override
               public void run(@NotNull ProgressIndicator indicator) {
+                indicator.setIndeterminate(false);
 
                 // To let new event cancel the currently running one
                 ProgressIndicator prevProgressIndicator =
@@ -219,6 +221,7 @@ public class RunUtils {
             new Task.Backgroundable(project, "DeepCode: Analysing Files...") {
               @Override
               public void run(@NotNull ProgressIndicator indicator) {
+                indicator.setIndeterminate(false);
 
                 // To let new event cancel the currently running one
                 ProgressIndicator prevProgressIndicator =
