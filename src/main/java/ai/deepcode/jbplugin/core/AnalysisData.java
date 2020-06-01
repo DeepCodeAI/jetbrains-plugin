@@ -162,6 +162,10 @@ public final class AnalysisData {
       return;
     }
     info("Update requested for " + psiFiles.size() + " files: " + psiFiles.toString());
+    if (!DeepCodeParams.consentGiven(project)) {
+      DCLogger.warn("Consent check fail! Project: " + project.getName());
+      return;
+    }
     try {
       MUTEX.lock();
       info("MUTEX LOCK");
@@ -190,8 +194,7 @@ public final class AnalysisData {
           mapFile2Suggestions.put(firstFile, retrieveSuggestions(firstFile));
           // and then request normal extendBundle later to synchronize results on server
           RunUtils.runInBackgroundCancellable(
-              firstFile,
-              () -> retrieveSuggestions(project, filesToProceed, filesToRemove));
+              firstFile, () -> retrieveSuggestions(project, filesToProceed, filesToRemove));
         } else {
           mapFile2Suggestions.putAll(retrieveSuggestions(project, filesToProceed, filesToRemove));
         }
