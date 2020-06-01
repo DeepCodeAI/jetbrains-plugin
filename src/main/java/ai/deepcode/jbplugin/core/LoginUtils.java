@@ -83,7 +83,7 @@ public class LoginUtils {
     } while (!isLogged(project, false));
     isLoginCheckLoopStarted = false;
     DeepCodeNotifications.showInfo("Login succeed", project);
-    AnalysisData.clearCache(project);
+    AnalysisData.resetCachesAndTasks(project);
     RunUtils.asyncAnalyseProjectAndUpdatePanel(project);
   }
 }

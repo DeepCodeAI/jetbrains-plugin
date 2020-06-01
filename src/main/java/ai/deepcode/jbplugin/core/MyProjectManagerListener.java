@@ -34,7 +34,7 @@ public class MyProjectManagerListener implements ProjectManagerListener {
     RunUtils.runInBackground(project, () -> {
       // lets all running ProgressIndicators release MUTEX first
       RunUtils.cancelRunningIndicators(project);
-      AnalysisData.removeProjectFromCache(project);
+      AnalysisData.removeProjectFromCaches(project);
     });
   }
 
@@ -42,7 +42,7 @@ public class MyProjectManagerListener implements ProjectManagerListener {
     @Override
     public void beforeChildrenChange(@NotNull PsiTreeChangeEvent event) {
       final PsiFile psiFile = event.getFile();
-      if (psiFile == null || RunUtils.inBulkMode(psiFile.getProject())) return;
+      if (psiFile == null || BulkMode.isActive(psiFile.getProject())) return;
       if (AnalysisData.isFileInCache(psiFile)) {
         // ?? immediate delete for visual updates in Panel, annotations, etc.
         // should be done in background to wait MUTEX released in case of currently running update
@@ -70,7 +70,7 @@ public class MyProjectManagerListener implements ProjectManagerListener {
       final PsiFile psiFile = event.getFile();
       if (psiFile == null) return;
       final Project project = psiFile.getProject();
-      if (RunUtils.inBulkMode(project)) return;
+      if (BulkMode.isActive(project)) return;
 
       if (DeepCodeUtils.isSupportedFileFormat(psiFile)) {
         RunUtils.runInBackgroundCancellable(
@@ -108,7 +108,7 @@ public class MyProjectManagerListener implements ProjectManagerListener {
       PsiFile psiFile = (event.getChild() instanceof PsiFile) ? (PsiFile) event.getChild() : null;
       if (psiFile == null) return;
       final Project project = psiFile.getProject();
-      if (RunUtils.inBulkMode(project)) return;
+      if (BulkMode.isActive(project)) return;
 
       if (DeepCodeIgnoreInfoHolder.is_ignoreFile(psiFile)) {
         DeepCodeIgnoreInfoHolder.remove_dcignoreFileContent(psiFile);

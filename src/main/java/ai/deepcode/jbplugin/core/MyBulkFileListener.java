@@ -55,7 +55,7 @@ public class MyBulkFileListener implements BulkFileListener {
         DCLogger.info(filesChangedOrCreated.size() + " files changed: " + filesChangedOrCreated);
         if (filesChangedOrCreated.size() > 10) {
           // if too many files changed then it's easier to do Bulk Mode full rescan
-          RunUtils.setBulkMode(project);
+          BulkMode.set(project);
           // small delay to prevent multiple rescan Background tasks
           RunUtils.rescanInBackgroundCancellableDelayed(project, 100, true);
         } else {
@@ -79,7 +79,7 @@ public class MyBulkFileListener implements BulkFileListener {
               VFileContentChangeEvent.class,
               VFileCreateEvent.class);
       if (!gcignoreChangedFiles.isEmpty()) {
-        RunUtils.setBulkMode(project);
+        BulkMode.set(project);
         for (PsiFile gcignoreFile : gcignoreChangedFiles) {
           RunUtils.runInBackgroundCancellable(
               gcignoreFile,
@@ -106,7 +106,7 @@ public class MyBulkFileListener implements BulkFileListener {
         DCLogger.info("Found " + filesRemoved.size() + " files to remove: " + filesRemoved);
         // if too many files removed then it's easier to do full rescan
         if (filesRemoved.size() > 10) {
-          RunUtils.setBulkMode(project);
+          BulkMode.set(project);
           // small delay to prevent multiple rescan Background tasks
           RunUtils.rescanInBackgroundCancellableDelayed(project, 100, true);
         } else if (!RunUtils.isFullRescanRequested(project)) {
@@ -124,7 +124,7 @@ public class MyBulkFileListener implements BulkFileListener {
           getFilteredFilesByEventTypes(
               project, events, DeepCodeIgnoreInfoHolder::is_ignoreFile, VFileDeleteEvent.class);
       if (!ignoreFilesToRemove.isEmpty()) {
-        RunUtils.setBulkMode(project);
+        BulkMode.set(project);
         // small delay to prevent multiple rescan Background tasks
         RunUtils.rescanInBackgroundCancellableDelayed(project, 100, true);
         /*

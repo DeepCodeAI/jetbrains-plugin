@@ -146,6 +146,7 @@ public final class DeepCodeUtils {
   }
 
   public static String getDeepCodedFilePath(PsiFile psiFile) {
+    // looks like we don't need ReadAction for this (?)
     String absolutePath = psiFile.getVirtualFile().getPath();
     final String projectPath = psiFile.getProject().getBasePath();
     if (projectPath != null) {

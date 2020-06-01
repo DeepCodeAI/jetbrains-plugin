@@ -127,7 +127,9 @@ abstract class TodoPanel extends SimpleToolWindowPanel implements OccurenceNavig
   public static class GroupByActionGroup extends DefaultActionGroup {
     {
       getTemplatePresentation().setIcon(AllIcons.Actions.GroupBy);
-      getTemplatePresentation().setText(IdeBundle.message("group.group.by"));
+      getTemplatePresentation().setText("Group By");
+      // https://youtrack.jetbrains.com/issue/IDEA-242185
+      //getTemplatePresentation().setText(IdeBundle.message("group.group.by"));
       setPopup(true);
     }
 

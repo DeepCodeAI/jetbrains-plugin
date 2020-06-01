@@ -1,6 +1,7 @@
 package ai.deepcode.jbplugin.ui.utils;
 
 import ai.deepcode.jbplugin.core.AnalysisData;
+import ai.deepcode.jbplugin.core.DCLogger;
 import ai.deepcode.jbplugin.core.DeepCodeUtils;
 import ai.deepcode.jbplugin.core.LoginUtils;
 import com.intellij.execution.process.ConsoleHighlighter;
@@ -103,8 +104,14 @@ public class DeepCodeUIUtils {
           IconUtil.textToIcon("?", new JLabel(), fontToScale));
 
   public static Icon getSummaryIcon(@NotNull Project project) {
-    if (!LoginUtils.isLogged(project, false) || AnalysisData.isUpdateAnalysisInProgress())
-      return EMPTY_EWI_ICON;
+    final boolean projectWasNotAnalysed = !AnalysisData.getAllCachedProject().contains(project);
+    DCLogger.info(
+        "SummaryIcon request:"
+            + " projectWasNotAnalysed="
+            + projectWasNotAnalysed
+            + " isUpdateAnalysisInProgress="
+            + AnalysisData.isUpdateAnalysisInProgress());
+    if (projectWasNotAnalysed || AnalysisData.isUpdateAnalysisInProgress()) return EMPTY_EWI_ICON;
 
     DeepCodeUtils.ErrorsWarningsInfos ewi =
         DeepCodeUtils.getEWI(AnalysisData.getAllFilesWithSuggestions(project));

@@ -1,3 +1,7 @@
+## [1.1.0] - 2019-06-01
+- Speedup of large projects analysis and suggestions highlighting
+- Various internal fixes and refactoring
+
 ## [1.0.3] - 2019-05-28
 - Fix multiple rescan requests and add ignoring events while rescan running
 - Fix cache invalidation in Bulk mode for files update

@@ -1,10 +1,7 @@
 package ai.deepcode.jbplugin.core;
 
 import ai.deepcode.javaclient.DeepCodeRestApi;
-import ai.deepcode.javaclient.requests.ExtendBundleRequest;
-import ai.deepcode.javaclient.requests.FileContent;
-import ai.deepcode.javaclient.requests.FileHash2ContentRequest;
-import ai.deepcode.javaclient.requests.FileHashRequest;
+import ai.deepcode.javaclient.requests.*;
 import ai.deepcode.javaclient.responses.*;
 import ai.deepcode.jbplugin.ui.myTodoView;
 import com.intellij.openapi.components.ServiceManager;
@@ -16,12 +13,7 @@ import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
@@ -39,15 +31,13 @@ public final class AnalysisData {
 
   private AnalysisData() {}
 
-  private static final Logger LOG = LoggerFactory.getLogger("DeepCode.AnalysisData");
+  //  private static final Logger LOG = LoggerFactory.getLogger("DeepCode.AnalysisData");
   private static final Map<PsiFile, List<SuggestionForFile>> EMPTY_MAP = Collections.emptyMap();
   private static Map<Project, String> mapProject2analysisUrl = new ConcurrentHashMap<>();
 
   // todo: keep few latest file versions (Guava com.google.common.cache.CacheBuilder ?)
   private static final Map<PsiFile, List<SuggestionForFile>> mapFile2Suggestions =
       new ConcurrentHashMap<>();
-
-  private static final Map<PsiFile, String> mapPsiFile2Hash = new ConcurrentHashMap<>();
 
   private static final Map<Project, String> mapProject2BundleId = new ConcurrentHashMap<>();
 
@@ -100,7 +90,7 @@ public final class AnalysisData {
     return mapProject2BundleId.putIfAbsent(project, "") == null;
   }
 
-  static Set<Project> getAllCachedProject() {
+  public static Set<Project> getAllCachedProject() {
     return mapProject2BundleId.keySet();
   }
 
@@ -114,7 +104,7 @@ public final class AnalysisData {
       for (PsiFile file : files) {
         if (file != null && isFileInCache(file)) {
           mapFile2Suggestions.remove(file);
-          mapPsiFile2Hash.remove(file);
+          HashContentUtils.removeHashContent(file);
           removeCounter++;
         }
       }
@@ -129,7 +119,9 @@ public final class AnalysisData {
     }
   }
 
-  static void removeProjectFromCache(@NotNull Project project) {
+  static void removeProjectFromCaches(@NotNull Project project) {
+    info("Caches clearance requested for project: " + project);
+    HashContentUtils.removeHashContent(project);
     if (mapProject2BundleId.remove(project) != null) {
       info("Removed from cache: " + project);
     }
@@ -150,6 +142,7 @@ public final class AnalysisData {
 
   public static void waitForUpdateAnalysisFinish() {
     while (updateInProgress) {
+      // delay should be less or equal to runInBackgroundCancellable delay
       RunUtils.delay(100);
     }
   }
@@ -169,44 +162,50 @@ public final class AnalysisData {
       return;
     }
     info("Update requested for " + psiFiles.size() + " files: " + psiFiles.toString());
-    Collection<PsiFile> filesToProceed = null;
+    if (!DeepCodeParams.consentGiven(project)) {
+      DCLogger.warn("Consent check fail! Project: " + project.getName());
+      return;
+    }
     try {
       MUTEX.lock();
       info("MUTEX LOCK");
       updateInProgress = true;
-      filesToProceed =
-          // DeepCodeUtils.computeNonBlockingReadAction(
-          // () ->
+      Collection<PsiFile> filesToProceed =
           psiFiles.stream()
               .filter(Objects::nonNull)
-              // .filter(PsiFile::isValid)
               .filter(file -> !mapFile2Suggestions.containsKey(file))
               .collect(Collectors.toSet());
       if (!filesToProceed.isEmpty()) {
-        // deepcode ignore checkIsPresent~Optional: collection already checked to be not empty
-        final PsiFile firstFile = filesToProceed.stream().findFirst().get();
+        // collection already checked to be not empty
+        final PsiFile firstFile = filesToProceed.iterator().next();
+        final String fileHash = HashContentUtils.getHash(firstFile);
         info(
             "Files to proceed (not found in cache): "
                 + filesToProceed.size()
-                // fixme debug only
                 + "\nHash for first file "
                 + firstFile.getName()
                 + " ["
-                + getHash(firstFile)
+                + fileHash
                 + "]");
-
-        mapFile2Suggestions.putAll(retrieveSuggestions(project, filesToProceed, filesToRemove));
-
+        if (filesToProceed.size() == 1 && filesToRemove.isEmpty()) {
+          // if only one file updates then its most likely from annotator. So we need to get
+          // suggestions asap:
+          // we do that through createBundle with fileContent
+          mapFile2Suggestions.put(firstFile, retrieveSuggestions(firstFile));
+          // and then request normal extendBundle later to synchronize results on server
+          RunUtils.runInBackgroundCancellable(
+              firstFile, () -> retrieveSuggestions(project, filesToProceed, filesToRemove));
+        } else {
+          mapFile2Suggestions.putAll(retrieveSuggestions(project, filesToProceed, filesToRemove));
+        }
       } else if (!filesToRemove.isEmpty()) {
         info("Files to remove: " + filesToRemove.size() + " files: " + filesToRemove.toString());
         retrieveSuggestions(project, filesToProceed, filesToRemove);
       } else {
         warn("Nothing to update for " + psiFiles.size() + " files: " + psiFiles.toString());
       }
-
-      ServiceManager.getService(project, myTodoView.class).refresh();
       updateInProgress = false;
-
+      ServiceManager.getService(project, myTodoView.class).refresh();
     } finally {
       // if (filesToProceed != null && !filesToProceed.isEmpty())
       info("MUTEX RELEASED");
@@ -230,66 +229,82 @@ public final class AnalysisData {
   }
 
   static final int MAX_BUNDLE_SIZE = 4000000; // bytes
-  private static final Map<PsiFile, String> mapPsiFile2Content = new ConcurrentHashMap<>();
 
   /** Perform costly network request. <b>No cache checks!</b> */
   @NotNull
   private static Map<PsiFile, List<SuggestionForFile>> retrieveSuggestions(
       @NotNull Project project,
-      @NotNull Collection<PsiFile> psiFiles,
+      @NotNull Collection<PsiFile> filesToProceed,
       @NotNull Collection<PsiFile> filesToRemove) {
-    if (psiFiles.isEmpty() && filesToRemove.isEmpty()) {
-      return Collections.emptyMap();
+    if (filesToProceed.isEmpty() && filesToRemove.isEmpty()) {
+      warn("Both filesToProceed and filesToRemove are empty");
+      return EMPTY_MAP;
     }
-    if (!LoginUtils.isLogged(project, false)) {
-      return Collections.emptyMap();
-    }
-    Map<PsiFile, List<SuggestionForFile>> result;
+    // no needs to check login here as it will be checked anyway during every api response's check
+    // if (!LoginUtils.isLogged(project, false)) return EMPTY_MAP;
+
+    List<String> missingFiles = createBundleStep(project, filesToProceed, filesToRemove);
+
+    uploadFilesStep(project, filesToProceed, missingFiles);
+
+    // ---------------------------------------- Get Analysis
     ProgressIndicator progress =
         ProgressManager.getInstance().getProgressIndicator(); // new StatusBarProgress();
-    progress.setIndeterminate(false);
-    //    progress.start();
+    final String bundleId = mapProject2BundleId.getOrDefault(project, "");
+    if (bundleId.isEmpty()) return EMPTY_MAP; // no sense to proceed without bundleId
+    long startTime = System.currentTimeMillis();
+    progress.setText(WAITING_FOR_ANALYSIS_TEXT);
+    ProgressManager.checkCanceled();
+    GetAnalysisResponse getAnalysisResponse = doGetAnalysis(project, bundleId, progress);
+    Map<PsiFile, List<SuggestionForFile>> result =
+        parseGetAnalysisResponse(project, filesToProceed, getAnalysisResponse);
+    info("--- Get Analysis took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
+    return result;
+  }
 
-    long startTime;
-    // ---------------------------------------- Create Bundle
-    startTime = System.currentTimeMillis();
+  /**
+   * Perform costly network request. <b>No cache checks!</b>
+   *
+   * @return missingFiles
+   */
+  private static List<String> createBundleStep(
+      @NotNull Project project,
+      @NotNull Collection<PsiFile> filesToProceed,
+      @NotNull Collection<PsiFile> filesToRemove) {
+    ProgressIndicator progress =
+        ProgressManager.getInstance().getProgressIndicator(); // new StatusBarProgress();
+    long startTime = System.currentTimeMillis();
     progress.setText(PREPARE_FILES_TEXT);
     info(PREPARE_FILES_TEXT);
     ProgressManager.checkCanceled();
-    mapPsiFile2Content.clear();
     Map<String, String> mapPath2Hash = new HashMap<>();
     long sizePath2Hash = 0;
     int fileCounter = 0;
-    int totalFiles = psiFiles.size();
-    for (PsiFile file : psiFiles) {
-      mapPsiFile2Hash.remove(file);
+    int totalFiles = filesToProceed.size();
+    for (PsiFile file : filesToProceed) {
+      HashContentUtils.removeHashContent(file);
       ProgressManager.checkCanceled();
       progress.setFraction(((double) fileCounter++) / totalFiles);
       progress.setText(PREPARE_FILES_TEXT + fileCounter + " of " + totalFiles + " files done.");
-      if (!file.isValid()) {
-        DCLogger.warn("Invalid PsiFile: " + psiFiles);
-        continue;
-      }
       final String path = DeepCodeUtils.getDeepCodedFilePath(file);
       // info("getHash requested");
-      final String hash = getHash(file);
+      final String hash = HashContentUtils.getHash(file);
       // info("getHash done");
       mapPath2Hash.put(path, hash);
       sizePath2Hash += (path.length() + hash.length()) * 2; // rough estimation of bytes occupied
       if (sizePath2Hash > MAX_BUNDLE_SIZE) {
         CreateBundleResponse tempBundleResponse =
             makeNewBundle(project, mapPath2Hash, Collections.emptyList());
-        if (isNotSucceed(project, tempBundleResponse, "Bad Create/Extend Bundle request: "))
-          return EMPTY_MAP;
         sizePath2Hash = 0;
         mapPath2Hash.clear();
       }
     }
     // todo break removeFiles in chunks less then MAX_BANDLE_SIZE
+    //  needed ?? we do full rescan for large amount of files to remove
     CreateBundleResponse createBundleResponse = makeNewBundle(project, mapPath2Hash, filesToRemove);
-    if (isNotSucceed(project, createBundleResponse, "Bad Create/Extend Bundle request: "))
-      return EMPTY_MAP;
+
     final String bundleId = createBundleResponse.getBundleId();
+
     List<String> missingFiles = createBundleResponse.getMissingFiles();
     info(
         "--- Create/Extend Bundle took: "
@@ -299,35 +314,90 @@ public final class AnalysisData {
             + bundleId
             + "\nmissingFiles: "
             + missingFiles.size());
+    return missingFiles;
+  }
 
-    // ---------------------------------------- Upload Files
-    startTime = System.currentTimeMillis();
+  /** Perform costly network request. <b>No cache checks!</b> */
+  private static void uploadFilesStep(
+      @NotNull Project project,
+      @NotNull Collection<PsiFile> filesToProceed,
+      @NotNull List<String> missingFiles) {
+    ProgressIndicator progress =
+        ProgressManager.getInstance().getProgressIndicator(); // new StatusBarProgress();
+    long startTime = System.currentTimeMillis();
     progress.setText(UPLOADING_FILES_TEXT);
     ProgressManager.checkCanceled();
 
-    for (int counter = 0; counter < 10; counter++) {
-      uploadFiles(project, psiFiles, missingFiles, bundleId, progress);
-      missingFiles = checkBundle(project, bundleId, progress);
-      if (missingFiles.isEmpty()) {
-        break;
-      } else {
-        warn(
-            "Check Bundle found some missingFiles to be NOT uploaded, will try to upload "
-                + (10 - counter)
-                + " more times:\nmissingFiles = "
-                + missingFiles);
+    final String bundleId = mapProject2BundleId.getOrDefault(project, "");
+    if (bundleId.isEmpty()) {
+      info("BundleId is empty");
+    } else if (missingFiles.isEmpty()) {
+      info("No missingFiles to Upload");
+    } else {
+      final int attempts = 5;
+      for (int counter = 0; counter < attempts; counter++) {
+        uploadFiles(project, filesToProceed, missingFiles, bundleId, progress);
+        missingFiles = checkBundle(project, bundleId, progress);
+        if (missingFiles.isEmpty()) {
+          break;
+        } else {
+          warn(
+              "Check Bundle found some missingFiles to be NOT uploaded, will try to upload "
+                  + (attempts - counter)
+                  + " more times:\nmissingFiles = "
+                  + missingFiles);
+        }
       }
     }
-    //    mapPsiFile2Hash.clear();
-    mapPsiFile2Content.clear();
     info("--- Upload Files took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
+  }
+
+  /** Perform costly network request. <b>No cache checks!</b> */
+  @NotNull
+  private static List<SuggestionForFile> retrieveSuggestions(@NotNull PsiFile file) {
+    final Project project = file.getProject();
+    List<SuggestionForFile> result;
+    long startTime;
+    // ---------------------------------------- Create Bundle
+    startTime = System.currentTimeMillis();
+    info("Creating temporary Bundle from File content");
+    ProgressManager.checkCanceled();
+
+    FileContent fileContent =
+        new FileContent(
+            DeepCodeUtils.getDeepCodedFilePath(file), HashContentUtils.getFileContent(file));
+    FileContentRequest fileContentRequest =
+        new FileContentRequest(Collections.singletonList(fileContent));
+
+    // todo?? it might be cheaper on server side to extend one temporary bundle
+    //  rather then create the new one every time
+    final CreateBundleResponse createBundleResponse =
+        DeepCodeRestApi.createBundle(DeepCodeParams.getSessionToken(), fileContentRequest);
+    isNotSucceed(project, createBundleResponse, "Bad Create/Extend Bundle request: ");
+
+    final String bundleId = createBundleResponse.getBundleId();
+    if (bundleId.isEmpty()) return Collections.emptyList(); // no sense to proceed without bundleId
+
+    List<String> missingFiles = createBundleResponse.getMissingFiles();
+    info(
+        "--- Create temporary Bundle took: "
+            + (System.currentTimeMillis() - startTime)
+            + " milliseconds"
+            + "\nbundleId: "
+            + bundleId
+            + "\nmissingFiles: "
+            + missingFiles);
+    if (!missingFiles.isEmpty()) warn("missingFiles is NOT empty!");
 
     // ---------------------------------------- Get Analysis
-    startTime = System.currentTimeMillis();
-    progress.setText(WAITING_FOR_ANALYSIS_TEXT);
     ProgressManager.checkCanceled();
-    GetAnalysisResponse getAnalysisResponse = doRetrieveSuggestions(project, bundleId, progress);
-    result = parseGetAnalysisResponse(project, psiFiles, getAnalysisResponse, progress);
+    startTime = System.currentTimeMillis();
+    GetAnalysisResponse getAnalysisResponse = doGetAnalysis(project, bundleId, null);
+    result =
+        parseGetAnalysisResponse(project, Collections.singleton(file), getAnalysisResponse)
+            .get(file);
+    mapProject2analysisUrl.put(project, "");
+
     info("--- Get Analysis took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
     //    progress.stop();
     return result;
@@ -339,6 +409,8 @@ public final class AnalysisData {
       @NotNull List<String> missingFiles,
       @NotNull String bundleId,
       @NotNull ProgressIndicator progress) {
+    Map<String, PsiFile> mapPath2File =
+        psiFiles.stream().collect(Collectors.toMap(DeepCodeUtils::getDeepCodedFilePath, it -> it));
     int fileCounter = 0;
     int totalFiles = missingFiles.size();
     long fileChunkSize = 0;
@@ -350,21 +422,18 @@ public final class AnalysisData {
       progress.checkCanceled();
       progress.setFraction(((double) fileCounter++) / totalFiles);
       progress.setText(UPLOADING_FILES_TEXT + fileCounter + " of " + totalFiles + " files done.");
-      PsiFile psiFile =
-          psiFiles.stream()
-              .filter(f -> DeepCodeUtils.getDeepCodedFilePath(f).equals(filePath))
-              .findAny()
-              .orElse(null);
+
+      PsiFile psiFile = mapPath2File.get(filePath);
       if (psiFile == null) {
         if (brokenMissingFilesCount == 0) {
           brokenMissingFilesMessage =
               " files requested in missingFiles not found in psiFiles (skipped to upload)."
-                  + " First broken missingFile: "
+                  + "\nFirst broken missingFile: "
                   + filePath
-                  + " Full file path example: "
-                  // deepcode ignore checkIsPresent~Optional: collection already is not empty
-                  + psiFiles.stream().findFirst().get().getVirtualFile().getPath()
-                  + " BaseDir path: "
+                  + "\nFull file path example: "
+                  // we know collection already is not empty
+                  + psiFiles.iterator().next().getVirtualFile().getPath()
+                  + "\nBaseDir path: "
                   + project.getBasePath();
         }
         brokenMissingFilesCount++;
@@ -385,6 +454,11 @@ public final class AnalysisData {
     doUploadFiles(project, filesChunk, bundleId, progress);
   }
 
+  /**
+   * Checks the status of a bundle: if there are still missing files after uploading
+   *
+   * @return list of the current missingFiles.
+   */
   @NotNull
   private static List<String> checkBundle(
       @NotNull Project project, @NotNull String bundleId, @NotNull ProgressIndicator progress) {
@@ -422,6 +496,7 @@ public final class AnalysisData {
             + " files"
             + (removedFiles.isEmpty() ? "" : " and remove " + removedFiles.size() + " files");
     info(message);
+    // todo make network request in parallel with collecting data
     final CreateBundleResponse bundleResponse;
     // check if bundleID for the project already been created
     if (parentBundleId.isEmpty())
@@ -443,75 +518,8 @@ public final class AnalysisData {
       newBundleId = "";
     }
     mapProject2BundleId.put(project, newBundleId);
+    isNotSucceed(project, bundleResponse, "Bad Create/Extend Bundle request: ");
     return bundleResponse;
-  }
-
-  // ?? com.intellij.openapi.util.text.StringUtil.toHexString
-  // https://www.baeldung.com/sha-256-hashing-java#message-digest
-  private static String bytesToHex(byte[] hash) {
-    StringBuilder hexString = new StringBuilder();
-    for (byte b : hash) {
-      String hex = Integer.toHexString(0xff & b);
-      if (hex.length() == 1) hexString.append('0');
-      hexString.append(hex);
-    }
-    return hexString.toString();
-  }
-
-  /** check if Hash for PsiFile was changed comparing to cached hash */
-  public static boolean isHashChanged(@NotNull PsiFile psiFile) {
-    // fixme debug only
-    // DCLogger.info("hash check started");
-    String newHash = doGetHash(doGetFileContent(psiFile));
-    String oldHash = mapPsiFile2Hash.put(psiFile, newHash);
-    // fixme debug only
-    DCLogger.info(
-        "Hash check (if file been changed) for "
-            + psiFile.getName()
-            + "\noldHash = "
-            + oldHash
-            + "\nnewHash = "
-            + newHash);
-
-    return !newHash.equals(oldHash);
-  }
-
-  private static String getHash(@NotNull PsiFile psiFile) {
-    return mapPsiFile2Hash.computeIfAbsent(psiFile, AnalysisData::doGetHash);
-  }
-
-  private static String doGetHash(@NotNull PsiFile psiFile) {
-    return doGetHash(getFileContent(psiFile));
-  }
-
-  private static String doGetHash(@NotNull String fileText) {
-    MessageDigest messageDigest;
-    try {
-      messageDigest = MessageDigest.getInstance("SHA-256");
-    } catch (NoSuchAlgorithmException e) {
-      throw new RuntimeException(e);
-    }
-    byte[] encodedHash = messageDigest.digest(fileText.getBytes(StandardCharsets.UTF_8));
-    return bytesToHex(encodedHash);
-  }
-
-  @NotNull
-  private static String getFileContent(@NotNull PsiFile psiFile) {
-    // potential OutOfMemoryException for too large projects
-    return mapPsiFile2Content.computeIfAbsent(psiFile, AnalysisData::doGetFileContent);
-  }
-
-  @NotNull
-  private static String doGetFileContent(@NotNull PsiFile psiFile) {
-    // psiFile.getText() is NOT expensive as it's goes to VirtualFileContent.getText()
-    return RunUtils.computeInReadActionInSmartMode(psiFile.getProject(), psiFile::getText);
-    /*
-        try {
-          return new String(Files.readAllBytes(Paths.get(getPath(psiFile))), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
-    */
   }
 
   private static void doUploadFiles(
@@ -519,25 +527,28 @@ public final class AnalysisData {
       @NotNull Collection<PsiFile> psiFiles,
       @NotNull String bundleId,
       @NotNull ProgressIndicator progress) {
-    List<FileHash2ContentRequest> listHash2Content = new ArrayList<>(psiFiles.size());
     info("Uploading " + psiFiles.size() + " files... ");
+    if (psiFiles.isEmpty()) return;
+    List<FileHash2ContentRequest> listHash2Content = new ArrayList<>(psiFiles.size());
     for (PsiFile psiFile : psiFiles) {
       progress.checkCanceled();
-      listHash2Content.add(new FileHash2ContentRequest(getHash(psiFile), getFileContent(psiFile)));
-      //      logDeepCode("Uploading file: " + getPath(psiFile));
+      listHash2Content.add(
+          new FileHash2ContentRequest(
+              HashContentUtils.getHash(psiFile), HashContentUtils.getFileContent(psiFile)));
     }
     if (listHash2Content.isEmpty()) return;
 
+    // todo make network request in parallel with collecting data
     EmptyResponse uploadFilesResponse =
         DeepCodeRestApi.UploadFiles(DeepCodeParams.getSessionToken(), bundleId, listHash2Content);
     isNotSucceed(project, uploadFilesResponse, "Bad UploadFiles request: ");
   }
 
   @NotNull
-  private static GetAnalysisResponse doRetrieveSuggestions(
+  private static GetAnalysisResponse doGetAnalysis(
       @NotNull Project project,
       @NotNull String bundleId,
-      @NotNull ProgressIndicator progressIndicator) {
+      @Nullable ProgressIndicator progressIndicator) {
     GetAnalysisResponse response;
     int counter = 0;
     do {
@@ -554,12 +565,22 @@ public final class AnalysisData {
       if (isNotSucceed(project, response, "Bad GetAnalysis request: "))
         return new GetAnalysisResponse();
       ProgressManager.checkCanceled();
-      double progress = response.getProgress();
-      if (progress == 0) progress = ((double) counter) / 200;
-      progressIndicator.setFraction(progress);
-      progressIndicator.setText(WAITING_FOR_ANALYSIS_TEXT + (int) (progress * 100) + "% done");
+      if (progressIndicator != null) {
+        double progress = response.getProgress();
+        if (progress <= 0 || progress > 1) progress = ((double) counter) / 200;
+        progressIndicator.setFraction(progress);
+        progressIndicator.setText(WAITING_FOR_ANALYSIS_TEXT + (int) (progress * 100) + "% done");
+      }
       // fixme
       if (counter == 200) break;
+      if (response.getStatus().equals("FAILED")) {
+        warn("FAILED getAnalysis request.");
+        // if Failed then we have inconsistent caches, better to do full rescan
+        if (!RunUtils.isFullRescanRequested(project)) {
+          RunUtils.rescanInBackgroundCancellableDelayed(project, 500, false);
+        }
+        break;
+      }
       counter++;
     } while (!response.getStatus().equals("DONE")
     // !!!! keep commented in production, for debug only: to emulate long processing
@@ -572,14 +593,13 @@ public final class AnalysisData {
   private static Map<PsiFile, List<SuggestionForFile>> parseGetAnalysisResponse(
       @NotNull Project project,
       @NotNull Collection<PsiFile> psiFiles,
-      GetAnalysisResponse response,
-      @NotNull ProgressIndicator progressIndicator) {
+      GetAnalysisResponse response) {
     Map<PsiFile, List<SuggestionForFile>> result = new HashMap<>();
     if (!response.getStatus().equals("DONE")) return EMPTY_MAP;
     AnalysisResults analysisResults = response.getAnalysisResults();
     mapProject2analysisUrl.put(project, response.getAnalysisURL());
     if (analysisResults == null) {
-      LOG.error("AnalysisResults is null for: {}", response);
+      warn("AnalysisResults is null for: " + response);
       return EMPTY_MAP;
     }
     for (PsiFile psiFile : psiFiles) {
@@ -592,7 +612,7 @@ public final class AnalysisData {
       }
       final Suggestions suggestions = analysisResults.getSuggestions();
       if (suggestions == null) {
-        LOG.error("Suggestions is empty for: {}", response);
+        warn("Suggestions is empty for: " + response);
         return EMPTY_MAP;
       }
       ProgressManager.checkCanceled();
@@ -604,7 +624,7 @@ public final class AnalysisData {
       // fixme debug only
       // DCLogger.info("parseGetAnalysisResponse after Document requested");
       if (document == null) {
-        LOG.error("Document not found for file: {}  GetAnalysisResponse: {}", psiFile, response);
+        warn("Document not found for file: " + psiFile + "\nGetAnalysisResponse: " + response);
         return EMPTY_MAP;
       }
 
@@ -612,10 +632,11 @@ public final class AnalysisData {
       for (String suggestionIndex : fileSuggestions.keySet()) {
         final Suggestion suggestion = suggestions.get(suggestionIndex);
         if (suggestion == null) {
-          LOG.error(
-              "Suggestion not found for suggestionIndex: {}  GetAnalysisResponse: {}",
-              suggestionIndex,
-              response);
+          warn(
+              "Suggestion not found for suggestionIndex: "
+                  + suggestionIndex
+                  + "\nGetAnalysisResponse: "
+                  + response);
           return EMPTY_MAP;
         }
         final List<TextRange> ranges = new ArrayList<>();
@@ -638,14 +659,13 @@ public final class AnalysisData {
   }
 
   private static FileContent createFileContent(PsiFile psiFile) {
-    return new FileContent(DeepCodeUtils.getDeepCodedFilePath(psiFile), psiFile.getText());
+    return new FileContent(
+        DeepCodeUtils.getDeepCodedFilePath(psiFile), HashContentUtils.getFileContent(psiFile));
   }
 
   public static Set<PsiFile> getAllFilesWithSuggestions(@NotNull final Project project) {
     return mapFile2Suggestions.entrySet().stream()
         .filter(e -> e.getKey().getProject().equals(project))
-        // otherwise ai.deepcode.jbplugin.ui.TodoTreeBuilder.getAllFiles may fail
-        .filter(e -> e.getKey().isValid())
         .filter(e -> !e.getValue().isEmpty())
         .map(Map.Entry::getKey)
         .collect(Collectors.toSet());
@@ -656,16 +676,13 @@ public final class AnalysisData {
   }
 
   /** Remove project from all Caches and <b>CANCEL</b> all background tasks for it */
-  public static void clearCache(@Nullable final Project project) {
-    info("Cache clearance requested for project: " + project);
-    mapPsiFile2Hash.clear();
-    mapPsiFile2Content.clear();
+  public static void resetCachesAndTasks(@Nullable final Project project) {
     final Set<Project> projects =
         (project == null) ? getAllCachedProject() : Collections.singleton(project);
     for (Project prj : projects) {
       // lets all running ProgressIndicators release MUTEX first
       RunUtils.cancelRunningIndicators(prj);
-      removeProjectFromCache(prj);
+      removeProjectFromCaches(prj);
       ServiceManager.getService(prj, myTodoView.class).refresh();
       mapProject2analysisUrl.put(prj, "");
     }
