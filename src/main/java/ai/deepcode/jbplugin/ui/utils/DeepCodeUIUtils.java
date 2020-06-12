@@ -65,7 +65,7 @@ public class DeepCodeUIUtils {
     regionsToUpdate.clear();
     if (errors != 0) {
       int oldLength = result.length();
-      result += "\u2BBF " + errors + (withTextEWI ? " errors" : "") + " ";
+      result += "\u24BE " + errors + (withTextEWI ? " errors" : "") + " ";
       regionsToUpdate.add(new HighlightedRegion(oldLength, result.length(), ERROR_ATTRIBUTES));
     }
     if (warnings != 0) {
