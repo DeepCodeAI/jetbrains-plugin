@@ -3,6 +3,7 @@ package ai.deepcode.jbplugin.core;
 import ai.deepcode.javaclient.DeepCodeRestApi;
 import ai.deepcode.javaclient.requests.*;
 import ai.deepcode.javaclient.responses.*;
+import ai.deepcode.jbplugin.DeepCodeNotifications;
 import ai.deepcode.jbplugin.ui.myTodoView;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.editor.Document;
@@ -395,7 +396,7 @@ public final class AnalysisData {
     GetAnalysisResponse getAnalysisResponse = doGetAnalysis(project, bundleId, null);
     result =
         parseGetAnalysisResponse(project, Collections.singleton(file), getAnalysisResponse)
-            .get(file);
+            .getOrDefault(file, Collections.emptyList());
     mapProject2analysisUrl.put(project, "");
 
     info("--- Get Analysis took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
@@ -571,8 +572,15 @@ public final class AnalysisData {
         progressIndicator.setFraction(progress);
         progressIndicator.setText(WAITING_FOR_ANALYSIS_TEXT + (int) (progress * 100) + "% done");
       }
-      // fixme
-      if (counter == 200) break;
+
+      if (counter == 200) {
+        warn("Timeout expire for waiting analysis results.");
+        DeepCodeNotifications.showWarn(
+            "Can't get analysis results from the server. Network or server internal error. Please, try again later.",
+            project);
+        break;
+      }
+
       if (response.getStatus().equals("FAILED")) {
         warn("FAILED getAnalysis request.");
         // if Failed then we have inconsistent caches, better to do full rescan
@@ -581,6 +589,7 @@ public final class AnalysisData {
         }
         break;
       }
+
       counter++;
     } while (!response.getStatus().equals("DONE")
     // !!!! keep commented in production, for debug only: to emulate long processing
