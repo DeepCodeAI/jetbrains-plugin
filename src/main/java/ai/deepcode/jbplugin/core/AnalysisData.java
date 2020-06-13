@@ -141,6 +141,11 @@ public final class AnalysisData {
     return updateInProgress;
   }
 
+  public static boolean isAnalysisResultsNOTAvailable(@NotNull Project project) {
+    final boolean projectWasNotAnalysed = !AnalysisData.getAllCachedProject().contains(project);
+    return projectWasNotAnalysed || AnalysisData.isUpdateAnalysisInProgress();
+  }
+
   public static void waitForUpdateAnalysisFinish() {
     while (updateInProgress) {
       // delay should be less or equal to runInBackgroundCancellable delay
