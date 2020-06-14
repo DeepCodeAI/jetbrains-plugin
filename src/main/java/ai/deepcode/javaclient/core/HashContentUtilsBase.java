@@ -1,4 +1,4 @@
-package aii.deepcode.javaclient.core;
+package ai.deepcode.javaclient.core;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -8,8 +8,13 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public abstract class FileUtilsBase {
-  private FileUtilsBase(){};
+public abstract class HashContentUtilsBase {
+
+  private final PlatformDependentUtilsBase platformDependentUtils;
+
+  protected HashContentUtilsBase(@NotNull PlatformDependentUtilsBase platformDependentUtils){
+    this.platformDependentUtils = platformDependentUtils;
+  };
   
   private static final Map<Object, String> mapFile2Hash = new ConcurrentHashMap<>();
   private static final Map<Object, String> mapFile2Content = new ConcurrentHashMap<>();
@@ -19,12 +24,9 @@ public abstract class FileUtilsBase {
     mapFile2Content.remove(file);
   }
 
-  @NotNull
-  abstract Object getProject(@NotNull Object file);
-  
   void removeProjectHashContent(@NotNull Object project) {
-    mapFile2Hash.keySet().removeIf(f -> getProject(f) == project);
-    mapFile2Content.keySet().removeIf(f -> getProject(f) == project);
+    mapFile2Hash.keySet().removeIf(f -> platformDependentUtils.getProject(f) == project);
+    mapFile2Content.keySet().removeIf(f -> platformDependentUtils.getProject(f) == project);
   }
 
   // ?? com.intellij.openapi.util.text.StringUtil.toHexString

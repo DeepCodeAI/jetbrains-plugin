@@ -1,4 +1,4 @@
-package aii.deepcode.javaclient.core;
+package ai.deepcode.javaclient.core;
 
 import ai.deepcode.javaclient.DeepCodeRestApi;
 import org.jetbrains.annotations.NotNull;
