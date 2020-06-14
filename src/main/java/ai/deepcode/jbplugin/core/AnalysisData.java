@@ -519,8 +519,8 @@ public final class AnalysisData {
     // By man: "Extending a bundle by removing all the parent bundle's files is not allowed."
     // In reality new bundle returned with next bundleID:
     // gh/ArtsiomCh/DEEPCODE_PRIVATE_BUNDLE/0000000000000000000000000000000000000000000000000000000000000000
-    if (newBundleId.equals(
-        "gh/ArtsiomCh/DEEPCODE_PRIVATE_BUNDLE/0000000000000000000000000000000000000000000000000000000000000000")) {
+    if (newBundleId.endsWith(
+        "/DEEPCODE_PRIVATE_BUNDLE/0000000000000000000000000000000000000000000000000000000000000000")) {
       newBundleId = "";
     }
     mapProject2BundleId.put(project, newBundleId);
