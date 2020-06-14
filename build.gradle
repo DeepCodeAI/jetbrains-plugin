@@ -7,7 +7,7 @@ plugins {
 
 //group 'org.example'
 
-version '1.1.1'
+version '1.2.0_experimental'
 sourceCompatibility = 1.8
 
 repositories {
