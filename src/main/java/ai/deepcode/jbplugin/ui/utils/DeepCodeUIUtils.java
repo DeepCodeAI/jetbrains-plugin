@@ -3,6 +3,7 @@ package ai.deepcode.jbplugin.ui.utils;
 import ai.deepcode.jbplugin.core.AnalysisData;
 import ai.deepcode.jbplugin.core.DCLogger;
 import ai.deepcode.jbplugin.core.DeepCodeUtils;
+import ai.deepcode.jbplugin.core.PDU;
 import com.intellij.execution.process.ConsoleHighlighter;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.editor.DefaultLanguageHighlighterColors;
@@ -103,13 +104,15 @@ public class DeepCodeUIUtils {
           IconUtil.textToIcon("?", new JLabel(), fontToScale));
 
   public static Icon getSummaryIcon(@NotNull Project project) {
-    if (AnalysisData.isAnalysisResultsNOTAvailable(project)) {
+    if (AnalysisData.getInstance().isAnalysisResultsNOTAvailable(project)) {
       DCLogger.info("EMPTY icon set");
       return EMPTY_EWI_ICON;
     }
 
     DeepCodeUtils.ErrorsWarningsInfos ewi =
-        DeepCodeUtils.getEWI(AnalysisData.getAllFilesWithSuggestions(project));
+        DeepCodeUtils.getEWI(
+            // fixme
+            PDU.toPsiFiles(AnalysisData.getInstance().getAllFilesWithSuggestions(project)));
     int errors = ewi.getErrors();
     int warnings = ewi.getWarnings();
     int infos = ewi.getInfos();

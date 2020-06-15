@@ -16,7 +16,7 @@ public abstract class DeepCodeParamsBase {
   private String loginUrl;
   private String ideProductName;
 
-  DeepCodeParamsBase(
+  protected DeepCodeParamsBase(
       boolean isEnable,
       String apiUrl,
       boolean useLinter,
@@ -82,6 +82,7 @@ public abstract class DeepCodeParamsBase {
     if (!apiUrl.endsWith("/")) apiUrl += "/";
     if (apiUrl.equals(this.apiUrl)) return;
     this.apiUrl = apiUrl;
+    DeepCodeRestApi.setBaseUrl(apiUrl);
   }
 
   public boolean isEnable() {
@@ -92,8 +93,11 @@ public abstract class DeepCodeParamsBase {
     this.isEnable = isEnable;
   }
 
-  abstract boolean consentGiven(@NotNull Object project);
+  public abstract boolean consentGiven(@NotNull Object project);
 
-  abstract void setConsentGiven(@NotNull Object project);
+  public abstract void setConsentGiven(@NotNull Object project);
 
+  public String getIdeProductName() {
+    return ideProductName;
+  }
 }

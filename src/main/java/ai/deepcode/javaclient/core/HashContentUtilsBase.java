@@ -19,7 +19,7 @@ public abstract class HashContentUtilsBase {
   private static final Map<Object, String> mapFile2Hash = new ConcurrentHashMap<>();
   private static final Map<Object, String> mapFile2Content = new ConcurrentHashMap<>();
 
-  void removeFileHashContent(@NotNull Object file) {
+  public void removeFileHashContent(@NotNull Object file) {
     mapFile2Hash.remove(file);
     mapFile2Content.remove(file);
   }
@@ -87,6 +87,6 @@ public abstract class HashContentUtilsBase {
   }
 
   @NotNull
-  abstract String doGetFileContent(@NotNull Object file);
+  protected abstract String doGetFileContent(@NotNull Object file);
 
 }

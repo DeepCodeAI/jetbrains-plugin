@@ -1,6 +1,7 @@
 package ai.deepcode.jbplugin.core;
 
 import ai.deepcode.javaclient.DeepCodeRestApi;
+import ai.deepcode.javaclient.core.SuggestionForFile;
 import ai.deepcode.javaclient.responses.GetFiltersResponse;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectUtil;
@@ -71,7 +72,7 @@ public final class DeepCodeUtils {
     int infos = 0;
     Set<String> countedSuggestions = new HashSet<>();
     for (PsiFile file : psiFiles) {
-      for (SuggestionForFile suggestion : AnalysisData.getAnalysis(file)) {
+      for (SuggestionForFile suggestion : AnalysisData.getInstance().getAnalysis(file)) {
         if (!countedSuggestions.contains(suggestion.getId())) {
           final int severity = suggestion.getSeverity();
           if (severity == 1) infos += 1;
@@ -110,7 +111,7 @@ public final class DeepCodeUtils {
   /** Potentially <b>Heavy</b> network request! */
   private static void initSupportedExtentionsAndConfigFiles() {
     GetFiltersResponse filtersResponse =
-        DeepCodeRestApi.getFilters(DeepCodeParams.getSessionToken());
+        DeepCodeRestApi.getFilters(DeepCodeParams.getInstance().getSessionToken());
     if (filtersResponse.getStatusCode() == 200) {
       supportedExtensions =
           filtersResponse.getExtensions().stream()

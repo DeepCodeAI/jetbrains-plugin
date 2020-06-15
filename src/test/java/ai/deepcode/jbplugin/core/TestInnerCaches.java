@@ -15,8 +15,8 @@ public class TestInnerCaches extends MyBasePlatformTestCase {
   @Override
   protected void setUp() throws Exception {
     super.setUp();
-    DeepCodeParams.setSessionToken(loggedToken);
-    DeepCodeParams.setConsentGiven(project);
+    DeepCodeParams.getInstance().setSessionToken(loggedToken);
+    DeepCodeParams.getInstance().setConsentGiven(project);
 
     myFixture.configureByFile("AnnotatorTest_ValidJS.js");
     psiTestFile = myFixture.getFile();
@@ -24,24 +24,24 @@ public class TestInnerCaches extends MyBasePlatformTestCase {
     runInBackground(
         project,
         () ->
-            AnalysisData.updateCachedResultsForFiles(
+            AnalysisData.getInstance().updateCachedResultsForFiles(
                 project, Collections.singleton(psiTestFile), Collections.emptyList()));
 
-    AnalysisData.waitForUpdateAnalysisFinish();
+    AnalysisData.getInstance().waitForUpdateAnalysisFinish();
     //RunUtils.delay(1000);
   }
 
   public void testProjectInCache() {
-    final Set<Project> allCachedProject = AnalysisData.getAllCachedProject();
+    final Set<Object> allCachedProject = AnalysisData.getInstance().getAllCachedProject();
     assertTrue(
         "Current Project should be in cache.",
         allCachedProject.size() == 1 && allCachedProject.contains(project));
   }
 
   public void testFileInCache() {
-    assertTrue("Test file is not in cache", AnalysisData.isFileInCache(psiTestFile));
+    assertTrue("Test file is not in cache", AnalysisData.getInstance().isFileInCache(psiTestFile));
 
-    final Set<PsiFile> filesWithSuggestions = AnalysisData.getAllFilesWithSuggestions(project);
+    final Set<Object> filesWithSuggestions = AnalysisData.getInstance().getAllFilesWithSuggestions(project);
     assertFalse("List of Files with suggestions is empty", filesWithSuggestions.isEmpty());
     assertTrue("Test file has no suggestions in cache", filesWithSuggestions.contains(psiTestFile));
   }

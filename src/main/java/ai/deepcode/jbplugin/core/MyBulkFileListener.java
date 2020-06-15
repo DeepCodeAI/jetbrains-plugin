@@ -63,7 +63,7 @@ public class MyBulkFileListener implements BulkFileListener {
             RunUtils.runInBackgroundCancellable(
                 psiFile,
                 () -> {
-                  AnalysisData.removeFilesFromCache(Collections.singleton(psiFile));
+                  AnalysisData.getInstance().removeFilesFromCache(Collections.singleton(psiFile));
                   RunUtils.updateCachedAnalysisResults(project, Collections.singleton(psiFile));
                 });
           }
@@ -113,7 +113,7 @@ public class MyBulkFileListener implements BulkFileListener {
           RunUtils.runInBackground(
               project,
               () -> {
-                AnalysisData.removeFilesFromCache(filesRemoved);
+                AnalysisData.getInstance().removeFilesFromCache(PDU.toObjects(filesRemoved));
                 RunUtils.updateCachedAnalysisResults(
                     project, Collections.emptyList(), filesRemoved);
               });

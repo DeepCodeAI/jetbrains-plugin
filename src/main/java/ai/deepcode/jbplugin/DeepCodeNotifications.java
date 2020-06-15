@@ -71,7 +71,7 @@ public class DeepCodeNotifications {
                 new ShowClickableLinkAction(
                     "CONFIRM",
                     () -> {
-                      DeepCodeParams.setConsentGiven(project);
+                      DeepCodeParams.getInstance().setConsentGiven(project);
                       consentRequestShown = false;
                       RunUtils.asyncAnalyseProjectAndUpdatePanel(project);
                     },

@@ -1,8 +1,9 @@
 package ai.deepcode.jbplugin;
 
+import ai.deepcode.javaclient.core.MyTextRange;
 import ai.deepcode.jbplugin.core.AnalysisData;
 import ai.deepcode.jbplugin.core.DeepCodeUtils;
-import ai.deepcode.jbplugin.core.SuggestionForFile;
+import ai.deepcode.javaclient.core.SuggestionForFile;
 import com.intellij.execution.impl.ConsoleViewUtil;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.editor.Document;
@@ -123,10 +124,10 @@ public class DeepCodeConsoleToolWindowFactory implements ToolWindowFactory, Disp
     Project project = psiFile.getProject();
     cleanMessages(project);
     if (!DeepCodeUtils.isSupportedFileFormat(psiFile)) return;
-    List<SuggestionForFile> suggestions = AnalysisData.getAnalysis(psiFile);
+    List<SuggestionForFile> suggestions = AnalysisData.getInstance().getAnalysis(psiFile);
     for (SuggestionForFile suggestion : suggestions) {
       printMessage(project, suggestion.getMessage());
-      for (TextRange range : suggestion.getRanges()) {
+      for (MyTextRange range : suggestion.getRanges()) {
         printMessage(project, "  " + range);
       }
     }

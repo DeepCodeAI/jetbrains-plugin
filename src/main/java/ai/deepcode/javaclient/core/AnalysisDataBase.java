@@ -3,9 +3,7 @@ package ai.deepcode.javaclient.core;
 import ai.deepcode.javaclient.DeepCodeRestApi;
 import ai.deepcode.javaclient.requests.*;
 import ai.deepcode.javaclient.responses.*;
-import ai.deepcode.jbplugin.DeepCodeNotifications;
 import ai.deepcode.jbplugin.core.*;
-import ai.deepcode.jbplugin.ui.myTodoView;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -20,15 +18,15 @@ import static ai.deepcode.jbplugin.core.DCLogger.warn;
 public abstract class AnalysisDataBase {
 
   private final PlatformDependentUtilsBase pdUtils;
-  private final HashContentUtilsBase myFileUtils;
+  private final HashContentUtilsBase hashContentUtils;
   private final DeepCodeParamsBase deepCodeParams;
 
   protected AnalysisDataBase(
       @NotNull PlatformDependentUtilsBase platformDependentUtils,
-      @NotNull HashContentUtilsBase fileUtils,
+      @NotNull HashContentUtilsBase hashContentUtils,
       @NotNull DeepCodeParamsBase deepCodeParams) {
     this.pdUtils = platformDependentUtils;
-    this.myFileUtils = fileUtils;
+    this.hashContentUtils = hashContentUtils;
     this.deepCodeParams = deepCodeParams;
   }
 
@@ -52,7 +50,7 @@ public abstract class AnalysisDataBase {
 
   /** see getAnalysis() below} */
   @NotNull
-  public static List<SuggestionForFile> getAnalysis(@NotNull Object file) {
+  public List<SuggestionForFile> getAnalysis(@NotNull Object file) {
     return getAnalysis(Collections.singleton(file)).getOrDefault(file, Collections.emptyList());
   }
 
@@ -65,7 +63,7 @@ public abstract class AnalysisDataBase {
    * @return
    */
   @NotNull
-  public static Map<Object, List<SuggestionForFile>> getAnalysis(
+  public Map<Object, List<SuggestionForFile>> getAnalysis(
       @NotNull Collection<Object> files) {
     if (files.isEmpty()) {
       warn("getAnalysis requested for empty list of files");
@@ -87,19 +85,19 @@ public abstract class AnalysisDataBase {
     return result;
   }
 
-  public static String getAnalysisUrl(@NotNull Object project) {
+  public String getAnalysisUrl(@NotNull Object project) {
     return mapProject2analysisUrl.computeIfAbsent(project, p -> "");
   }
 
-  static boolean addProjectToCache(@NotNull Object project) {
+  public boolean addProjectToCache(@NotNull Object project) {
     return mapProject2BundleId.putIfAbsent(project, "") == null;
   }
 
-  public static Set<Object> getAllCachedProject() {
+  public Set<Object> getAllCachedProject() {
     return mapProject2BundleId.keySet();
   }
 
-  void removeFilesFromCache(@NotNull Collection<Object> files) {
+  public void removeFilesFromCache(@NotNull Collection<Object> files) {
     try {
       info("Request to remove from cache " + files.size() + " files: " + files);
       // todo: do we really need mutex here?
@@ -109,7 +107,7 @@ public abstract class AnalysisDataBase {
       for (Object file : files) {
         if (file != null && isFileInCache(file)) {
           mapFile2Suggestions.remove(file);
-          myFileUtils.removeFileHashContent(file);
+          hashContentUtils.removeFileHashContent(file);
           removeCounter++;
         }
       }
@@ -124,9 +122,9 @@ public abstract class AnalysisDataBase {
     }
   }
 
-  void removeProjectFromCaches(@NotNull Object project) {
+  public void removeProjectFromCaches(@NotNull Object project) {
     info("Caches clearance requested for project: " + project);
-    myFileUtils.removeProjectHashContent(project);
+    hashContentUtils.removeProjectHashContent(project);
     if (mapProject2BundleId.remove(project) != null) {
       info("Removed from cache: " + project);
     }
@@ -141,16 +139,16 @@ public abstract class AnalysisDataBase {
 
   private static boolean updateInProgress = true;
 
-  public static boolean isUpdateAnalysisInProgress() {
+  public boolean isUpdateAnalysisInProgress() {
     return updateInProgress;
   }
 
-  public static boolean isAnalysisResultsNOTAvailable(@NotNull Object project) {
-    final boolean projectWasNotAnalysed = !AnalysisDataBase.getAllCachedProject().contains(project);
-    return projectWasNotAnalysed || AnalysisDataBase.isUpdateAnalysisInProgress();
+  public boolean isAnalysisResultsNOTAvailable(@NotNull Object project) {
+    final boolean projectWasNotAnalysed = !getAllCachedProject().contains(project);
+    return projectWasNotAnalysed || isUpdateAnalysisInProgress();
   }
 
-  public static void waitForUpdateAnalysisFinish() {
+  public void waitForUpdateAnalysisFinish() {
     while (updateInProgress) {
       // delay should be less or equal to runInBackgroundCancellable delay
       RunUtils.delay(100);
@@ -188,7 +186,7 @@ public abstract class AnalysisDataBase {
       if (!filesToProceed.isEmpty()) {
         // collection already checked to be not empty
         final Object firstFile = filesToProceed.iterator().next();
-        final String fileHash = myFileUtils.getHash(firstFile);
+        final String fileHash = hashContentUtils.getHash(firstFile);
         info(
             "Files to proceed (not found in cache): "
                 + filesToProceed.size()
@@ -215,8 +213,8 @@ public abstract class AnalysisDataBase {
         warn("Nothing to update for " + psiFiles.size() + " files: " + psiFiles.toString());
       }
       updateInProgress = false;
-      // ServiceManager.getService(project, myTodoView.class).refresh();
       pdUtils.refreshPanel(project);
+      // ServiceManager.getService(project, myTodoView.class).refresh();
     } finally {
       // if (filesToProceed != null && !filesToProceed.isEmpty())
       info("MUTEX RELEASED");
@@ -288,14 +286,14 @@ public abstract class AnalysisDataBase {
     int fileCounter = 0;
     int totalFiles = filesToProceed.size();
     for (Object file : filesToProceed) {
-      myFileUtils.removeFileHashContent(file);
+      hashContentUtils.removeFileHashContent(file);
       pdUtils.progressCheckCanceled();
       pdUtils.progressSetFraction(((double) fileCounter++) / totalFiles);
       pdUtils.progressSetText(
           PREPARE_FILES_TEXT + fileCounter + " of " + totalFiles + " files done.");
       final String path = pdUtils.getDeepCodedFilePath(file);
       // info("getHash requested");
-      final String hash = myFileUtils.getHash(file);
+      final String hash = hashContentUtils.getHash(file);
       // info("getHash done");
       mapPath2Hash.put(path, hash);
       sizePath2Hash += (path.length() + hash.length()) * 2; // rough estimation of bytes occupied
@@ -369,7 +367,7 @@ public abstract class AnalysisDataBase {
     pdUtils.progressCheckCanceled();
 
     FileContent fileContent =
-        new FileContent(pdUtils.getDeepCodedFilePath(file), myFileUtils.getFileContent(file));
+        new FileContent(pdUtils.getDeepCodedFilePath(file), hashContentUtils.getFileContent(file));
     FileContentRequest fileContentRequest =
         new FileContentRequest(Collections.singletonList(fileContent));
 
@@ -526,7 +524,7 @@ public abstract class AnalysisDataBase {
       pdUtils.progressCheckCanceled();
       listHash2Content.add(
           new FileHash2ContentRequest(
-              myFileUtils.getHash(psiFile), myFileUtils.getFileContent(psiFile)));
+              hashContentUtils.getHash(psiFile), hashContentUtils.getFileContent(psiFile)));
     }
     if (listHash2Content.isEmpty()) return;
 
@@ -644,7 +642,7 @@ public abstract class AnalysisDataBase {
   }
 
   private FileContent createFileContent(Object file) {
-    return new FileContent(pdUtils.getDeepCodedFilePath(file), myFileUtils.getFileContent(file));
+    return new FileContent(pdUtils.getDeepCodedFilePath(file), hashContentUtils.getFileContent(file));
   }
 
   public Set<Object> getAllFilesWithSuggestions(@NotNull final Object project) {
@@ -655,7 +653,7 @@ public abstract class AnalysisDataBase {
         .collect(Collectors.toSet());
   }
 
-  public static boolean isFileInCache(@NotNull Object psiFile) {
+  public boolean isFileInCache(@NotNull Object psiFile) {
     return mapFile2Suggestions.containsKey(psiFile);
   }
 

@@ -1,6 +1,7 @@
 package ai.deepcode.jbplugin.actions;
 
 import ai.deepcode.jbplugin.core.AnalysisData;
+import ai.deepcode.jbplugin.core.PDU;
 import com.intellij.codeInsight.intention.IntentionAction;
 import com.intellij.lang.Commenter;
 import com.intellij.lang.LanguageCommenters;
@@ -74,9 +75,10 @@ public class DeepCodeIntentionAction implements IntentionAction {
     return editor.getEditorKind() != EditorKind.PREVIEW
         // otherwise preview editor will close (no suggestion found) before description entered.
         && file.equals(myPsiFile)
-        && !AnalysisData.isUpdateAnalysisInProgress()
-        && AnalysisData.getAnalysis(file).stream()
+        && !AnalysisData.getInstance().isUpdateAnalysisInProgress()
+        && AnalysisData.getInstance().getAnalysis(file).stream()
             .flatMap(s -> s.getRanges().stream())
+            .map(PDU::toTextRange)
             .anyMatch(r -> r.contains(myRange));
   }
 

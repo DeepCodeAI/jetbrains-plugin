@@ -6,8 +6,8 @@ import ai.deepcode.jbplugin.core.RunUtils;
 public class TestAnnotatorForCPP extends MyBasePlatformTestCase {
 
  public void testHighlighting_CPP() {
-    DeepCodeParams.setSessionToken(loggedToken);
-    DeepCodeParams.setConsentGiven(project);
+    DeepCodeParams.getInstance().setSessionToken(loggedToken);
+    DeepCodeParams.getInstance().setConsentGiven(project);
     myFixture.configureByFile("AnnotatorTest.cpp");
     //fixme: delay to let annotators do the job
     RunUtils.delay(2000);

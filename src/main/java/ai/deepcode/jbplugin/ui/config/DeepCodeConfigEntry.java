@@ -41,11 +41,11 @@ public class DeepCodeConfigEntry implements Configurable {
   @Override
   public boolean isModified() {
     return (myForm != null)
-        && (!myForm.getBaseURL().equals(DeepCodeParams.getApiUrl())
-            || !myForm.getTokenID().equals(DeepCodeParams.getSessionToken())
-            || !(myForm.isPluginEnabled() == DeepCodeParams.isEnable())
-            || !(myForm.isLintersEnabled() == DeepCodeParams.useLinter())
-            || myForm.getMinSeverityLevel() != DeepCodeParams.getMinSeverity());
+        && (!myForm.getBaseURL().equals(DeepCodeParams.getInstance().getApiUrl())
+            || !myForm.getTokenID().equals(DeepCodeParams.getInstance().getSessionToken())
+            || !(myForm.isPluginEnabled() == DeepCodeParams.getInstance().isEnable())
+            || !(myForm.isLintersEnabled() == DeepCodeParams.getInstance().useLinter())
+            || myForm.getMinSeverityLevel() != DeepCodeParams.getInstance().getMinSeverity());
   }
 
   @Override
@@ -63,20 +63,20 @@ public class DeepCodeConfigEntry implements Configurable {
   public void apply() throws ConfigurationException {
     if (myForm == null) return;
     boolean needClearCachesAndRescan = false;
-    if (!myForm.getTokenID().equals(DeepCodeParams.getSessionToken())) {
-      DeepCodeParams.setSessionToken(myForm.getTokenID());
-      DeepCodeParams.setLoginUrl("");
+    if (!myForm.getTokenID().equals(DeepCodeParams.getInstance().getSessionToken())) {
+      DeepCodeParams.getInstance().setSessionToken(myForm.getTokenID());
+      DeepCodeParams.getInstance().setLoginUrl("");
       needClearCachesAndRescan = true;
     }
-    if (!myForm.getBaseURL().equals(DeepCodeParams.getApiUrl())) {
-      DeepCodeParams.setApiUrl(myForm.getBaseURL());
+    if (!myForm.getBaseURL().equals(DeepCodeParams.getInstance().getApiUrl())) {
+      DeepCodeParams.getInstance().setApiUrl(myForm.getBaseURL());
       needClearCachesAndRescan = true;
     }
-    DeepCodeParams.setMinSeverity(myForm.getMinSeverityLevel());
-    DeepCodeParams.setUseLinter(myForm.isLintersEnabled());
-    DeepCodeParams.setEnable(myForm.isPluginEnabled());
+    DeepCodeParams.getInstance().setMinSeverity(myForm.getMinSeverityLevel());
+    DeepCodeParams.getInstance().setUseLinter(myForm.isLintersEnabled());
+    DeepCodeParams.getInstance().setEnable(myForm.isPluginEnabled());
     if (needClearCachesAndRescan) {
-      AnalysisData.resetCachesAndTasks(null);
+      AnalysisData.getInstance().resetCachesAndTasks(null);
       if (LoginUtils.isLogged(null, true)) {
         RunUtils.asyncAnalyseProjectAndUpdatePanel(null);
       }
@@ -86,10 +86,10 @@ public class DeepCodeConfigEntry implements Configurable {
   @Override
   public void reset() {
     if (myForm == null) return;
-    myForm.setBaseURL(DeepCodeParams.getApiUrl());
-    myForm.setTokenID(DeepCodeParams.getSessionToken());
-    myForm.setAddLinters(DeepCodeParams.useLinter());
-    myForm.setMinSeverityLevel(DeepCodeParams.getMinSeverity());
-    myForm.enablePlugin(DeepCodeParams.isEnable());
+    myForm.setBaseURL(DeepCodeParams.getInstance().getApiUrl());
+    myForm.setTokenID(DeepCodeParams.getInstance().getSessionToken());
+    myForm.setAddLinters(DeepCodeParams.getInstance().useLinter());
+    myForm.setMinSeverityLevel(DeepCodeParams.getInstance().getMinSeverity());
+    myForm.enablePlugin(DeepCodeParams.getInstance().isEnable());
   }
 }

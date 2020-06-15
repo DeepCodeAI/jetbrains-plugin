@@ -154,7 +154,7 @@ public class RunUtils {
                           + "]");
                   prevProgressIndicator.cancel();
                   getRunningIndicators(project).remove(prevProgressIndicator);
-                  HashContentUtils.removeHashContent(psiFile);
+                  HashContentUtils.getInstance().removeFileHashContent(psiFile);
                 }
                 getRunningIndicators(project).add(indicator);
 
@@ -261,7 +261,7 @@ public class RunUtils {
                   mapProject2RequestId.remove(project);
 
                   // actual rescan
-                  AnalysisData.removeProjectFromCaches(project);
+                  AnalysisData.getInstance().removeProjectFromCaches(project);
                   updateCachedAnalysisResults(project, null);
 
                   if (bulkModeRequests.remove(actualRequestId)) {
@@ -296,10 +296,14 @@ public class RunUtils {
       @NotNull Project project,
       @Nullable Collection<PsiFile> psiFiles,
       @NotNull Collection<PsiFile> filesToRemove) {
-    AnalysisData.updateCachedResultsForFiles(
-        project,
-        (psiFiles != null) ? psiFiles : DeepCodeUtils.getAllSupportedFilesInProject(project),
-        filesToRemove);
+    AnalysisData.getInstance()
+        .updateCachedResultsForFiles(
+            project,
+            PDU.toObjects(
+                (psiFiles != null)
+                    ? psiFiles
+                    : DeepCodeUtils.getAllSupportedFilesInProject(project)),
+            PDU.toObjects(filesToRemove));
     //      StatusBarUtil.setStatusBarInfo(project, message);
   }
 }

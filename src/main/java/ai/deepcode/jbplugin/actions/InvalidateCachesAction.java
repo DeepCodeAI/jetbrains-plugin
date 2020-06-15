@@ -14,7 +14,7 @@ public class InvalidateCachesAction extends AnAction {
   @Override
   public void actionPerformed(@NotNull AnActionEvent e) {
     final Project project = e.getRequiredData(PlatformDataKeys.PROJECT);
-    AnalysisData.resetCachesAndTasks(project);
+    AnalysisData.getInstance().resetCachesAndTasks(project);
     ServiceManager.getService(project, myTodoView.class).refresh();
 /*
     ActionManager.getInstance()

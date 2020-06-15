@@ -3,6 +3,7 @@
 package ai.deepcode.jbplugin.ui;
 
 import ai.deepcode.jbplugin.core.AnalysisData;
+import ai.deepcode.jbplugin.core.PDU;
 import com.intellij.ide.highlighter.HighlighterFactory;
 import ai.deepcode.jbplugin.ui.nodes.TodoFileNode;
 import ai.deepcode.jbplugin.ui.nodes.TodoItemNode;
@@ -178,10 +179,11 @@ public abstract class TodoTreeBuilder implements Disposable {
    *         The reason why we return such "dirty" iterator is the performance.
    */
   public Iterator<PsiFile> getAllFiles() {
-    return AnalysisData.getAllFilesWithSuggestions(myProject).stream()
-            // safe to call isValid as it (should be) called from ReadAction.
-            .filter(PsiFile::isValid)
-            .iterator();
+    return AnalysisData.getInstance().getAllFilesWithSuggestions(myProject).stream()
+        // safe to call isValid as it (should be) called from ReadAction.
+        .map(PDU::toPsiFile)
+        .filter(PsiFile::isValid)
+        .iterator();
 /*
     final Iterator<VirtualFile> iterator = myFileTree.getFileIterator();
     return new Iterator<PsiFile>() {
@@ -223,7 +225,7 @@ public abstract class TodoTreeBuilder implements Disposable {
 
   private List<PsiFile> getFilesRecursively(PsiDirectory psiDirectory) {
     List<PsiFile> psiFileList = Arrays.stream(psiDirectory.getFiles())
-            .filter(AnalysisData.getAllFilesWithSuggestions(myProject)::contains)
+            .filter(AnalysisData.getInstance().getAllFilesWithSuggestions(myProject)::contains)
             .collect(Collectors.toList());
     for (PsiDirectory subDir: psiDirectory.getSubdirectories()) {
       psiFileList.addAll(getFilesRecursively(subDir));

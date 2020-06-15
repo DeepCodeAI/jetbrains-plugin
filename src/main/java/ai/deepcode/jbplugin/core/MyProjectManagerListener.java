@@ -23,7 +23,7 @@ public class MyProjectManagerListener implements ProjectManagerListener {
 
   @Override
   public void projectOpened(@NotNull Project project) {
-    if (AnalysisData.addProjectToCache(project)) {
+    if (AnalysisData.getInstance().addProjectToCache(project)) {
       // EditorFactory.getEventMulticaster.addDocumentListener BulkAwareDocumentListener
       PsiManager.getInstance(project).addPsiTreeChangeListener(new MyPsiTreeChangeAdapter());
     }
@@ -34,7 +34,7 @@ public class MyProjectManagerListener implements ProjectManagerListener {
     RunUtils.runInBackground(project, () -> {
       // lets all running ProgressIndicators release MUTEX first
       RunUtils.cancelRunningIndicators(project);
-      AnalysisData.removeProjectFromCaches(project);
+      AnalysisData.getInstance().removeProjectFromCaches(project);
     });
   }
 
@@ -43,12 +43,12 @@ public class MyProjectManagerListener implements ProjectManagerListener {
     public void beforeChildrenChange(@NotNull PsiTreeChangeEvent event) {
       final PsiFile psiFile = event.getFile();
       if (psiFile == null || BulkMode.isActive(psiFile.getProject())) return;
-      if (AnalysisData.isFileInCache(psiFile)) {
+      if (AnalysisData.getInstance().isFileInCache(psiFile)) {
         // ?? immediate delete for visual updates in Panel, annotations, etc.
         // should be done in background to wait MUTEX released in case of currently running update
         RunUtils.runInBackground(
             psiFile.getProject(),
-            () -> AnalysisData.removeFilesFromCache(Collections.singleton(psiFile)));
+            () -> AnalysisData.getInstance().removeFilesFromCache(Collections.singleton(psiFile)));
       }
       /*
             if (DeepCodeUtils.isSupportedFileFormat(psiFile)) {
@@ -76,13 +76,12 @@ public class MyProjectManagerListener implements ProjectManagerListener {
         RunUtils.runInBackgroundCancellable(
             psiFile,
             () -> {
-              final Set<PsiFile> psiFileSet = Collections.singleton(psiFile);
-              if (AnalysisData.isFileInCache(psiFile)) {
+              if (AnalysisData.getInstance().isFileInCache(psiFile)) {
                 // should be already deleted at beforeChildrenChange in most cases,
                 // but in case of update finished between beforeChildrenChange and now.
-                AnalysisData.removeFilesFromCache(psiFileSet);
+                AnalysisData.getInstance().removeFilesFromCache(Collections.singleton(psiFile));
               }
-              RunUtils.updateCachedAnalysisResults(project, psiFileSet);
+              RunUtils.updateCachedAnalysisResults(project, Collections.singleton(psiFile));
             });
       }
 

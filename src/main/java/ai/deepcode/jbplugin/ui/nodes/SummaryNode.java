@@ -5,6 +5,7 @@ package ai.deepcode.jbplugin.ui.nodes;
 
 import ai.deepcode.jbplugin.core.AnalysisData;
 import ai.deepcode.jbplugin.core.DCLogger;
+import ai.deepcode.jbplugin.core.PDU;
 import ai.deepcode.jbplugin.core.RunUtils;
 import ai.deepcode.jbplugin.ui.DeepCodeDirAndModuleComparator;
 import ai.deepcode.jbplugin.ui.HighlightedRegionProvider;
@@ -120,7 +121,7 @@ public class SummaryNode extends BaseToDoNode<ToDoSummary> implements Highlighte
       DCLogger.warn("Project is NULL");
       return;
     }
-    if (AnalysisData.isAnalysisResultsNOTAvailable(project)) {
+    if (AnalysisData.getInstance().isAnalysisResultsNOTAvailable(project)) {
       message = "Analysis results are not available yet...";
     } else {
       int todoItemCount = getTodoItemCount(getValue());
@@ -131,7 +132,8 @@ public class SummaryNode extends BaseToDoNode<ToDoSummary> implements Highlighte
       DCLogger.info(message);
       message =
           DeepCodeUIUtils.addErrWarnInfoCounts(
-              AnalysisData.getAllFilesWithSuggestions(project),
+              // fixme
+              PDU.toPsiFiles(AnalysisData.getInstance().getAllFilesWithSuggestions(project)),
               message,
               false,
               myHighlightedRegions);

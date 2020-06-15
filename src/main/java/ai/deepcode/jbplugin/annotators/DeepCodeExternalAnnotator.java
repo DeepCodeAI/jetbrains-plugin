@@ -1,11 +1,13 @@
 package ai.deepcode.jbplugin.annotators;
 
+import ai.deepcode.javaclient.core.MyTextRange;
 import ai.deepcode.jbplugin.actions.DeepCodeIntentionAction;
 import ai.deepcode.jbplugin.core.DCLogger;
+import ai.deepcode.jbplugin.core.PDU;
 import ai.deepcode.jbplugin.ui.myTodoView;
 import ai.deepcode.jbplugin.core.AnalysisData;
 import ai.deepcode.jbplugin.core.DeepCodeUtils;
-import ai.deepcode.jbplugin.core.SuggestionForFile;
+import ai.deepcode.javaclient.core.SuggestionForFile;
 import com.intellij.lang.annotation.Annotation;
 import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.ExternalAnnotator;
@@ -56,9 +58,9 @@ public class DeepCodeExternalAnnotator extends ExternalAnnotator<PsiFile, List<S
     if (!DeepCodeUtils.isSupportedFileFormat(psiFile)) return Collections.emptyList();
     final long annotatorId = System.currentTimeMillis();
     DCLogger.info("Annotator (" + annotatorId + ") requested for file: " + psiFile.getName());
-    AnalysisData.waitForUpdateAnalysisFinish();
+    AnalysisData.getInstance().waitForUpdateAnalysisFinish();
     ProgressManager.checkCanceled();
-    List<SuggestionForFile> suggestions = AnalysisData.getAnalysis(psiFile);
+    List<SuggestionForFile> suggestions = AnalysisData.getInstance().getAnalysis(psiFile);
     DCLogger.info(
         "Annotator (" + annotatorId + ") suggestions gotten for file: " + psiFile.getName());
     ProgressManager.checkCanceled();
@@ -89,7 +91,8 @@ public class DeepCodeExternalAnnotator extends ExternalAnnotator<PsiFile, List<S
     for (SuggestionForFile suggestion : suggestions) {
       final String message = "DeepCode: " + suggestion.getMessage();
       Annotation annotation;
-      for (TextRange range : suggestion.getRanges()) {
+      for (MyTextRange myTextRange : suggestion.getRanges()) {
+        final TextRange range = PDU.toTextRange(myTextRange);
         switch (suggestion.getSeverity()) {
           case 1:
             annotation = holder.createWeakWarningAnnotation(range, message);

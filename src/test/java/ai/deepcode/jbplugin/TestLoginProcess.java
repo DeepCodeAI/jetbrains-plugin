@@ -7,7 +7,7 @@ import com.intellij.ide.util.PropertiesComponent;
 public class TestLoginProcess extends MyBasePlatformTestCase {
 
   public void testMalformedToken() {
-    DeepCodeParams.setSessionToken("blablabla");
+    DeepCodeParams.getInstance().setSessionToken("blablabla");
     assertFalse("Login with malformed Token should fail", LoginUtils.isLogged(project, false));
   }
 
@@ -19,14 +19,14 @@ public class TestLoginProcess extends MyBasePlatformTestCase {
   }
 
   public void testNotGivenConsent() {
-    DeepCodeParams.setSessionToken(loggedToken);
+    DeepCodeParams.getInstance().setSessionToken(loggedToken);
     PropertiesComponent.getInstance(project).setValue("consentGiven", false);
     assertFalse("Login without Consent should fail", LoginUtils.isLogged(project, false));
   }
 
   public void testLoggedTokenAndGivenConsent() {
-    DeepCodeParams.setSessionToken(loggedToken);
-    DeepCodeParams.setConsentGiven(project);
+    DeepCodeParams.getInstance().setSessionToken(loggedToken);
+    DeepCodeParams.getInstance().setConsentGiven(project);
     assertTrue(
         "Login with logged Token and confirmed Consent should pass",
         LoginUtils.isLogged(project, false));

@@ -27,7 +27,7 @@ public class LoginUtils {
 
   /** network request! */
   public static boolean isLogged(@Nullable Project project, boolean userActionNeeded) {
-    final String sessionToken = DeepCodeParams.getSessionToken();
+    final String sessionToken = DeepCodeParams.getInstance().getSessionToken();
     ProgressManager.checkCanceled();
     final EmptyResponse response = DeepCodeRestApi.checkSession(sessionToken);
     boolean isLogged = response.getStatusCode() == 200;
@@ -43,7 +43,7 @@ public class LoginUtils {
       }
       DeepCodeNotifications.showLoginLink(project, message);
     } else if (isLogged && project != null) {
-      if (DeepCodeParams.consentGiven(project)) {
+      if (DeepCodeParams.getInstance().consentGiven(project)) {
         DCLogger.info("Consent check succeed for: " + project);
       } else {
         DCLogger.warn("Consent check fail! Project: " + project.getName());
@@ -57,14 +57,14 @@ public class LoginUtils {
   /** network request! */
   public static void requestNewLogin(@NotNull Project project, boolean openBrowser) {
     DCLogger.info("New Login requested.");
-    DeepCodeParams.clearLoginParams();
+    DeepCodeParams.getInstance().clearLoginParams();
     LoginResponse response = DeepCodeRestApi.newLogin(userAgent);
     if (response.getStatusCode() == 200) {
       DCLogger.info("New Login request succeed. New Token: " + response.getSessionToken());
-      DeepCodeParams.setSessionToken(response.getSessionToken());
-      DeepCodeParams.setLoginUrl(response.getLoginURL());
+      DeepCodeParams.getInstance().setSessionToken(response.getSessionToken());
+      DeepCodeParams.getInstance().setLoginUrl(response.getLoginURL());
       if (openBrowser) {
-        BrowserUtil.open(DeepCodeParams.getLoginUrl());
+        BrowserUtil.open(DeepCodeParams.getInstance().getLoginUrl());
       }
       if (!isLoginCheckLoopStarted) {
         ReadAction.nonBlocking(() -> startLoginCheckLoop(project))
@@ -83,7 +83,7 @@ public class LoginUtils {
     } while (!isLogged(project, false));
     isLoginCheckLoopStarted = false;
     DeepCodeNotifications.showInfo("Login succeed", project);
-    AnalysisData.resetCachesAndTasks(project);
+    AnalysisData.getInstance().resetCachesAndTasks(project);
     RunUtils.asyncAnalyseProjectAndUpdatePanel(project);
   }
 }

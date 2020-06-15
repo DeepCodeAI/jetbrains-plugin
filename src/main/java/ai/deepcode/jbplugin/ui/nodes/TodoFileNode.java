@@ -58,7 +58,7 @@ public final class TodoFileNode extends PsiFileNode implements HighlightedRegion
 
   private Collection<AbstractTreeNode> createGeneralList() {
     PsiFile psiFile = getValue();
-    return AnalysisData.getAnalysis(psiFile).stream()
+    return AnalysisData.getInstance().getAnalysis(psiFile).stream()
         .map(suggestion -> new SuggestionNode(getProject(), psiFile, myBuilder, suggestion))
         .sorted((o1, o2) -> o2.getValue().getSeverity() - o1.getValue().getSeverity())
         .collect(Collectors.toList());

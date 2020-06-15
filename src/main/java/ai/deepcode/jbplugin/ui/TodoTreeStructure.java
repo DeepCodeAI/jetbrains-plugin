@@ -108,7 +108,7 @@ public abstract class TodoTreeStructure extends AbstractTreeStructureBase implem
   public final int getTodoItemCount(PsiFile psiFile){
     int count=0;
     if(psiFile != null){
-        count = (int) AnalysisData.getAnalysis(psiFile).stream().flatMap(s -> s.getRanges().stream()).count();
+        count = (int) AnalysisData.getInstance().getAnalysis(psiFile).stream().flatMap(s -> s.getRanges().stream()).count();
 /*
       if(myTodoFilter!=null){
         for(Iterator i=myTodoFilter.iterator();i.hasNext();){

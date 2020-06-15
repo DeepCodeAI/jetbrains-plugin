@@ -6,8 +6,8 @@ import ai.deepcode.jbplugin.core.RunUtils;
 public class TestAnnotatorForJava extends MyBasePlatformTestCase {
 
   public void testHighlighting_Java() {
-    DeepCodeParams.setSessionToken(loggedToken);
-    DeepCodeParams.setConsentGiven(project);
+    DeepCodeParams.getInstance().setSessionToken(loggedToken);
+    DeepCodeParams.getInstance().setConsentGiven(project);
     myFixture.configureByFile("AnnotatorTest.java");
     //fixme: delay to let annotators do the job
     RunUtils.delay(2000);
