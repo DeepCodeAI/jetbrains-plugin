@@ -44,12 +44,12 @@ public abstract class HashContentUtilsBase {
   /** check if Hash for Object was changed comparing to cached hash */
   public boolean isHashChanged(@NotNull Object file) {
     // fixme debug only
-    // DCLogger.info("hash check started");
+    // DCLogger.getInstance().info("hash check started");
     String newHash = doGetHash(doGetFileContent(file));
     String oldHash = mapFile2Hash.put(file, newHash);
     // fixme debug only
 /*
-    DCLogger.info(
+    DCLogger.getInstance().info(
         "Hash check (if file been changed) for "
             + file.getName()
             + "\noldHash = "

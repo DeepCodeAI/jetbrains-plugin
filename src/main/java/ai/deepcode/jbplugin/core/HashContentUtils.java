@@ -29,7 +29,7 @@ public class HashContentUtils extends HashContentUtilsBase {
   @NotNull
   private static String getPsiFileText(@NotNull PsiFile psiFile) {
     if (!psiFile.isValid()) {
-      DCLogger.warn("Invalid PsiFile: " + psiFile);
+      DCLogger.getInstance().logWarn("Invalid PsiFile: " + psiFile);
       return "";
     }
     // psiFile.getText() is NOT expensive as it's goes to VirtualFileContent.getText()

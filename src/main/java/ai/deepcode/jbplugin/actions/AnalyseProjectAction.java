@@ -12,7 +12,7 @@ public class AnalyseProjectAction extends AnAction {
   @Override
   public void actionPerformed(@NotNull AnActionEvent e) {
     final Project project = e.getRequiredData(PlatformDataKeys.PROJECT);
-    DCLogger.info("Re-Analyse Project requested for: " + project);
+    DCLogger.getInstance().logInfo("Re-Analyse Project requested for: " + project);
     // fixme: ?? background task here to avoid potential freeze due to MUTEX lock
     AnalysisData.getInstance().resetCachesAndTasks(project);
     if (LoginUtils.isLogged(project, true)) {

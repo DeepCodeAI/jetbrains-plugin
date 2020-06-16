@@ -118,7 +118,7 @@ public class SummaryNode extends BaseToDoNode<ToDoSummary> implements Highlighte
     myHighlightedRegions.clear();
     final Project project = getProject();
     if (project == null) {
-      DCLogger.warn("Project is NULL");
+      DCLogger.getInstance().logWarn("Project is NULL");
       return;
     }
     if (AnalysisData.getInstance().isAnalysisResultsNOTAvailable(project)) {
@@ -129,7 +129,7 @@ public class SummaryNode extends BaseToDoNode<ToDoSummary> implements Highlighte
       message =
           IdeBundle.message("node.todo.summary", todoItemCount, fileCount)
               .replace("TODO item", "occurrence");
-      DCLogger.info(message);
+      DCLogger.getInstance().logInfo(message);
       message =
           DeepCodeUIUtils.addErrWarnInfoCounts(
               // fixme

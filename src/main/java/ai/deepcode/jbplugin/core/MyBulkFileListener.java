@@ -24,7 +24,7 @@ public class MyBulkFileListener implements BulkFileListener {
   @Override
   public void after(@NotNull List<? extends VFileEvent> events) {
     // fixme debug only
-    DCLogger.info("MyBulkFileListener.after begins for " + events.size() + " events " + events);
+    DCLogger.getInstance().logInfo("MyBulkFileListener.after begins for " + events.size() + " events " + events);
     for (Project project : ProjectManager.getInstance().getOpenProjects()) {
       /*
           for (Project project : AnalysisData.getAllCachedProject()) {
@@ -52,7 +52,7 @@ public class MyBulkFileListener implements BulkFileListener {
               VFileCopyEvent.class,
               VFileCreateEvent.class);
       if (!filesChangedOrCreated.isEmpty()) {
-        DCLogger.info(filesChangedOrCreated.size() + " files changed: " + filesChangedOrCreated);
+        DCLogger.getInstance().logInfo(filesChangedOrCreated.size() + " files changed: " + filesChangedOrCreated);
         if (filesChangedOrCreated.size() > 10) {
           // if too many files changed then it's easier to do Bulk Mode full rescan
           BulkMode.set(project);
@@ -90,12 +90,12 @@ public class MyBulkFileListener implements BulkFileListener {
       }
     }
     // fixme debug only
-    DCLogger.info("MyBulkFileListener.after ends");
+    DCLogger.getInstance().logInfo("MyBulkFileListener.after ends");
   }
 
   @Override
   public void before(@NotNull List<? extends VFileEvent> events) {
-    DCLogger.info("MyBulkFileListener.before begins for " + events.size() + " events " + events);
+    DCLogger.getInstance().logInfo("MyBulkFileListener.before begins for " + events.size() + " events " + events);
     for (Project project : ProjectManager.getInstance().getOpenProjects()) {
       // for (Project project : AnalysisData.getAllCachedProject()) {
       if (project.isDisposed()) continue;
@@ -103,7 +103,7 @@ public class MyBulkFileListener implements BulkFileListener {
           getFilteredFilesByEventTypes(
               project, events, DeepCodeUtils::isSupportedFileFormat, VFileDeleteEvent.class);
       if (!filesRemoved.isEmpty()) {
-        DCLogger.info("Found " + filesRemoved.size() + " files to remove: " + filesRemoved);
+        DCLogger.getInstance().logInfo("Found " + filesRemoved.size() + " files to remove: " + filesRemoved);
         // if too many files removed then it's easier to do full rescan
         if (filesRemoved.size() > 10) {
           BulkMode.set(project);
@@ -139,7 +139,7 @@ public class MyBulkFileListener implements BulkFileListener {
         */
       }
     }
-    DCLogger.info("MyBulkFileListener.before ends");
+    DCLogger.getInstance().logInfo("MyBulkFileListener.before ends");
   }
 
   private Set<PsiFile> getFilteredFilesByEventTypes(

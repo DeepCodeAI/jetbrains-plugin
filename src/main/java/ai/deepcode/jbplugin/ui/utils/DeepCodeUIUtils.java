@@ -105,7 +105,7 @@ public class DeepCodeUIUtils {
 
   public static Icon getSummaryIcon(@NotNull Project project) {
     if (AnalysisData.getInstance().isAnalysisResultsNOTAvailable(project)) {
-      DCLogger.info("EMPTY icon set");
+      DCLogger.getInstance().logInfo("EMPTY icon set");
       return EMPTY_EWI_ICON;
     }
 
@@ -116,7 +116,7 @@ public class DeepCodeUIUtils {
     int errors = ewi.getErrors();
     int warnings = ewi.getWarnings();
     int infos = ewi.getInfos();
-    DCLogger.info("error=" + errors + " warning=" + warnings + " info=" + infos);
+    DCLogger.getInstance().logInfo("error=" + errors + " warning=" + warnings + " info=" + infos);
 
     return new RowIcon(
         (errors != 0) ? errorColor : errorGray,

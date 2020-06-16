@@ -1,9 +1,6 @@
 package ai.deepcode.jbplugin.core;
 
-import ai.deepcode.javaclient.core.AnalysisDataBase;
-import ai.deepcode.javaclient.core.DeepCodeParamsBase;
-import ai.deepcode.javaclient.core.HashContentUtilsBase;
-import ai.deepcode.javaclient.core.PlatformDependentUtilsBase;
+import ai.deepcode.javaclient.core.*;
 import org.jetbrains.annotations.NotNull;
 
 public final class AnalysisData extends AnalysisDataBase {
@@ -12,16 +9,18 @@ public final class AnalysisData extends AnalysisDataBase {
       new AnalysisData(
           PDU.getInstance(),
           HashContentUtils.getInstance(),
-          DeepCodeParams.getInstance());
+          DeepCodeParams.getInstance(),
+          DCLogger.getInstance());
 
   public static AnalysisData getInstance() {
     return INSTANCE;
   }
 
-  protected AnalysisData(
+  private AnalysisData(
       @NotNull PlatformDependentUtilsBase platformDependentUtils,
       @NotNull HashContentUtilsBase hashContentUtils,
-      @NotNull DeepCodeParamsBase deepCodeParams) {
-    super(platformDependentUtils, hashContentUtils, deepCodeParams);
+      @NotNull DeepCodeParamsBase deepCodeParams,
+      @NotNull DCLoggerBase dcLogger) {
+    super(platformDependentUtils, hashContentUtils, deepCodeParams, dcLogger);
   }
 }

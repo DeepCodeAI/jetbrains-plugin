@@ -25,7 +25,7 @@ public class RunUtils {
 
   public static <T> T computeInReadActionInSmartMode(
       @NotNull Project project, @NotNull final Computable<T> computation) {
-    // DCLogger.info("computeInReadActionInSmartMode requested");
+    // DCLogger.getInstance().info("computeInReadActionInSmartMode requested");
     T result = null;
     final DumbService dumbService =
         ReadAction.compute(() -> project.isDisposed() ? null : DumbService.getInstance(project));
@@ -33,7 +33,7 @@ public class RunUtils {
     result =
         dumbService.runReadActionInSmartMode(
             () -> {
-              // DCLogger.info("computeInReadActionInSmartMode actually executing");
+              // DCLogger.getInstance().info("computeInReadActionInSmartMode actually executing");
               return computation.compute();
             });
     return result;
@@ -43,14 +43,14 @@ public class RunUtils {
     try {
       Thread.sleep(millis);
     } catch (InterruptedException e) {
-      DCLogger.warn("InterruptedException: " + e.getMessage());
+      DCLogger.getInstance().logWarn("InterruptedException: " + e.getMessage());
       Thread.currentThread().interrupt();
     }
     ProgressManager.checkCanceled();
   }
 
   public static void runInBackground(@NotNull Project project, @NotNull Runnable runnable) {
-    DCLogger.info("runInBackground requested");
+    DCLogger.getInstance().logInfo("runInBackground requested");
     final ProgressManager progressManager = ProgressManager.getInstance();
     final MyBackgroundable myBackgroundable = new MyBackgroundable(project, runnable);
     final ProgressIndicator progressIndicator = progressManager.getProgressIndicator();
@@ -73,13 +73,13 @@ public class RunUtils {
 
     @Override
     public void run(@NotNull ProgressIndicator indicator) {
-      DCLogger.info("New Process started at " + project);
+      DCLogger.getInstance().logInfo("New Process started at " + project);
       indicator.setIndeterminate(false);
       getRunningIndicators(project).add(indicator);
 
       runnable.run();
 
-      DCLogger.info("Process ending at " + project);
+      DCLogger.getInstance().logInfo("Process ending at " + project);
       getRunningIndicators(project).remove(indicator);
     }
   }
@@ -101,7 +101,7 @@ public class RunUtils {
         getRunningIndicators(project).stream()
             .map(ProgressIndicator::toString)
             .collect(Collectors.joining("\n"));
-    DCLogger.info("Canceling ProgressIndicators:\n" + indicatorsList);
+    DCLogger.getInstance().logInfo("Canceling ProgressIndicators:\n" + indicatorsList);
     // in case any indicator holds Bulk mode process
     BulkMode.forceUnset(project);
     getRunningIndicators(project).forEach(ProgressIndicator::cancel);
@@ -118,7 +118,7 @@ public class RunUtils {
       @NotNull PsiFile psiFile, @NotNull Runnable runnable) {
     final String s = runnable.toString();
     final String runId = s.substring(s.lastIndexOf('/'), s.length() - 1);
-    DCLogger.info(
+    DCLogger.getInstance().logInfo(
         "runInBackgroundCancellable requested for: "
             + psiFile.getName()
             + " with Runnable "
@@ -128,7 +128,7 @@ public class RunUtils {
     // To proceed multiple PSI events in a bunch (every 100 milliseconds)
     Runnable prevRunnable = mapFile2Runnable.put(virtualFile, runnable);
     if (prevRunnable != null) return;
-    DCLogger.info(
+    DCLogger.getInstance().logInfo(
         "new Background task registered for: " + psiFile.getName() + " with Runnable " + runId);
 
     final Project project = psiFile.getProject();
@@ -146,7 +146,7 @@ public class RunUtils {
                     // can't use prevProgressIndicator.isRunning() due to
                     // https://youtrack.jetbrains.com/issue/IDEA-241055
                     && getRunningIndicators(project).contains(prevProgressIndicator)) {
-                  DCLogger.info(
+                  DCLogger.getInstance().logInfo(
                       "Previous Process cancelling for "
                           + psiFile.getName()
                           + "\nProgressIndicator ["
@@ -165,14 +165,14 @@ public class RunUtils {
                 if (actualRunnable != null) {
                   final String s1 = actualRunnable.toString();
                   final String runId = s1.substring(s1.lastIndexOf('/'), s1.length() - 1);
-                  DCLogger.info(
+                  DCLogger.getInstance().logInfo(
                       "New Process started for " + psiFile.getName() + " with Runnable " + runId);
                   mapFile2Runnable.remove(virtualFile);
                   actualRunnable.run();
                 } else {
-                  DCLogger.warn("No actual Runnable found for: " + psiFile.getName());
+                  DCLogger.getInstance().logWarn("No actual Runnable found for: " + psiFile.getName());
                 }
-                DCLogger.info("Process ending for " + psiFile.getName());
+                DCLogger.getInstance().logInfo("Process ending for " + psiFile.getName());
               }
             });
   }
@@ -195,7 +195,7 @@ public class RunUtils {
   public static void rescanInBackgroundCancellableDelayed(
       @NotNull Project project, long delayMilliseconds, boolean inBulkMode) {
     final long requestId = System.currentTimeMillis();
-    DCLogger.info(
+    DCLogger.getInstance().logInfo(
         "rescanInBackgroundCancellableDelayed requested for: "
             + project.getName()
             + "] with RequestId "
@@ -211,7 +211,7 @@ public class RunUtils {
       }
       return;
     }
-    DCLogger.info(
+    DCLogger.getInstance().logInfo(
         "new Background Rescan task registered for ["
             + project.getName()
             + "] with RequestId "
@@ -231,7 +231,7 @@ public class RunUtils {
                     // can't use prevProgressIndicator.isRunning() due to
                     // https://youtrack.jetbrains.com/issue/IDEA-241055
                     && getRunningIndicators(project).remove(prevProgressIndicator)) {
-                  DCLogger.info(
+                  DCLogger.getInstance().logInfo(
                       "Previous Rescan cancelling for "
                           + project.getName()
                           + "\nProgressIndicator ["
@@ -253,7 +253,7 @@ public class RunUtils {
 
                 Long actualRequestId = mapProject2RequestId.get(project);
                 if (actualRequestId != null) {
-                  DCLogger.info(
+                  DCLogger.getInstance().logInfo(
                       "New Rescan started for ["
                           + project.getName()
                           + "] with RequestId "
@@ -268,10 +268,10 @@ public class RunUtils {
                     BulkMode.unset(project);
                   }
                 } else {
-                  DCLogger.warn("No actual RequestId found for: " + project.getName());
+                  DCLogger.getInstance().logWarn("No actual RequestId found for: " + project.getName());
                 }
                 projectsWithFullRescanRequested.remove(project);
-                DCLogger.info("Rescan ending for " + project.getName());
+                DCLogger.getInstance().logInfo("Rescan ending for " + project.getName());
               }
             });
   }

@@ -17,8 +17,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.stream.Collectors;
 
-import static ai.deepcode.jbplugin.core.DCLogger.warn;
-
 public class PDU extends PlatformDependentUtilsBase {
 
   private PDU() {};
@@ -93,7 +91,7 @@ public class PDU extends PlatformDependentUtilsBase {
         RunUtils.computeInReadActionInSmartMode(
             psiFile.getProject(), psiFile.getViewProvider()::getDocument);
     if (document == null) {
-      warn("Document not found for file: " + psiFile);
+      DCLogger.getInstance().getInstance().logWarn("Document not found for file: " + psiFile);
       return 0;
     }
     return document.getLineStartOffset(line);

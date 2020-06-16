@@ -28,7 +28,7 @@ public final class DeepCodeUtils {
             () -> {
               final List<PsiFile> allProjectFiles = allProjectFiles(project);
               if (allProjectFiles.isEmpty()) {
-                DCLogger.warn("Empty files list for project: " + project);
+                DCLogger.getInstance().logWarn("Empty files list for project: " + project);
               }
               // Initial scan for .dcignore files
               allProjectFiles.stream()
@@ -38,7 +38,7 @@ public final class DeepCodeUtils {
                   .filter(DeepCodeUtils::isSupportedFileFormat)
                   .collect(Collectors.toList());
             });
-    if (result.isEmpty()) DCLogger.warn("Empty supported files list for project: " + project);
+    if (result.isEmpty()) DCLogger.getInstance().logWarn("Empty supported files list for project: " + project);
     return result;
   }
 
@@ -46,12 +46,12 @@ public final class DeepCodeUtils {
     final PsiManager psiManager = PsiManager.getInstance(project);
     final VirtualFile projectDir = ProjectUtil.guessProjectDir(project);
     if (projectDir == null) {
-      DCLogger.warn("Project directory not found for: " + project);
+      DCLogger.getInstance().logWarn("Project directory not found for: " + project);
       return Collections.emptyList();
     }
     final PsiDirectory prjDirectory = psiManager.findDirectory(projectDir);
     if (prjDirectory == null) {
-      DCLogger.warn("Project directory not found for: " + project);
+      DCLogger.getInstance().logWarn("Project directory not found for: " + project);
       return Collections.emptyList();
     }
     return getFilesRecursively(prjDirectory);
@@ -89,7 +89,7 @@ public final class DeepCodeUtils {
 
   public static boolean isSupportedFileFormat(PsiFile psiFile) {
     // fixme debug only
-    // DCLogger.info("isSupportedFileFormat started for " + psiFile.getName());
+    // DCLogger.getInstance().info("isSupportedFileFormat started for " + psiFile.getName());
     if (supportedExtensions.isEmpty() || supportedConfigFiles.isEmpty()) {
       initSupportedExtentionsAndConfigFiles();
     }
@@ -104,7 +104,7 @@ public final class DeepCodeUtils {
             && (supportedExtensions.contains(virtualFile.getExtension())
                 || supportedConfigFiles.contains(virtualFile.getName()));
     // fixme debug only
-    // DCLogger.info("isSupportedFileFormat ends for " + psiFile.getName());
+    // DCLogger.getInstance().info("isSupportedFileFormat ends for " + psiFile.getName());
     return result;
   }
 
@@ -118,10 +118,10 @@ public final class DeepCodeUtils {
               .map(s -> s.substring(1)) // remove preceding `.` (`.js` -> `js`)
               .collect(Collectors.toSet());
       supportedConfigFiles = new HashSet<>(filtersResponse.getConfigFiles());
-      DCLogger.info("Supported extensions: " + supportedExtensions);
-      DCLogger.info("Supported configFiles: " + supportedConfigFiles);
+      DCLogger.getInstance().logInfo("Supported extensions: " + supportedExtensions);
+      DCLogger.getInstance().logInfo("Supported configFiles: " + supportedConfigFiles);
     } else {
-      DCLogger.warn(
+      DCLogger.getInstance().logWarn(
           "Can't retrieve supported file extensions and config files from the server. Fallback to default set.\n"
               + filtersResponse.getStatusCode()
               + " "

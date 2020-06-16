@@ -33,9 +33,9 @@ public class LoginUtils {
     boolean isLogged = response.getStatusCode() == 200;
     String message = response.getStatusDescription();
     if (isLogged) {
-      DCLogger.info("Login check succeed." + " Token: " + sessionToken);
+      DCLogger.getInstance().logInfo("Login check succeed." + " Token: " + sessionToken);
     } else {
-      DCLogger.warn("Login check fails: " + message + " Token: " + sessionToken);
+      DCLogger.getInstance().logWarn("Login check fails: " + message + " Token: " + sessionToken);
     }
     if (!isLogged && userActionNeeded) {
       if (sessionToken.isEmpty() && response.getStatusCode() == 401) {
@@ -44,9 +44,9 @@ public class LoginUtils {
       DeepCodeNotifications.showLoginLink(project, message);
     } else if (isLogged && project != null) {
       if (DeepCodeParams.getInstance().consentGiven(project)) {
-        DCLogger.info("Consent check succeed for: " + project);
+        DCLogger.getInstance().logInfo("Consent check succeed for: " + project);
       } else {
-        DCLogger.warn("Consent check fail! Project: " + project.getName());
+        DCLogger.getInstance().logWarn("Consent check fail! Project: " + project.getName());
         isLogged = false;
         DeepCodeNotifications.showConsentRequest(project, userActionNeeded);
       }
@@ -56,11 +56,11 @@ public class LoginUtils {
 
   /** network request! */
   public static void requestNewLogin(@NotNull Project project, boolean openBrowser) {
-    DCLogger.info("New Login requested.");
+    DCLogger.getInstance().logInfo("New Login requested.");
     DeepCodeParams.getInstance().clearLoginParams();
     LoginResponse response = DeepCodeRestApi.newLogin(userAgent);
     if (response.getStatusCode() == 200) {
-      DCLogger.info("New Login request succeed. New Token: " + response.getSessionToken());
+      DCLogger.getInstance().logInfo("New Login request succeed. New Token: " + response.getSessionToken());
       DeepCodeParams.getInstance().setSessionToken(response.getSessionToken());
       DeepCodeParams.getInstance().setLoginUrl(response.getLoginURL());
       if (openBrowser) {
@@ -71,7 +71,7 @@ public class LoginUtils {
             .submit(NonUrgentExecutor.getInstance());
       }
     } else {
-      DCLogger.warn("New Login request fail: " + response.getStatusDescription());
+      DCLogger.getInstance().logWarn("New Login request fail: " + response.getStatusDescription());
       DeepCodeNotifications.showError(response.getStatusDescription(), project);
     }
   }
