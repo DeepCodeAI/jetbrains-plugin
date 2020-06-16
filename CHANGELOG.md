@@ -1,3 +1,6 @@
+## [1.1.1] - 2019-06-16
+- Speedup of large projects analysis and suggestions highlighting; various internal fixes and refactoring
+
 ## [1.1.0] - 2019-06-01
 - Speedup of large projects analysis and suggestions highlighting
 - Various internal fixes and refactoring
