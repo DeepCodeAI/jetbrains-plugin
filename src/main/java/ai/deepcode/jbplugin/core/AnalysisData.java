@@ -137,6 +137,10 @@ public final class AnalysisData {
 
   private static boolean updateInProgress = true;
 
+  public static void setUpdateInProgress() {
+    updateInProgress = true;
+  }
+
   public static boolean isUpdateAnalysisInProgress() {
     return updateInProgress;
   }
@@ -149,7 +153,7 @@ public final class AnalysisData {
   public static void waitForUpdateAnalysisFinish() {
     while (updateInProgress) {
       // delay should be less or equal to runInBackgroundCancellable delay
-      RunUtils.delay(100);
+      RunUtils.delay(RunUtils.DEFAULT_DELAY_SMALL);
     }
   }
 
@@ -557,8 +561,10 @@ public final class AnalysisData {
       @Nullable ProgressIndicator progressIndicator) {
     GetAnalysisResponse response;
     int counter = 0;
+    final int timeout = 100; // seconds
+    final int attempts = timeout * 1000 / RunUtils.DEFAULT_DELAY;
     do {
-      if (counter > 0) RunUtils.delay(500);
+      if (counter > 0) RunUtils.delay(RunUtils.DEFAULT_DELAY);
       response =
           DeepCodeRestApi.getAnalysis(
               DeepCodeParams.getSessionToken(),
@@ -573,12 +579,12 @@ public final class AnalysisData {
       ProgressManager.checkCanceled();
       if (progressIndicator != null) {
         double progress = response.getProgress();
-        if (progress <= 0 || progress > 1) progress = ((double) counter) / 200;
+        if (progress <= 0 || progress > 1) progress = ((double) counter) / attempts;
         progressIndicator.setFraction(progress);
         progressIndicator.setText(WAITING_FOR_ANALYSIS_TEXT + (int) (progress * 100) + "% done");
       }
 
-      if (counter == 200) {
+      if (counter >= attempts) {
         warn("Timeout expire for waiting analysis results.");
         DeepCodeNotifications.showWarn(
             "Can't get analysis results from the server. Network or server internal error. Please, try again later.",
@@ -590,7 +596,7 @@ public final class AnalysisData {
         warn("FAILED getAnalysis request.");
         // if Failed then we have inconsistent caches, better to do full rescan
         if (!RunUtils.isFullRescanRequested(project)) {
-          RunUtils.rescanInBackgroundCancellableDelayed(project, 500, false);
+          RunUtils.rescanInBackgroundCancellableDelayed(project, RunUtils.DEFAULT_DELAY_SMALL, false);
         }
         break;
       }

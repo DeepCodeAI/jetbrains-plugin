@@ -57,7 +57,7 @@ public class MyBulkFileListener implements BulkFileListener {
           // if too many files changed then it's easier to do Bulk Mode full rescan
           BulkMode.set(project);
           // small delay to prevent multiple rescan Background tasks
-          RunUtils.rescanInBackgroundCancellableDelayed(project, 100, true);
+          RunUtils.rescanInBackgroundCancellableDelayed(project, RunUtils.DEFAULT_DELAY_SMALL, true);
         } else {
           for (PsiFile psiFile : filesChangedOrCreated) {
             RunUtils.runInBackgroundCancellable(
@@ -86,7 +86,7 @@ public class MyBulkFileListener implements BulkFileListener {
               () -> DeepCodeIgnoreInfoHolder.update_dcignoreFileContent(gcignoreFile));
         }
         // small delay to prevent multiple rescan Background tasks
-        RunUtils.rescanInBackgroundCancellableDelayed(project, 100, true);
+        RunUtils.rescanInBackgroundCancellableDelayed(project, RunUtils.DEFAULT_DELAY_SMALL, true);
       }
     }
     // fixme debug only
@@ -108,7 +108,7 @@ public class MyBulkFileListener implements BulkFileListener {
         if (filesRemoved.size() > 10) {
           BulkMode.set(project);
           // small delay to prevent multiple rescan Background tasks
-          RunUtils.rescanInBackgroundCancellableDelayed(project, 100, true);
+          RunUtils.rescanInBackgroundCancellableDelayed(project, RunUtils.DEFAULT_DELAY_SMALL, true);
         } else if (!RunUtils.isFullRescanRequested(project)) {
           RunUtils.runInBackground(
               project,
@@ -126,7 +126,7 @@ public class MyBulkFileListener implements BulkFileListener {
       if (!ignoreFilesToRemove.isEmpty()) {
         BulkMode.set(project);
         // small delay to prevent multiple rescan Background tasks
-        RunUtils.rescanInBackgroundCancellableDelayed(project, 100, true);
+        RunUtils.rescanInBackgroundCancellableDelayed(project, RunUtils.DEFAULT_DELAY_SMALL, true);
         /*
                 RunUtils.rescanInBackgroundCancellableDelayed(
                     project,

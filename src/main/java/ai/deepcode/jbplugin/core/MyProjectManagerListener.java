@@ -89,7 +89,7 @@ public class MyProjectManagerListener implements ProjectManagerListener {
       if (DeepCodeIgnoreInfoHolder.is_dcignoreFile(psiFile)) {
         DeepCodeIgnoreInfoHolder.update_dcignoreFileContent(psiFile);
         // delayed to prevent unnecessary updates in case of continuous typing by user
-        RunUtils.rescanInBackgroundCancellableDelayed(project, 1000, false);
+        RunUtils.rescanInBackgroundCancellableDelayed(project, RunUtils.DEFAULT_DELAY, false);
       }
       // .gitignore content delay to be parsed https://youtrack.jetbrains.com/issue/IDEA-239773
       final VirtualFile virtualFile = psiFile.getVirtualFile();
@@ -98,7 +98,7 @@ public class MyProjectManagerListener implements ProjectManagerListener {
         if (document != null) {
           FileDocumentManager.getInstance().saveDocument(document);
           // delayed to let git update it meta-info
-          RunUtils.rescanInBackgroundCancellableDelayed(project, 1000, false);
+          RunUtils.rescanInBackgroundCancellableDelayed(project, RunUtils.DEFAULT_DELAY, false);
         }
       }
     }
@@ -113,7 +113,7 @@ public class MyProjectManagerListener implements ProjectManagerListener {
       if (DeepCodeIgnoreInfoHolder.is_ignoreFile(psiFile)) {
         DeepCodeIgnoreInfoHolder.remove_dcignoreFileContent(psiFile);
         // ??? small delay to prevent duplicated delete with MyBulkFileListener
-        RunUtils.rescanInBackgroundCancellableDelayed(project, 100, false);
+        RunUtils.rescanInBackgroundCancellableDelayed(project, RunUtils.DEFAULT_DELAY_SMALL, false);
       }
     }
   }
