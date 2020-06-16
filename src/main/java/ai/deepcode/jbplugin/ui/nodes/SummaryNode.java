@@ -4,6 +4,7 @@
 package ai.deepcode.jbplugin.ui.nodes;
 
 import ai.deepcode.jbplugin.core.AnalysisData;
+import ai.deepcode.jbplugin.core.DCLogger;
 import ai.deepcode.jbplugin.core.RunUtils;
 import ai.deepcode.jbplugin.ui.DeepCodeDirAndModuleComparator;
 import ai.deepcode.jbplugin.ui.HighlightedRegionProvider;
@@ -112,26 +113,39 @@ public class SummaryNode extends BaseToDoNode<ToDoSummary> implements Highlighte
 
   @Override
   public void update(@NotNull PresentationData presentation) {
-    int todoItemCount = getTodoItemCount(getValue());
-    int fileCount = getFileCount(getValue());
-    String message = IdeBundle.message("node.todo.summary", todoItemCount, fileCount)
-            .replace("TODO item", "occurrence");
-    message = DeepCodeUIUtils.addErrWarnInfoCounts(
-            AnalysisData.getAllFilesWithSuggestions(myProject),
-            message,
-            false,
-            myHighlightedRegions
-            );
+    String message;
+    myHighlightedRegions.clear();
+    final Project project = getProject();
+    if (project == null) {
+      DCLogger.warn("Project is NULL");
+      return;
+    }
+    if (AnalysisData.isAnalysisResultsNOTAvailable(project)) {
+      message = "Analysis results are not available yet...";
+    } else {
+      int todoItemCount = getTodoItemCount(getValue());
+      int fileCount = getFileCount(getValue());
+      message =
+          IdeBundle.message("node.todo.summary", todoItemCount, fileCount)
+              .replace("TODO item", "occurrence");
+      DCLogger.info(message);
+      message =
+          DeepCodeUIUtils.addErrWarnInfoCounts(
+              AnalysisData.getAllFilesWithSuggestions(project),
+              message,
+              false,
+              myHighlightedRegions);
+    }
     presentation.setPresentableText(message);
     myBuilder.expandTree(2);
   }
 
-/*
-  @Override
-  public String getTestPresentation() {
-    return "Summary";
-  }
-*/
+  /*
+    @Override
+    public String getTestPresentation() {
+      return "Summary";
+    }
+  */
 
   @Nullable
   @Override
@@ -158,9 +172,9 @@ public class SummaryNode extends BaseToDoNode<ToDoSummary> implements Highlighte
     int count = 0;
     for (final Iterator<PsiFile> i = myBuilder.getAllFiles(); i.hasNext(); ) {
       final PsiFile psiFile = i.next();
-      count += RunUtils.computeInReadActionInSmartMode(
-              psiFile.getProject(),
-              () -> getTreeStructure().getTodoItemCount(psiFile));
+      count +=
+          RunUtils.computeInReadActionInSmartMode(
+              psiFile.getProject(), () -> getTreeStructure().getTodoItemCount(psiFile));
     }
     return count;
   }

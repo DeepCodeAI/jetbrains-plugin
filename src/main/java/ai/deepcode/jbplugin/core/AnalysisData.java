@@ -3,6 +3,7 @@ package ai.deepcode.jbplugin.core;
 import ai.deepcode.javaclient.DeepCodeRestApi;
 import ai.deepcode.javaclient.requests.*;
 import ai.deepcode.javaclient.responses.*;
+import ai.deepcode.jbplugin.DeepCodeNotifications;
 import ai.deepcode.jbplugin.ui.myTodoView;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.editor.Document;
@@ -136,14 +137,23 @@ public final class AnalysisData {
 
   private static boolean updateInProgress = true;
 
+  public static void setUpdateInProgress() {
+    updateInProgress = true;
+  }
+
   public static boolean isUpdateAnalysisInProgress() {
     return updateInProgress;
+  }
+
+  public static boolean isAnalysisResultsNOTAvailable(@NotNull Project project) {
+    final boolean projectWasNotAnalysed = !AnalysisData.getAllCachedProject().contains(project);
+    return projectWasNotAnalysed || AnalysisData.isUpdateAnalysisInProgress();
   }
 
   public static void waitForUpdateAnalysisFinish() {
     while (updateInProgress) {
       // delay should be less or equal to runInBackgroundCancellable delay
-      RunUtils.delay(100);
+      RunUtils.delay(RunUtils.DEFAULT_DELAY_SMALL);
     }
   }
 
@@ -395,7 +405,7 @@ public final class AnalysisData {
     GetAnalysisResponse getAnalysisResponse = doGetAnalysis(project, bundleId, null);
     result =
         parseGetAnalysisResponse(project, Collections.singleton(file), getAnalysisResponse)
-            .get(file);
+            .getOrDefault(file, Collections.emptyList());
     mapProject2analysisUrl.put(project, "");
 
     info("--- Get Analysis took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
@@ -513,8 +523,8 @@ public final class AnalysisData {
     // By man: "Extending a bundle by removing all the parent bundle's files is not allowed."
     // In reality new bundle returned with next bundleID:
     // gh/ArtsiomCh/DEEPCODE_PRIVATE_BUNDLE/0000000000000000000000000000000000000000000000000000000000000000
-    if (newBundleId.equals(
-        "gh/ArtsiomCh/DEEPCODE_PRIVATE_BUNDLE/0000000000000000000000000000000000000000000000000000000000000000")) {
+    if (newBundleId.endsWith(
+        "/DEEPCODE_PRIVATE_BUNDLE/0000000000000000000000000000000000000000000000000000000000000000")) {
       newBundleId = "";
     }
     mapProject2BundleId.put(project, newBundleId);
@@ -551,8 +561,10 @@ public final class AnalysisData {
       @Nullable ProgressIndicator progressIndicator) {
     GetAnalysisResponse response;
     int counter = 0;
+    final int timeout = 100; // seconds
+    final int attempts = timeout * 1000 / RunUtils.DEFAULT_DELAY;
     do {
-      if (counter > 0) RunUtils.delay(500);
+      if (counter > 0) RunUtils.delay(RunUtils.DEFAULT_DELAY);
       response =
           DeepCodeRestApi.getAnalysis(
               DeepCodeParams.getSessionToken(),
@@ -567,20 +579,28 @@ public final class AnalysisData {
       ProgressManager.checkCanceled();
       if (progressIndicator != null) {
         double progress = response.getProgress();
-        if (progress <= 0 || progress > 1) progress = ((double) counter) / 200;
+        if (progress <= 0 || progress > 1) progress = ((double) counter) / attempts;
         progressIndicator.setFraction(progress);
         progressIndicator.setText(WAITING_FOR_ANALYSIS_TEXT + (int) (progress * 100) + "% done");
       }
-      // fixme
-      if (counter == 200) break;
+
+      if (counter >= attempts) {
+        warn("Timeout expire for waiting analysis results.");
+        DeepCodeNotifications.showWarn(
+            "Can't get analysis results from the server. Network or server internal error. Please, try again later.",
+            project);
+        break;
+      }
+
       if (response.getStatus().equals("FAILED")) {
         warn("FAILED getAnalysis request.");
         // if Failed then we have inconsistent caches, better to do full rescan
         if (!RunUtils.isFullRescanRequested(project)) {
-          RunUtils.rescanInBackgroundCancellableDelayed(project, 500, false);
+          RunUtils.rescanInBackgroundCancellableDelayed(project, RunUtils.DEFAULT_DELAY_SMALL, false);
         }
         break;
       }
+
       counter++;
     } while (!response.getStatus().equals("DONE")
     // !!!! keep commented in production, for debug only: to emulate long processing
