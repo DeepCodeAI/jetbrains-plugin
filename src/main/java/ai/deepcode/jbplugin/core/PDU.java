@@ -110,7 +110,7 @@ public class PDU extends PlatformDependentUtilsBase {
   @Override
   public void doFullRescan(@NotNull Object project) {
     if (!RunUtils.isFullRescanRequested(toProject(project))) {
-      RunUtils.rescanInBackgroundCancellableDelayed(toProject(project), 500, false);
+      RunUtils.rescanInBackgroundCancellableDelayed(toProject(project), RunUtils.DEFAULT_DELAY_SMALL, false);
     }
   }
 

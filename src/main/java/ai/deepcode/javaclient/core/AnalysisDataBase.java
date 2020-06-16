@@ -48,14 +48,6 @@ public abstract class AnalysisDataBase {
   // Mutex need to be requested to change mapFile2Suggestions
   private static final ReentrantLock MUTEX = new ReentrantLock();
 
-  private void logInfo(String message){
-    dcLogger.logInfo(message);
-  }
-
-  private void logWarn(String message){
-    dcLogger.logWarn(message);
-  }
-
   /** see getAnalysis() below} */
   @NotNull
   public List<SuggestionForFile> getAnalysis(@NotNull Object file) {
@@ -71,10 +63,9 @@ public abstract class AnalysisDataBase {
    * @return
    */
   @NotNull
-  public Map<Object, List<SuggestionForFile>> getAnalysis(
-      @NotNull Collection<Object> files) {
+  public Map<Object, List<SuggestionForFile>> getAnalysis(@NotNull Collection<Object> files) {
     if (files.isEmpty()) {
-      logWarn("getAnalysis requested for empty list of files");
+      dcLogger.logWarn("getAnalysis requested for empty list of files");
       return Collections.emptyMap();
     }
     Map<Object, List<SuggestionForFile>> result = new HashMap<>();
@@ -88,7 +79,8 @@ public abstract class AnalysisDataBase {
       }
     }
     if (!brokenKeys.isEmpty()) {
-      logWarn("Suggestions not found for " + brokenKeys.size() + " files: " + brokenKeys.toString());
+      dcLogger.logWarn(
+          "Suggestions not found for " + brokenKeys.size() + " files: " + brokenKeys.toString());
     }
     return result;
   }
@@ -107,10 +99,10 @@ public abstract class AnalysisDataBase {
 
   public void removeFilesFromCache(@NotNull Collection<Object> files) {
     try {
-      logInfo("Request to remove from cache " + files.size() + " files: " + files);
+      dcLogger.logInfo("Request to remove from cache " + files.size() + " files: " + files);
       // todo: do we really need mutex here?
       MUTEX.lock();
-      logInfo("MUTEX LOCK");
+      dcLogger.logInfo("MUTEX LOCK");
       int removeCounter = 0;
       for (Object file : files) {
         if (file != null && isFileInCache(file)) {
@@ -119,22 +111,22 @@ public abstract class AnalysisDataBase {
           removeCounter++;
         }
       }
-      logInfo(
+      dcLogger.logInfo(
           "Actually removed from cache: "
               + removeCounter
               + " files. Were not in cache: "
               + (files.size() - removeCounter));
     } finally {
-      logInfo("MUTEX RELEASED");
+      dcLogger.logInfo("MUTEX RELEASED");
       MUTEX.unlock();
     }
   }
 
   public void removeProjectFromCaches(@NotNull Object project) {
-    logInfo("Caches clearance requested for project: " + project);
+    dcLogger.logInfo("Caches clearance requested for project: " + project);
     hashContentUtils.removeProjectHashContent(project);
     if (mapProject2BundleId.remove(project) != null) {
-      logInfo("Removed from cache: " + project);
+      dcLogger.logInfo("Removed from cache: " + project);
     }
     removeFilesFromCache(cachedFilesOfProject(project));
   }
@@ -146,6 +138,10 @@ public abstract class AnalysisDataBase {
   }
 
   private static boolean updateInProgress = true;
+
+  public void setUpdateInProgress() {
+    updateInProgress = true;
+  }
 
   public boolean isUpdateAnalysisInProgress() {
     return updateInProgress;
@@ -159,7 +155,7 @@ public abstract class AnalysisDataBase {
   public void waitForUpdateAnalysisFinish() {
     while (updateInProgress) {
       // delay should be less or equal to runInBackgroundCancellable delay
-      RunUtils.delay(100);
+      RunUtils.delay(RunUtils.DEFAULT_DELAY_SMALL);
     }
   }
 
@@ -174,17 +170,17 @@ public abstract class AnalysisDataBase {
       @NotNull Collection<Object> psiFiles,
       @NotNull Collection<Object> filesToRemove) {
     if (psiFiles.isEmpty() && filesToRemove.isEmpty()) {
-      logWarn("updateCachedResultsForFiles requested for empty list of files");
+      dcLogger.logWarn("updateCachedResultsForFiles requested for empty list of files");
       return;
     }
-    logInfo("Update requested for " + psiFiles.size() + " files: " + psiFiles.toString());
+    dcLogger.logInfo("Update requested for " + psiFiles.size() + " files: " + psiFiles.toString());
     if (!deepCodeParams.consentGiven(project)) {
-      logWarn("Consent check fail! Object: " + pdUtils.getProjectName(project));
+      dcLogger.logWarn("Consent check fail! Object: " + pdUtils.getProjectName(project));
       return;
     }
     try {
       MUTEX.lock();
-      logInfo("MUTEX LOCK");
+      dcLogger.logInfo("MUTEX LOCK");
       updateInProgress = true;
       Collection<Object> filesToProceed =
           psiFiles.stream()
@@ -195,7 +191,7 @@ public abstract class AnalysisDataBase {
         // collection already checked to be not empty
         final Object firstFile = filesToProceed.iterator().next();
         final String fileHash = hashContentUtils.getHash(firstFile);
-        logInfo(
+        dcLogger.logInfo(
             "Files to proceed (not found in cache): "
                 + filesToProceed.size()
                 + "\nHash for first file "
@@ -215,17 +211,19 @@ public abstract class AnalysisDataBase {
           mapFile2Suggestions.putAll(retrieveSuggestions(project, filesToProceed, filesToRemove));
         }
       } else if (!filesToRemove.isEmpty()) {
-        logInfo("Files to remove: " + filesToRemove.size() + " files: " + filesToRemove.toString());
+        dcLogger.logInfo(
+            "Files to remove: " + filesToRemove.size() + " files: " + filesToRemove.toString());
         retrieveSuggestions(project, filesToProceed, filesToRemove);
       } else {
-        logWarn("Nothing to update for " + psiFiles.size() + " files: " + psiFiles.toString());
+        dcLogger.logWarn(
+            "Nothing to update for " + psiFiles.size() + " files: " + psiFiles.toString());
       }
       updateInProgress = false;
       pdUtils.refreshPanel(project);
       // ServiceManager.getService(project, myTodoView.class).refresh();
     } finally {
       // if (filesToProceed != null && !filesToProceed.isEmpty())
-      logInfo("MUTEX RELEASED");
+      dcLogger.logInfo("MUTEX RELEASED");
       MUTEX.unlock();
     }
   }
@@ -240,7 +238,7 @@ public abstract class AnalysisDataBase {
       pdUtils.isLogged(project, !loginRequested);
       loginRequested = true;
     }
-    logWarn(message + response.getStatusCode() + " " + response.getStatusDescription());
+    dcLogger.logWarn(message + response.getStatusCode() + " " + response.getStatusDescription());
     return true;
   }
 
@@ -253,7 +251,7 @@ public abstract class AnalysisDataBase {
       @NotNull Collection<Object> filesToProceed,
       @NotNull Collection<Object> filesToRemove) {
     if (filesToProceed.isEmpty() && filesToRemove.isEmpty()) {
-      logWarn("Both filesToProceed and filesToRemove are empty");
+      dcLogger.logWarn("Both filesToProceed and filesToRemove are empty");
       return EMPTY_MAP;
     }
     // no needs to check login here as it will be checked anyway during every api response's check
@@ -272,7 +270,8 @@ public abstract class AnalysisDataBase {
     GetAnalysisResponse getAnalysisResponse = doGetAnalysis(project, bundleId);
     Map<Object, List<SuggestionForFile>> result =
         parseGetAnalysisResponse(project, filesToProceed, getAnalysisResponse);
-    logInfo("--- Get Analysis took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
+    dcLogger.logInfo(
+        "--- Get Analysis took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
     return result;
   }
 
@@ -287,7 +286,7 @@ public abstract class AnalysisDataBase {
       @NotNull Collection<Object> filesToRemove) {
     long startTime = System.currentTimeMillis();
     pdUtils.progressSetText(PREPARE_FILES_TEXT);
-    logInfo(PREPARE_FILES_TEXT);
+    dcLogger.logInfo(PREPARE_FILES_TEXT);
     pdUtils.progressCheckCanceled();
     Map<String, String> mapPath2Hash = new HashMap<>();
     long sizePath2Hash = 0;
@@ -319,7 +318,7 @@ public abstract class AnalysisDataBase {
     final String bundleId = createBundleResponse.getBundleId();
 
     List<String> missingFiles = createBundleResponse.getMissingFiles();
-    logInfo(
+    dcLogger.logInfo(
         "--- Create/Extend Bundle took: "
             + (System.currentTimeMillis() - startTime)
             + " milliseconds"
@@ -341,9 +340,9 @@ public abstract class AnalysisDataBase {
 
     final String bundleId = mapProject2BundleId.getOrDefault(project, "");
     if (bundleId.isEmpty()) {
-      logInfo("BundleId is empty");
+      dcLogger.logInfo("BundleId is empty");
     } else if (missingFiles.isEmpty()) {
-      logInfo("No missingFiles to Upload");
+      dcLogger.logInfo("No missingFiles to Upload");
     } else {
       final int attempts = 5;
       for (int counter = 0; counter < attempts; counter++) {
@@ -352,15 +351,18 @@ public abstract class AnalysisDataBase {
         if (missingFiles.isEmpty()) {
           break;
         } else {
-          logWarn(
-              "Check Bundle found some missingFiles to be NOT uploaded, will try to upload "
+          dcLogger.logWarn(
+              "Check Bundle found "
+                  + missingFiles.size()
+                  + " missingFiles (NOT uploaded), will try to upload "
                   + (attempts - counter)
                   + " more times:\nmissingFiles = "
                   + missingFiles);
         }
       }
     }
-    logInfo("--- Upload Files took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
+    dcLogger.logInfo(
+        "--- Upload Files took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
   }
 
   /** Perform costly network request. <b>No cache checks!</b> */
@@ -371,7 +373,7 @@ public abstract class AnalysisDataBase {
     long startTime;
     // ---------------------------------------- Create Bundle
     startTime = System.currentTimeMillis();
-    logInfo("Creating temporary Bundle from File content");
+    dcLogger.logInfo("Creating temporary Bundle from File content");
     pdUtils.progressCheckCanceled();
 
     FileContent fileContent =
@@ -389,7 +391,7 @@ public abstract class AnalysisDataBase {
     if (bundleId.isEmpty()) return Collections.emptyList(); // no sense to proceed without bundleId
 
     List<String> missingFiles = createBundleResponse.getMissingFiles();
-    logInfo(
+    dcLogger.logInfo(
         "--- Create temporary Bundle took: "
             + (System.currentTimeMillis() - startTime)
             + " milliseconds"
@@ -397,7 +399,7 @@ public abstract class AnalysisDataBase {
             + bundleId
             + "\nmissingFiles: "
             + missingFiles);
-    if (!missingFiles.isEmpty()) logWarn("missingFiles is NOT empty!");
+    if (!missingFiles.isEmpty()) dcLogger.logWarn("missingFiles is NOT empty!");
 
     // ---------------------------------------- Get Analysis
     pdUtils.progressCheckCanceled();
@@ -408,7 +410,8 @@ public abstract class AnalysisDataBase {
             .getOrDefault(file, Collections.emptyList());
     mapProject2analysisUrl.put(project, "");
 
-    logInfo("--- Get Analysis took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
+    dcLogger.logInfo(
+        "--- Get Analysis took: " + (System.currentTimeMillis() - startTime) + " milliseconds");
     //    progress.stop();
     return result;
   }
@@ -445,7 +448,7 @@ public abstract class AnalysisDataBase {
       }
       final long fileSize = pdUtils.getFileSize(file); // .getVirtualFile().getLength();
       if (fileChunkSize + fileSize > MAX_BUNDLE_SIZE) {
-        logInfo("Files-chunk size: " + fileChunkSize);
+        dcLogger.logInfo("Files-chunk size: " + fileChunkSize);
         doUploadFiles(project, filesChunk, bundleId);
         fileChunkSize = 0;
         filesChunk.clear();
@@ -453,8 +456,9 @@ public abstract class AnalysisDataBase {
       fileChunkSize += fileSize;
       filesChunk.add(file);
     }
-    if (brokenMissingFilesCount > 0) logWarn(brokenMissingFilesCount + brokenMissingFilesMessage);
-    logInfo("Last filesToProceed-chunk size: " + fileChunkSize);
+    if (brokenMissingFilesCount > 0)
+      dcLogger.logWarn(brokenMissingFilesCount + brokenMissingFilesMessage);
+    dcLogger.logInfo("Last filesToProceed-chunk size: " + fileChunkSize);
     doUploadFiles(project, filesChunk, bundleId);
   }
 
@@ -483,7 +487,7 @@ public abstract class AnalysisDataBase {
         && !filesToRemove.isEmpty()
         && mapPath2Hash.isEmpty()
         && filesToRemove.containsAll(cachedFilesOfProject(project))) {
-      logWarn(
+      dcLogger.logWarn(
           "Attempt to Extending a bundle by removing all the parent bundle's files: "
               + filesToRemove);
     }
@@ -496,7 +500,7 @@ public abstract class AnalysisDataBase {
             + mapPath2Hash.size()
             + " files"
             + (removedFiles.isEmpty() ? "" : " and remove " + removedFiles.size() + " files");
-    logInfo(message);
+    dcLogger.logInfo(message);
     // todo make network request in parallel with collecting data
     final CreateBundleResponse bundleResponse;
     // check if bundleID for the project already been created
@@ -525,7 +529,7 @@ public abstract class AnalysisDataBase {
 
   private void doUploadFiles(
       @NotNull Object project, @NotNull Collection<Object> psiFiles, @NotNull String bundleId) {
-    logInfo("Uploading " + psiFiles.size() + " files... ");
+    dcLogger.logInfo("Uploading " + psiFiles.size() + " files... ");
     if (psiFiles.isEmpty()) return;
     List<FileHash2ContentRequest> listHash2Content = new ArrayList<>(psiFiles.size());
     for (Object psiFile : psiFiles) {
@@ -546,8 +550,10 @@ public abstract class AnalysisDataBase {
   private GetAnalysisResponse doGetAnalysis(@NotNull Object project, @NotNull String bundleId) {
     GetAnalysisResponse response;
     int counter = 0;
+    final int timeout = 100; // seconds
+    final int attempts = timeout * 1000 / RunUtils.DEFAULT_DELAY;
     do {
-      if (counter > 0) RunUtils.delay(500);
+      if (counter > 0) RunUtils.delay(RunUtils.DEFAULT_DELAY);
       response =
           DeepCodeRestApi.getAnalysis(
               deepCodeParams.getSessionToken(),
@@ -556,17 +562,17 @@ public abstract class AnalysisDataBase {
               deepCodeParams.useLinter());
 
       pdUtils.progressCheckCanceled();
-      logInfo(response.toString());
+      dcLogger.logInfo(response.toString());
       if (isNotSucceed(project, response, "Bad GetAnalysis request: "))
         return new GetAnalysisResponse();
 
       double progress = response.getProgress();
-      if (progress <= 0 || progress > 1) progress = ((double) counter) / 200;
+      if (progress <= 0 || progress > 1) progress = ((double) counter) / attempts;
       pdUtils.progressSetFraction(progress);
       pdUtils.progressSetText(WAITING_FOR_ANALYSIS_TEXT + (int) (progress * 100) + "% done");
 
-      if (counter == 200) {
-        logWarn("Timeout expire for waiting analysis results.");
+      if (counter >= attempts) {
+        dcLogger.logWarn("Timeout expire for waiting analysis results.");
         /*
                 DeepCodeNotifications.showWarn(
                     "Can't get analysis results from the server. Network or server internal error. Please, try again later.",
@@ -576,7 +582,7 @@ public abstract class AnalysisDataBase {
       }
 
       if (response.getStatus().equals("FAILED")) {
-        logWarn("FAILED getAnalysis request.");
+        dcLogger.logWarn("FAILED getAnalysis request.");
         // if Failed then we have inconsistent caches, better to do full rescan
         pdUtils.doFullRescan(project);
         /*if (!RunUtils.isFullRescanRequested(project)) {
@@ -601,7 +607,7 @@ public abstract class AnalysisDataBase {
     AnalysisResults analysisResults = response.getAnalysisResults();
     mapProject2analysisUrl.put(project, response.getAnalysisURL());
     if (analysisResults == null) {
-      logWarn("AnalysisResults is null for: " + response);
+      dcLogger.logWarn("AnalysisResults is null for: " + response);
       return EMPTY_MAP;
     }
     for (Object file : files) {
@@ -614,7 +620,7 @@ public abstract class AnalysisDataBase {
       }
       final Suggestions suggestions = analysisResults.getSuggestions();
       if (suggestions == null) {
-        logWarn("Suggestions is empty for: " + response);
+        dcLogger.logWarn("Suggestions is empty for: " + response);
         return EMPTY_MAP;
       }
       pdUtils.progressCheckCanceled();
@@ -623,7 +629,7 @@ public abstract class AnalysisDataBase {
       for (String suggestionIndex : fileSuggestions.keySet()) {
         final Suggestion suggestion = suggestions.get(suggestionIndex);
         if (suggestion == null) {
-          logWarn(
+          dcLogger.logWarn(
               "Suggestion not found for suggestionIndex: "
                   + suggestionIndex
                   + "\nGetAnalysisResponse: "
@@ -650,7 +656,8 @@ public abstract class AnalysisDataBase {
   }
 
   private FileContent createFileContent(Object file) {
-    return new FileContent(pdUtils.getDeepCodedFilePath(file), hashContentUtils.getFileContent(file));
+    return new FileContent(
+        pdUtils.getDeepCodedFilePath(file), hashContentUtils.getFileContent(file));
   }
 
   public Set<Object> getAllFilesWithSuggestions(@NotNull final Object project) {

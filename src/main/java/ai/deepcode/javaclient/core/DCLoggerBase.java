@@ -65,7 +65,9 @@ public abstract class DCLoggerBase {
   private static String getMyClassesStacktrace() {
     StringJoiner joiner = new StringJoiner(" -> ");
     StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-    for (int i = stackTrace.length - 1; i > 2; i--) {
+    for (int i = stackTrace.length - 1; // show in backward order
+        i > 3; // to skip infoFunctionSupplier.get() -> logInfo/ warnInfo -> getMyClassesStacktrace
+        i--) {
       StackTraceElement ste = stackTrace[i];
       if (ste.getClassName().contains("ai.deepcode")) {
         String s =
@@ -81,5 +83,4 @@ public abstract class DCLoggerBase {
   }
 
   protected abstract String getExtraInfo();
-
 }

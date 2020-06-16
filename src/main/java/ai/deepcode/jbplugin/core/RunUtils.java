@@ -19,7 +19,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class RunUtils {
+
   private RunUtils() {}
+
+  public static final int DEFAULT_DELAY = 1000; // milliseconds
+  public static final int DEFAULT_DELAY_SMALL = 200; // milliseconds
 
   public static void asyncUpdateCurrentFilePanel(PsiFile psiFile) {}
 
@@ -130,6 +134,7 @@ public class RunUtils {
     if (prevRunnable != null) return;
     DCLogger.getInstance().logInfo(
         "new Background task registered for: " + psiFile.getName() + " with Runnable " + runId);
+    AnalysisData.getInstance().setUpdateInProgress();
 
     final Project project = psiFile.getProject();
     ProgressManager.getInstance()
@@ -159,7 +164,7 @@ public class RunUtils {
                 getRunningIndicators(project).add(indicator);
 
                 // small delay to let new consequent requests proceed and cancel current one
-                delay(100);
+                delay(DEFAULT_DELAY_SMALL);
 
                 Runnable actualRunnable = mapFile2Runnable.get(virtualFile);
                 if (actualRunnable != null) {
@@ -168,7 +173,12 @@ public class RunUtils {
                   DCLogger.getInstance().logInfo(
                       "New Process started for " + psiFile.getName() + " with Runnable " + runId);
                   mapFile2Runnable.remove(virtualFile);
+
+                  // final delay before actual heavy Network request
+                  // to let new consequent requests proceed and cancel current one
+                  delay(DEFAULT_DELAY);
                   actualRunnable.run();
+
                 } else {
                   DCLogger.getInstance().logWarn("No actual Runnable found for: " + psiFile.getName());
                 }
