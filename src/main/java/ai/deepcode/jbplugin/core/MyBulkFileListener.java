@@ -41,7 +41,7 @@ public class MyBulkFileListener implements BulkFileListener {
           getFilteredFilesByEventTypes(
               project,
               events,
-              (psiFile -> DeepCodeUtils.isSupportedFileFormat(psiFile)
+              (psiFile -> DeepCodeUtils.getInstance().isSupportedFileFormat(psiFile)
               // to prevent updating files already done by
               // MyPsiTreeChangeAdapter
               // fixme: doesn't work, try to use isFromSave or isFromRefresh
@@ -57,7 +57,7 @@ public class MyBulkFileListener implements BulkFileListener {
           // if too many files changed then it's easier to do Bulk Mode full rescan
           BulkMode.set(project);
           // small delay to prevent multiple rescan Background tasks
-          RunUtils.rescanInBackgroundCancellableDelayed(project, RunUtils.DEFAULT_DELAY_SMALL, true);
+          RunUtils.rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, true);
         } else {
           for (PsiFile psiFile : filesChangedOrCreated) {
             RunUtils.runInBackgroundCancellable(
@@ -86,7 +86,7 @@ public class MyBulkFileListener implements BulkFileListener {
               () -> DeepCodeIgnoreInfoHolder.update_dcignoreFileContent(gcignoreFile));
         }
         // small delay to prevent multiple rescan Background tasks
-        RunUtils.rescanInBackgroundCancellableDelayed(project, RunUtils.DEFAULT_DELAY_SMALL, true);
+        RunUtils.rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, true);
       }
     }
     // fixme debug only
@@ -101,14 +101,14 @@ public class MyBulkFileListener implements BulkFileListener {
       if (project.isDisposed()) continue;
       Set<PsiFile> filesRemoved =
           getFilteredFilesByEventTypes(
-              project, events, DeepCodeUtils::isSupportedFileFormat, VFileDeleteEvent.class);
+              project, events, DeepCodeUtils.getInstance()::isSupportedFileFormat, VFileDeleteEvent.class);
       if (!filesRemoved.isEmpty()) {
         DCLogger.getInstance().logInfo("Found " + filesRemoved.size() + " files to remove: " + filesRemoved);
         // if too many files removed then it's easier to do full rescan
         if (filesRemoved.size() > 10) {
           BulkMode.set(project);
           // small delay to prevent multiple rescan Background tasks
-          RunUtils.rescanInBackgroundCancellableDelayed(project, RunUtils.DEFAULT_DELAY_SMALL, true);
+          RunUtils.rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, true);
         } else if (!RunUtils.isFullRescanRequested(project)) {
           RunUtils.runInBackground(
               project,
@@ -126,7 +126,7 @@ public class MyBulkFileListener implements BulkFileListener {
       if (!ignoreFilesToRemove.isEmpty()) {
         BulkMode.set(project);
         // small delay to prevent multiple rescan Background tasks
-        RunUtils.rescanInBackgroundCancellableDelayed(project, RunUtils.DEFAULT_DELAY_SMALL, true);
+        RunUtils.rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, true);
         /*
                 RunUtils.rescanInBackgroundCancellableDelayed(
                     project,

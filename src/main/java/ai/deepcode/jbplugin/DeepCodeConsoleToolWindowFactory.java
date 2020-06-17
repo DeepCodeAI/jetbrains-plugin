@@ -80,7 +80,7 @@ public class DeepCodeConsoleToolWindowFactory implements ToolWindowFactory, Disp
               public void childrenChanged(@NotNull PsiTreeChangeEvent event) {
                 PsiFile file = event.getFile();
                 if (file != null && file.equals(myCurrentFile)) {
-                  DeepCodeUtils.asyncUpdateCurrentFilePanel(file);
+                  DeepCodeUtils.getInstance().asyncUpdateCurrentFilePanel(file);
                 }
               }
             });
@@ -123,7 +123,7 @@ public class DeepCodeConsoleToolWindowFactory implements ToolWindowFactory, Disp
     myCurrentFile = psiFile;
     Project project = psiFile.getProject();
     cleanMessages(project);
-    if (!DeepCodeUtils.isSupportedFileFormat(psiFile)) return;
+    if (!DeepCodeUtils.getInstance().isSupportedFileFormat(psiFile)) return;
     List<SuggestionForFile> suggestions = AnalysisData.getInstance().getAnalysis(psiFile);
     for (SuggestionForFile suggestion : suggestions) {
       printMessage(project, suggestion.getMessage());

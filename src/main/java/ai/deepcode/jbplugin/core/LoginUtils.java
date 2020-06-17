@@ -79,7 +79,7 @@ public class LoginUtils {
   private static void startLoginCheckLoop(@NotNull Project project) {
     isLoginCheckLoopStarted = true;
     do {
-      RunUtils.delay(RunUtils.DEFAULT_DELAY);
+      PDU.getInstance().delay(PDU.DEFAULT_DELAY);
     } while (!isLogged(project, false));
     isLoginCheckLoopStarted = false;
     DeepCodeNotifications.showInfo("Login succeed", project);

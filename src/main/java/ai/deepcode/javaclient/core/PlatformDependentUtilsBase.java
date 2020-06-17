@@ -5,6 +5,18 @@ import org.jetbrains.annotations.Nullable;
 
 public abstract class PlatformDependentUtilsBase {
 
+  public static final int DEFAULT_DELAY = 1000; // milliseconds
+  public static final int DEFAULT_DELAY_SMALL = 200; // milliseconds
+
+  public void delay(long millis) {
+    try {
+      Thread.sleep(millis);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+    progressCheckCanceled();
+  }
+
   @NotNull
   public abstract Object getProject(@NotNull Object file);
 
@@ -15,7 +27,13 @@ public abstract class PlatformDependentUtilsBase {
   public abstract String getFileName(@NotNull Object file);
 
   @NotNull
-  public abstract String getDeepCodedFilePath(@NotNull Object file);
+  public String getDeepCodedFilePath(@NotNull Object file){
+    final String path = getProjectBasedFilePath(file);
+    return path.startsWith("/") ? path : "/" + path;
+  }
+
+  @NotNull
+  protected abstract String getProjectBasedFilePath(@NotNull Object file);
 
   public abstract long getFileSize(@NotNull Object file);
 

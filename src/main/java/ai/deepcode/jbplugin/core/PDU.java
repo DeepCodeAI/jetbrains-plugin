@@ -75,8 +75,15 @@ public class PDU extends PlatformDependentUtilsBase {
 
   @Override
   @NotNull
-  public String getDeepCodedFilePath(@NotNull Object file) {
-    return DeepCodeUtils.getDeepCodedFilePath(toPsiFile(file));
+  protected String getProjectBasedFilePath(@NotNull Object file) {
+    PsiFile psiFile = toPsiFile(file);
+    // looks like we don't need ReadAction for this (?)
+    String absolutePath = psiFile.getVirtualFile().getPath();
+    final String projectPath = psiFile.getProject().getBasePath();
+    if (projectPath != null) {
+      absolutePath = absolutePath.replace(projectPath, "");
+    }
+    return absolutePath;
   }
 
   @Override
@@ -91,7 +98,7 @@ public class PDU extends PlatformDependentUtilsBase {
         RunUtils.computeInReadActionInSmartMode(
             psiFile.getProject(), psiFile.getViewProvider()::getDocument);
     if (document == null) {
-      DCLogger.getInstance().getInstance().logWarn("Document not found for file: " + psiFile);
+      DCLogger.getInstance().logWarn("Document not found for file: " + psiFile);
       return 0;
     }
     return document.getLineStartOffset(line);
@@ -110,7 +117,7 @@ public class PDU extends PlatformDependentUtilsBase {
   @Override
   public void doFullRescan(@NotNull Object project) {
     if (!RunUtils.isFullRescanRequested(toProject(project))) {
-      RunUtils.rescanInBackgroundCancellableDelayed(toProject(project), RunUtils.DEFAULT_DELAY_SMALL, false);
+      RunUtils.rescanInBackgroundCancellableDelayed(toProject(project), DEFAULT_DELAY_SMALL, false);
     }
   }
 

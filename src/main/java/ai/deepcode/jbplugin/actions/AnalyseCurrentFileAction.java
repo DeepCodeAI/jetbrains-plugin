@@ -37,7 +37,7 @@ public class AnalyseCurrentFileAction extends AnAction {
       return;
     }
 
-    if (!DeepCodeUtils.isSupportedFileFormat(psiFile)) {
+    if (!DeepCodeUtils.getInstance().isSupportedFileFormat(psiFile)) {
       DeepCodeNotifications.showInfo(
               String.format(
                       "Files with `%1$s` extension are not supported yet.",

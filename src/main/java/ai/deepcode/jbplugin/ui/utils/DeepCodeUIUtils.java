@@ -55,7 +55,8 @@ public class DeepCodeUIUtils {
       String originalMsg,
       boolean withTextEWI,
       @NotNull List<HighlightedRegion> regionsToUpdate) {
-    DeepCodeUtils.ErrorsWarningsInfos ewi = DeepCodeUtils.getEWI(psiFiles);
+    DeepCodeUtils.ErrorsWarningsInfos ewi =
+        DeepCodeUtils.getInstance().getEWI(PDU.toObjects(psiFiles));
     int errors = ewi.getErrors();
     int warnings = ewi.getWarnings();
     int infos = ewi.getInfos();
@@ -110,9 +111,8 @@ public class DeepCodeUIUtils {
     }
 
     DeepCodeUtils.ErrorsWarningsInfos ewi =
-        DeepCodeUtils.getEWI(
-            // fixme
-            PDU.toPsiFiles(AnalysisData.getInstance().getAllFilesWithSuggestions(project)));
+        DeepCodeUtils.getInstance()
+            .getEWI(AnalysisData.getInstance().getAllFilesWithSuggestions(project));
     int errors = ewi.getErrors();
     int warnings = ewi.getWarnings();
     int infos = ewi.getInfos();

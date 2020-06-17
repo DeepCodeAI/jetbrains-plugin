@@ -29,8 +29,8 @@ public final class DeepCodeDirAndModuleComparator implements Comparator<NodeDesc
     if (obj1 instanceof TodoFileNode && obj2 instanceof TodoFileNode) {
       PsiFile file1 = ((TodoFileNode) obj1).getValue();
       PsiFile file2 = ((TodoFileNode) obj2).getValue();
-      DeepCodeUtils.ErrorsWarningsInfos ewi1 = DeepCodeUtils.getEWI(Collections.singleton(file1));
-      DeepCodeUtils.ErrorsWarningsInfos ewi2 = DeepCodeUtils.getEWI(Collections.singleton(file2));
+      DeepCodeUtils.ErrorsWarningsInfos ewi1 = DeepCodeUtils.getInstance().getEWI(Collections.singleton(file1));
+      DeepCodeUtils.ErrorsWarningsInfos ewi2 = DeepCodeUtils.getInstance().getEWI(Collections.singleton(file2));
       return (ewi1.getErrors() != ewi2.getErrors())
           ? ewi2.getErrors() - ewi1.getErrors()
           : (ewi1.getWarnings() != ewi2.getWarnings())

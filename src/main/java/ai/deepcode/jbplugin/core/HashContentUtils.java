@@ -19,8 +19,7 @@ public class HashContentUtils extends HashContentUtilsBase {
 
   @NotNull
   protected String doGetFileContent(@NotNull Object file) {
-    if (!(file instanceof PsiFile)) throw new IllegalArgumentException();
-    PsiFile psiFile = (PsiFile)file;
+    PsiFile psiFile = PDU.toPsiFile(file);
     return RunUtils.computeInReadActionInSmartMode(
         psiFile.getProject(), () -> getPsiFileText(psiFile));
   }

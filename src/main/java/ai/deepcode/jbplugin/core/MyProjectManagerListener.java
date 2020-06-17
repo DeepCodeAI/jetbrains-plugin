@@ -12,7 +12,6 @@ import com.intellij.psi.PsiTreeChangeEvent;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
-import java.util.Set;
 
 /** Add PsiTree change Listener to clear caches for file if it was changed. */
 public class MyProjectManagerListener implements ProjectManagerListener {
@@ -72,7 +71,7 @@ public class MyProjectManagerListener implements ProjectManagerListener {
       final Project project = psiFile.getProject();
       if (BulkMode.isActive(project)) return;
 
-      if (DeepCodeUtils.isSupportedFileFormat(psiFile)) {
+      if (DeepCodeUtils.getInstance().isSupportedFileFormat(psiFile)) {
         RunUtils.runInBackgroundCancellable(
             psiFile,
             () -> {
@@ -88,7 +87,7 @@ public class MyProjectManagerListener implements ProjectManagerListener {
       if (DeepCodeIgnoreInfoHolder.is_dcignoreFile(psiFile)) {
         DeepCodeIgnoreInfoHolder.update_dcignoreFileContent(psiFile);
         // delayed to prevent unnecessary updates in case of continuous typing by user
-        RunUtils.rescanInBackgroundCancellableDelayed(project, RunUtils.DEFAULT_DELAY, false);
+        RunUtils.rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY, false);
       }
       // .gitignore content delay to be parsed https://youtrack.jetbrains.com/issue/IDEA-239773
       final VirtualFile virtualFile = psiFile.getVirtualFile();
@@ -97,7 +96,7 @@ public class MyProjectManagerListener implements ProjectManagerListener {
         if (document != null) {
           FileDocumentManager.getInstance().saveDocument(document);
           // delayed to let git update it meta-info
-          RunUtils.rescanInBackgroundCancellableDelayed(project, RunUtils.DEFAULT_DELAY, false);
+          RunUtils.rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY, false);
         }
       }
     }
@@ -112,7 +111,7 @@ public class MyProjectManagerListener implements ProjectManagerListener {
       if (DeepCodeIgnoreInfoHolder.is_ignoreFile(psiFile)) {
         DeepCodeIgnoreInfoHolder.remove_dcignoreFileContent(psiFile);
         // ??? small delay to prevent duplicated delete with MyBulkFileListener
-        RunUtils.rescanInBackgroundCancellableDelayed(project, RunUtils.DEFAULT_DELAY_SMALL, false);
+        RunUtils.rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, false);
       }
     }
   }

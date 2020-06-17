@@ -3,7 +3,6 @@ package ai.deepcode.javaclient.core;
 import ai.deepcode.javaclient.DeepCodeRestApi;
 import ai.deepcode.javaclient.requests.*;
 import ai.deepcode.javaclient.responses.*;
-import ai.deepcode.jbplugin.core.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -155,7 +154,7 @@ public abstract class AnalysisDataBase {
   public void waitForUpdateAnalysisFinish() {
     while (updateInProgress) {
       // delay should be less or equal to runInBackgroundCancellable delay
-      RunUtils.delay(RunUtils.DEFAULT_DELAY_SMALL);
+      pdUtils.delay(pdUtils.DEFAULT_DELAY_SMALL);
     }
   }
 
@@ -551,9 +550,9 @@ public abstract class AnalysisDataBase {
     GetAnalysisResponse response;
     int counter = 0;
     final int timeout = 100; // seconds
-    final int attempts = timeout * 1000 / RunUtils.DEFAULT_DELAY;
+    final int attempts = timeout * 1000 / pdUtils.DEFAULT_DELAY;
     do {
-      if (counter > 0) RunUtils.delay(RunUtils.DEFAULT_DELAY);
+      if (counter > 0) pdUtils.delay(pdUtils.DEFAULT_DELAY);
       response =
           DeepCodeRestApi.getAnalysis(
               deepCodeParams.getSessionToken(),
