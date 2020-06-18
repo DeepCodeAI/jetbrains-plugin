@@ -28,7 +28,7 @@ public class DeepCodeStartupActivity implements StartupActivity {
 
     AnalysisData.getInstance().resetCachesAndTasks(project);
     // Initial logging if needed.
-    if (LoginUtils.isLogged(project, true)) {
+    if (LoginUtils.getInstance().isLogged(project, true)) {
       RunUtils.asyncAnalyseProjectAndUpdatePanel(project);
     }
     // Keep commented - for DEBUG ONLY !!!!!!!!!!!!!!!!!

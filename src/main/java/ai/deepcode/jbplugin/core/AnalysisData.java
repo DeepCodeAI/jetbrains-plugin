@@ -15,6 +15,6 @@ public final class AnalysisData extends AnalysisDataBase {
         PDU.getInstance(),
         HashContentUtils.getInstance(),
         DeepCodeParams.getInstance(),
-            DCLogger.getInstance());
+        DCLogger.getInstance());
   }
 }

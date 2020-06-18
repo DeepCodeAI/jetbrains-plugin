@@ -32,7 +32,7 @@ public class AnalyseCurrentFileAction extends AnAction {
     final PsiFile psiFile = event.getRequiredData(PlatformDataKeys.PSI_FILE);
     Project project = psiFile.getProject();
 
-    if (!LoginUtils.isLogged(project, true)) {
+    if (!LoginUtils.getInstance().isLogged(project, true)) {
 //      DeepCodeNotifications.reShowLastNotification();
       return;
     }

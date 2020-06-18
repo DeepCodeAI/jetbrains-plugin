@@ -2,7 +2,9 @@ package ai.deepcode.jbplugin.core;
 
 import ai.deepcode.javaclient.core.MyTextRange;
 import ai.deepcode.javaclient.core.PlatformDependentUtilsBase;
+import ai.deepcode.jbplugin.DeepCodeNotifications;
 import ai.deepcode.jbplugin.ui.myTodoView;
+import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -110,6 +112,11 @@ public class PDU extends PlatformDependentUtilsBase {
   }
 
   @Override
+  public void runInBackground(@NotNull Object project, @NotNull Runnable runnable) {
+    RunUtils.runInBackground(toProject(project), runnable);
+  }
+
+  @Override
   public void cancelRunningIndicators(@NotNull Object project) {
     RunUtils.cancelRunningIndicators(toProject(project));
   }
@@ -128,7 +135,7 @@ public class PDU extends PlatformDependentUtilsBase {
 
   @Override
   public boolean isLogged(@Nullable Object project, boolean userActionNeeded) {
-    return LoginUtils.isLogged(project == null ? null : toProject(project), userActionNeeded);
+    return LoginUtils.getInstance().isLogged(project == null ? null : toProject(project), userActionNeeded);
   }
 
   @Override
@@ -146,5 +153,35 @@ public class PDU extends PlatformDependentUtilsBase {
   public void progressSetFraction(double fraction) {
     ProgressIndicator progress = ProgressManager.getInstance().getProgressIndicator();
     progress.setFraction(fraction);
+  }
+
+  @Override
+  public void showInBrowser(@NotNull String url) {
+    BrowserUtil.open(DeepCodeParams.getInstance().getLoginUrl());
+  }
+
+  @Override
+  public void showLoginLink(Object project, String message) {
+    DeepCodeNotifications.showLoginLink(project == null ? null : toProject(project), message);
+  }
+
+  @Override
+  public void showConsentRequest(Object project, boolean userActionNeeded) {
+    DeepCodeNotifications.showConsentRequest(toProject(project), userActionNeeded);
+  }
+
+  @Override
+  public void showInfo(String message, Object project) {
+    DeepCodeNotifications.showInfo(message, toProject(project));
+  }
+
+  @Override
+  public void showWarn(String message, Object project) {
+    DeepCodeNotifications.showWarn(message, toProject(project));
+  }
+
+  @Override
+  public void showError(String message, Object project) {
+    DeepCodeNotifications.showError(message, toProject(project));
   }
 }

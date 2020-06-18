@@ -77,7 +77,7 @@ public class DeepCodeConfigEntry implements Configurable {
     DeepCodeParams.getInstance().setEnable(myForm.isPluginEnabled());
     if (needClearCachesAndRescan) {
       AnalysisData.getInstance().resetCachesAndTasks(null);
-      if (LoginUtils.isLogged(null, true)) {
+      if (LoginUtils.getInstance().isLogged(null, true)) {
         RunUtils.asyncAnalyseProjectAndUpdatePanel(null);
       }
     }

@@ -42,6 +42,8 @@ public abstract class PlatformDependentUtilsBase {
 
   public abstract void runInBackgroundCancellable(@NotNull Object file, @NotNull Runnable runnable);
 
+  public abstract void runInBackground(@NotNull Object project, @NotNull Runnable runnable);
+
   public abstract void cancelRunningIndicators(@NotNull Object project);
 
   public abstract void doFullRescan(@NotNull Object project);
@@ -49,6 +51,7 @@ public abstract class PlatformDependentUtilsBase {
 
   public abstract void refreshPanel(@NotNull Object project);
 
+  // todo: replace it with LoginUtils direct call
   public abstract boolean isLogged(@Nullable Object project, boolean userActionNeeded);
 
 
@@ -57,4 +60,17 @@ public abstract class PlatformDependentUtilsBase {
   public abstract void progressCheckCanceled();
 
   public abstract void progressSetFraction(double fraction);
+
+
+  public abstract void showInBrowser(@NotNull String url);
+
+  public abstract void showLoginLink(Object project, String message);
+
+  public abstract void showConsentRequest(Object project, boolean userActionNeeded);
+
+  public abstract void showInfo(String message, Object project);
+
+  public abstract void showWarn(String message, Object project);
+
+  public abstract void showError(String message, Object project);
 }
