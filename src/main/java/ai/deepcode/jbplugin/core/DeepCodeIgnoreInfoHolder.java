@@ -62,22 +62,24 @@ class DeepCodeIgnoreInfoHolder {
       line = line.trim();
       if (line.isEmpty() || line.startsWith("#")) continue;
 
-      String prefix = basePath;
+      String prefix = basePath + "/";
       // If there is a separator at the beginning or middle (or both) of the pattern, then the
       // pattern is relative to the directory level of the particular .gitignore file itself.
       // Otherwise the pattern may also match at any level below the .gitignore level.
-      if (line.substring(0, line.length() - 1).indexOf('/') == -1) prefix += ".*";
+      int indexBegMidSepar = line.substring(0, line.length() - 1).indexOf('/');
+      if (indexBegMidSepar == -1) {
+        prefix += ".*";
+      } else if (line.endsWith("/*") || line.endsWith("/**")) {
+        int indexLastSepar = line.lastIndexOf('/');
+        if (indexBegMidSepar == indexLastSepar) prefix += ".*";
+      }
 
       // If there is a separator at the end of the pattern then the pattern will only match
       // directories, otherwise the pattern can match both files and directories.
       String postfix =
-          (line.endsWith("/")
-                  // A trailing "/**" matches everything inside. For example, "abc/**" matches all
-                  // files inside directory "abc", relative to the location of the .gitignore file,
-                  // with infinite depth.
-                  || line.endsWith("/**"))
-              ? ".+"
-              : (line.lastIndexOf('.') == -1) ? "/.+" : "";
+          (line.endsWith("/"))
+              ? ".+" // should be dir
+              : ".*"; // could be dir or file
 
       String body =
           line.replace(".", "\\.")
@@ -87,6 +89,9 @@ class DeepCodeIgnoreInfoHolder {
               .replace("?", "[^/]?")
               // A slash followed by two consecutive asterisks then a slash matches zero or more
               // directories. For example, "a/**/b" matches "a/b", "a/x/b", "a/x/y/b" and so on.
+              // A trailing "/**" matches everything inside. For example, "abc/**" matches all
+              // files inside directory "abc", relative to the location of the .gitignore file,
+              // with infinite depth.
               .replace("[^/]*[^/]*", ".*");
 
       result.add(prefix + body + postfix);
