@@ -1,3 +1,6 @@
+## [1.1.2] - 2019-06-01
+- Fix bug parsing of trailing "**" in .dcignore
+
 ## [1.1.0] - 2019-06-01
 - Speedup of large projects analysis and suggestions highlighting
 - Various internal fixes and refactoring
