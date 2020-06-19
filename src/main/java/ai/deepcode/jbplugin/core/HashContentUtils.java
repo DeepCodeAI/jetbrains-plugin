@@ -18,7 +18,7 @@ public class HashContentUtils extends HashContentUtilsBase {
   }
 
   @NotNull
-  protected String doGetFileContent(@NotNull Object file) {
+  public String doGetFileContent(@NotNull Object file) {
     PsiFile psiFile = PDU.toPsiFile(file);
     return RunUtils.computeInReadActionInSmartMode(
         psiFile.getProject(), () -> getPsiFileText(psiFile));

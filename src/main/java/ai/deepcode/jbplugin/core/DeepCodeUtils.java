@@ -11,7 +11,6 @@ import com.intellij.psi.PsiManager;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public final class DeepCodeUtils extends DeepCodeUtilsBase {
 
@@ -22,6 +21,7 @@ public final class DeepCodeUtils extends DeepCodeUtilsBase {
     super(
         AnalysisData.getInstance(),
         DeepCodeParams.getInstance(),
+        DeepCodeIgnoreInfoHolder.getInstance(),
         DCLogger.getInstance());
   }
 
@@ -30,41 +30,24 @@ public final class DeepCodeUtils extends DeepCodeUtilsBase {
   }
 
   @Override
-  public List<Object> getAllSupportedFilesInProject(@NotNull Object projectO) {
+  protected Collection<Object> allProjectFiles(@NotNull Object projectO) {
     Project project = PDU.toProject(projectO);
-    final List<Object> result =
-        RunUtils.computeInReadActionInSmartMode(
-            project,
-            () -> {
-              final List<PsiFile> allProjectFiles = allProjectFiles(project);
-              if (allProjectFiles.isEmpty()) {
-                dcLogger.logWarn("Empty files list for project: " + project);
-              }
-              // Initial scan for .dcignore files
-              allProjectFiles.stream()
-                  .filter(DeepCodeIgnoreInfoHolder::is_dcignoreFile)
-                  .forEach(DeepCodeIgnoreInfoHolder::update_dcignoreFileContent);
-              return allProjectFiles.stream()
-                  .filter(this::isSupportedFileFormat)
-                  .collect(Collectors.toList());
-            });
-    if (result.isEmpty()) dcLogger.logWarn("Empty supported files list for project: " + project);
-    return result;
-  }
-
-  private List<PsiFile> allProjectFiles(@NotNull Project project) {
-    final PsiManager psiManager = PsiManager.getInstance(project);
-    final VirtualFile projectDir = ProjectUtil.guessProjectDir(project);
-    if (projectDir == null) {
-      dcLogger.logWarn("Project directory not found for: " + project);
-      return Collections.emptyList();
-    }
-    final PsiDirectory prjDirectory = psiManager.findDirectory(projectDir);
-    if (prjDirectory == null) {
-      dcLogger.logWarn("Project directory not found for: " + project);
-      return Collections.emptyList();
-    }
-    return getFilesRecursively(prjDirectory);
+    return RunUtils.computeInReadActionInSmartMode(
+        project,
+        () -> {
+          final PsiManager psiManager = PsiManager.getInstance(project);
+          final VirtualFile projectDir = ProjectUtil.guessProjectDir(project);
+          if (projectDir == null) {
+            dcLogger.logWarn("Project directory not found for: " + project);
+            return Collections.emptyList();
+          }
+          final PsiDirectory prjDirectory = psiManager.findDirectory(projectDir);
+          if (prjDirectory == null) {
+            dcLogger.logWarn("Project directory not found for: " + project);
+            return Collections.emptyList();
+          }
+          return PDU.toObjects(getFilesRecursively(prjDirectory));
+        });
   }
 
   private List<PsiFile> getFilesRecursively(@NotNull PsiDirectory psiDirectory) {
@@ -76,21 +59,20 @@ public final class DeepCodeUtils extends DeepCodeUtilsBase {
   }
 
   @Override
-  public boolean isSupportedFileFormat(Object file) {
+  protected long getFileLength(@NotNull Object file) {
+    return PDU.toPsiFile(file).getVirtualFile().getLength();
+  }
+
+  @Override
+  protected String getFileExtention(@NotNull Object file) {
+    return PDU.toPsiFile(file).getVirtualFile().getExtension();
+  }
+
+  @Override
+  protected boolean isGitIgnored(@NotNull Object file) {
     PsiFile psiFile = PDU.toPsiFile(file);
-    // fixme debug only
-    // DCLogger.getInstance().info("isSupportedFileFormat started for " + psiFile.getName());
-    if (DeepCodeIgnoreInfoHolder.isIgnoredFile(psiFile)) return false;
     final VirtualFile virtualFile = psiFile.getVirtualFile();
     if (virtualFile == null) return false;
-    if (ChangeListManager.getInstance(psiFile.getProject()).isIgnoredFile(virtualFile))
-      return false;
-    final boolean result =
-        virtualFile.getLength() < MAX_FILE_SIZE
-            && (supportedExtensions.contains(virtualFile.getExtension())
-                || supportedConfigFiles.contains(virtualFile.getName()));
-    // fixme debug only
-    // DCLogger.getInstance().info("isSupportedFileFormat ends for " + psiFile.getName());
-    return result;
+    return (ChangeListManager.getInstance(psiFile.getProject()).isIgnoredFile(virtualFile));
   }
 }

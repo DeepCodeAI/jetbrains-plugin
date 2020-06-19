@@ -11,14 +11,17 @@ public abstract class DeepCodeUtilsBase {
 
   private final AnalysisDataBase analysisData;
   private final DeepCodeParamsBase deepCodeParams;
+  private final DeepCodeIgnoreInfoHolderBase ignoreInfoHolder;
   private final DCLoggerBase dcLogger;
 
   protected DeepCodeUtilsBase(
-          @NotNull AnalysisDataBase analysisData,
-          @NotNull DeepCodeParamsBase deepCodeParams,
-          @NotNull DCLoggerBase dcLogger) {
+      @NotNull AnalysisDataBase analysisData,
+      @NotNull DeepCodeParamsBase deepCodeParams,
+      @NotNull DeepCodeIgnoreInfoHolderBase ignoreInfoHolder,
+      @NotNull DCLoggerBase dcLogger) {
     this.analysisData = analysisData;
     this.deepCodeParams = deepCodeParams;
+    this.ignoreInfoHolder = ignoreInfoHolder;
     this.dcLogger = dcLogger;
     initSupportedExtentionsAndConfigFiles();
   }
@@ -26,11 +29,41 @@ public abstract class DeepCodeUtilsBase {
   protected static Set<String> supportedExtensions = Collections.emptySet();
   protected static Set<String> supportedConfigFiles = Collections.emptySet();
 
-  abstract public List<Object> getAllSupportedFilesInProject(@NotNull Object project);
+  public List<Object> getAllSupportedFilesInProject(@NotNull Object project) {
+    final Collection<Object> allProjectFiles = allProjectFiles(project);
+    if (allProjectFiles.isEmpty()) {
+      dcLogger.logWarn("Empty files list for project: " + project);
+    }
+    // Initial scan for .dcignore files
+    allProjectFiles.stream()
+        .filter(ignoreInfoHolder::is_dcignoreFile)
+        .forEach(ignoreInfoHolder::update_dcignoreFileContent);
+    final List<Object> result =
+        allProjectFiles.stream().filter(this::isSupportedFileFormat).collect(Collectors.toList());
+    if (result.isEmpty()) dcLogger.logWarn("Empty supported files list for project: " + project);
+    return result;
+  }
 
-  protected static final long MAX_FILE_SIZE = 5242880; // 5MB in bytes
+  protected abstract Collection<Object> allProjectFiles(@NotNull Object project);
 
-  abstract public boolean isSupportedFileFormat(Object file);
+  private static final long MAX_FILE_SIZE = 5242880; // 5MB in bytes
+
+  public boolean isSupportedFileFormat(@NotNull Object file) {
+    // DCLogger.getInstance().info("isSupportedFileFormat started for " + psiFile.getName());
+    if (ignoreInfoHolder.isIgnoredFile(file) || isGitIgnored(file)) return false;
+    final boolean result =
+        getFileLength(file) < MAX_FILE_SIZE
+            && (supportedExtensions.contains(getFileExtention(file))
+                || supportedConfigFiles.contains(ignoreInfoHolder.getFileName(file)));
+    // DCLogger.getInstance().info("isSupportedFileFormat ends for " + psiFile.getName());
+    return result;
+  }
+
+  protected abstract long getFileLength(@NotNull Object file);
+
+  protected abstract String getFileExtention(@NotNull Object file);
+
+  protected abstract boolean isGitIgnored(@NotNull Object file);
 
   /** Potentially <b>Heavy</b> network request! */
   private void initSupportedExtentionsAndConfigFiles() {

@@ -84,8 +84,8 @@ public class MyProjectManagerListener implements ProjectManagerListener {
             });
       }
 
-      if (DeepCodeIgnoreInfoHolder.is_dcignoreFile(psiFile)) {
-        DeepCodeIgnoreInfoHolder.update_dcignoreFileContent(psiFile);
+      if (DeepCodeIgnoreInfoHolder.getInstance().is_dcignoreFile(psiFile)) {
+        DeepCodeIgnoreInfoHolder.getInstance().update_dcignoreFileContent(psiFile);
         // delayed to prevent unnecessary updates in case of continuous typing by user
         RunUtils.rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY, false);
       }
@@ -108,8 +108,8 @@ public class MyProjectManagerListener implements ProjectManagerListener {
       final Project project = psiFile.getProject();
       if (BulkMode.isActive(project)) return;
 
-      if (DeepCodeIgnoreInfoHolder.is_ignoreFile(psiFile)) {
-        DeepCodeIgnoreInfoHolder.remove_dcignoreFileContent(psiFile);
+      if (DeepCodeIgnoreInfoHolder.getInstance().is_ignoreFile(psiFile)) {
+        DeepCodeIgnoreInfoHolder.getInstance().remove_dcignoreFileContent(psiFile);
         // ??? small delay to prevent duplicated delete with MyBulkFileListener
         RunUtils.rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, false);
       }

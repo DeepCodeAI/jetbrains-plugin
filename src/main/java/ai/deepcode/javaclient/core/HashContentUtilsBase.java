@@ -87,6 +87,6 @@ public abstract class HashContentUtilsBase {
   }
 
   @NotNull
-  protected abstract String doGetFileContent(@NotNull Object file);
+  public abstract String doGetFileContent(@NotNull Object file);
 
 }

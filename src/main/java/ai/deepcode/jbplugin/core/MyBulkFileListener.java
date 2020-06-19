@@ -75,7 +75,7 @@ public class MyBulkFileListener implements BulkFileListener {
           getFilteredFilesByEventTypes(
               project,
               events,
-              DeepCodeIgnoreInfoHolder::is_dcignoreFile,
+              DeepCodeIgnoreInfoHolder.getInstance()::is_dcignoreFile,
               VFileContentChangeEvent.class,
               VFileCreateEvent.class);
       if (!gcignoreChangedFiles.isEmpty()) {
@@ -83,7 +83,7 @@ public class MyBulkFileListener implements BulkFileListener {
         for (PsiFile gcignoreFile : gcignoreChangedFiles) {
           RunUtils.runInBackgroundCancellable(
               gcignoreFile,
-              () -> DeepCodeIgnoreInfoHolder.update_dcignoreFileContent(gcignoreFile));
+              () -> DeepCodeIgnoreInfoHolder.getInstance().update_dcignoreFileContent(gcignoreFile));
         }
         // small delay to prevent multiple rescan Background tasks
         RunUtils.rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, true);
@@ -122,7 +122,7 @@ public class MyBulkFileListener implements BulkFileListener {
 
       Set<PsiFile> ignoreFilesToRemove =
           getFilteredFilesByEventTypes(
-              project, events, DeepCodeIgnoreInfoHolder::is_ignoreFile, VFileDeleteEvent.class);
+              project, events, DeepCodeIgnoreInfoHolder.getInstance()::is_ignoreFile, VFileDeleteEvent.class);
       if (!ignoreFilesToRemove.isEmpty()) {
         BulkMode.set(project);
         // small delay to prevent multiple rescan Background tasks
