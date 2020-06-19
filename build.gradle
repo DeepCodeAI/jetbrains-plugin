@@ -35,7 +35,7 @@ patchPluginXml {
     untilBuild 203
 
     changeNotes """
-      1.1.2 - Fix .dcignore misreading.<br>
+      1.1.2 - Fix bug parsing of trailing "**" in .dcignore<br>
       1.1.1 - Fix errors symbolic presentation; fix exception when analysis results not available.<br>
       1.1.0 - Speedup of large projects analysis and suggestions highlighting; various internal fixes and refactoring<br>
       1.0.4 - Bugfixing internals<br>
