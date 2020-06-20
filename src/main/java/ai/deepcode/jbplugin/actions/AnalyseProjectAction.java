@@ -12,10 +12,10 @@ public class AnalyseProjectAction extends AnAction {
   @Override
   public void actionPerformed(@NotNull AnActionEvent e) {
     final Project project = e.getRequiredData(PlatformDataKeys.PROJECT);
-    DCLogger.info("Re-Analyse Project requested for: " + project);
+    DCLogger.getInstance().logInfo("Re-Analyse Project requested for: " + project);
     // fixme: ?? background task here to avoid potential freeze due to MUTEX lock
-    AnalysisData.resetCachesAndTasks(project);
-    if (LoginUtils.isLogged(project, true)) {
+    AnalysisData.getInstance().resetCachesAndTasks(project);
+    if (LoginUtils.getInstance().isLogged(project, true)) {
       RunUtils.asyncAnalyseProjectAndUpdatePanel(project);
     }
   }

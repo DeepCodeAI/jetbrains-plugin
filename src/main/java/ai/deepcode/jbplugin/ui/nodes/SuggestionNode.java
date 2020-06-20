@@ -1,9 +1,10 @@
 package ai.deepcode.jbplugin.ui.nodes;
 
+import ai.deepcode.javaclient.core.MyTextRange;
 import ai.deepcode.jbplugin.ui.SmartTodoItemPointer;
 import ai.deepcode.jbplugin.ui.SmartTodoItemPointerComparator;
 import ai.deepcode.jbplugin.ui.TodoTreeBuilder;
-import ai.deepcode.jbplugin.core.SuggestionForFile;
+import ai.deepcode.javaclient.core.SuggestionForFile;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.projectView.PresentationData;
 import com.intellij.ide.todo.TodoConfiguration;
@@ -52,12 +53,12 @@ public class SuggestionNode extends BaseToDoNode<SuggestionForFile> {
   private TodoItem[] findAllTodos(final PsiFile psiFile, final PsiTodoSearchHelper helper) {
     final List<TodoItem> todoItems = new ArrayList<>();
     SuggestionForFile suggestion = getValue();
-    for (TextRange range : suggestion.getRanges()) {
+    for (MyTextRange range : suggestion.getRanges()) {
       todoItems.add(
           new TodoItemImpl(
               psiFile,
-              range.getStartOffset(),
-              range.getEndOffset(),
+              range.getStart(),
+              range.getEnd(),
               TodoConfiguration.getInstance().getTodoPatterns()[0],
               Collections.emptyList()));
     }

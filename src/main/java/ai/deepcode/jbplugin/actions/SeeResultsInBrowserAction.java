@@ -13,7 +13,7 @@ public class SeeResultsInBrowserAction extends AnAction {
   public void update(@NotNull AnActionEvent e) {
     final Project project = e.getProject();
     if (project==null) return;
-    final boolean urlExist = !AnalysisData.getAnalysisUrl(project).isEmpty();
+    final boolean urlExist = !AnalysisData.getInstance().getAnalysisUrl(project).isEmpty();
     e.getPresentation().setEnabled(urlExist);
   }
 
@@ -21,7 +21,7 @@ public class SeeResultsInBrowserAction extends AnAction {
   public void actionPerformed(@NotNull AnActionEvent e) {
     final Project project = e.getProject();
     if (project==null) return;
-    final String analysisUrl = AnalysisData.getAnalysisUrl(project);
+    final String analysisUrl = AnalysisData.getInstance().getAnalysisUrl(project);
     if (!analysisUrl.isEmpty()) BrowserUtil.open(analysisUrl);
   }
 }

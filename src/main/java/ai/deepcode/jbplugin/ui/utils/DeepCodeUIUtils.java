@@ -3,6 +3,7 @@ package ai.deepcode.jbplugin.ui.utils;
 import ai.deepcode.jbplugin.core.AnalysisData;
 import ai.deepcode.jbplugin.core.DCLogger;
 import ai.deepcode.jbplugin.core.DeepCodeUtils;
+import ai.deepcode.jbplugin.core.PDU;
 import com.intellij.execution.process.ConsoleHighlighter;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.editor.DefaultLanguageHighlighterColors;
@@ -54,7 +55,8 @@ public class DeepCodeUIUtils {
       String originalMsg,
       boolean withTextEWI,
       @NotNull List<HighlightedRegion> regionsToUpdate) {
-    DeepCodeUtils.ErrorsWarningsInfos ewi = DeepCodeUtils.getEWI(psiFiles);
+    DeepCodeUtils.ErrorsWarningsInfos ewi =
+        DeepCodeUtils.getInstance().getEWI(PDU.toObjects(psiFiles));
     int errors = ewi.getErrors();
     int warnings = ewi.getWarnings();
     int infos = ewi.getInfos();
@@ -103,17 +105,18 @@ public class DeepCodeUIUtils {
           IconUtil.textToIcon("?", new JLabel(), fontToScale));
 
   public static Icon getSummaryIcon(@NotNull Project project) {
-    if (AnalysisData.isAnalysisResultsNOTAvailable(project)) {
-      DCLogger.info("EMPTY icon set");
+    if (AnalysisData.getInstance().isAnalysisResultsNOTAvailable(project)) {
+      DCLogger.getInstance().logInfo("EMPTY icon set");
       return EMPTY_EWI_ICON;
     }
 
     DeepCodeUtils.ErrorsWarningsInfos ewi =
-        DeepCodeUtils.getEWI(AnalysisData.getAllFilesWithSuggestions(project));
+        DeepCodeUtils.getInstance()
+            .getEWI(AnalysisData.getInstance().getAllFilesWithSuggestions(project));
     int errors = ewi.getErrors();
     int warnings = ewi.getWarnings();
     int infos = ewi.getInfos();
-    DCLogger.info("error=" + errors + " warning=" + warnings + " info=" + infos);
+    DCLogger.getInstance().logInfo("error=" + errors + " warning=" + warnings + " info=" + infos);
 
     return new RowIcon(
         (errors != 0) ? errorColor : errorGray,

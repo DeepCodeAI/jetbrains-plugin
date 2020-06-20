@@ -12,43 +12,30 @@ import com.intellij.openapi.project.ProjectManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class DeepCodeNotifications {
 
   static final String title = "DeepCode";
   static final String groupNeedAction = "DeepCodeNeedAction";
   static final String groupAutoHide = "DeepCodeAutoHide";
-  static Runnable lastNotificationRunnable = () -> {};
-  static final List<Notification> lastNotifications = new ArrayList<>();
 
   static {
     new NotificationGroup(
         groupNeedAction, NotificationDisplayType.STICKY_BALLOON, true, "DeepCode");
   }
 
-  public static void reShowLastNotification() {
-    lastNotificationRunnable.run();
-  }
-
   public static void showLoginLink(@Nullable Project project, @NotNull String message) {
-    lastNotificationRunnable = () -> showLoginLink(project, message);
     // application wide notifications (with project=null) are not shown
     // https://youtrack.jetbrains.com/issue/IDEA-220408
     Project[] projects =
         (project != null)
             ? new Project[] {project}
             : ProjectManager.getInstance().getOpenProjects();
-    lastNotifications.forEach(DeepCodeNotifications::expireNotification);
-    lastNotifications.clear();
     for (Project prj : projects) {
       final Notification notification =
           new Notification(groupNeedAction, title, message, NotificationType.WARNING)
               .addAction(
                   new ShowClickableLinkAction(
-                      "Login", () -> LoginUtils.requestNewLogin(prj, true), true));
-      lastNotifications.add(notification);
+                      "Login", () -> LoginUtils.getInstance().requestNewLogin(prj, true), true));
       notification.notify(prj);
     }
   }
@@ -57,7 +44,6 @@ public class DeepCodeNotifications {
 
   public static void showConsentRequest(@NotNull Project project, boolean userActionNeeded) {
     if (!userActionNeeded && consentRequestShown) return;
-    lastNotificationRunnable = () -> showConsentRequest(project, userActionNeeded);
     final String message = "Confirm remote analysis of " + project.getBasePath();
     //            + " (<a href=\"https://www.deepcode.ai/tc\">Terms & Conditions</a>)";
     final Notification notification =
@@ -71,7 +57,7 @@ public class DeepCodeNotifications {
                 new ShowClickableLinkAction(
                     "CONFIRM",
                     () -> {
-                      DeepCodeParams.setConsentGiven(project);
+                      DeepCodeParams.getInstance().setConsentGiven(project);
                       consentRequestShown = false;
                       RunUtils.asyncAnalyseProjectAndUpdatePanel(project);
                     },
@@ -81,9 +67,6 @@ public class DeepCodeNotifications {
                     "Terms and Conditions",
                     () -> BrowserUtil.open("https://www.deepcode.ai/tc"),
                     false));
-    lastNotifications.forEach(DeepCodeNotifications::expireNotification);
-    lastNotifications.clear();
-    lastNotifications.add(notification);
     notification.notify(project);
     consentRequestShown = true;
   }
@@ -137,17 +120,14 @@ public class DeepCodeNotifications {
   }
 
   public static void showError(@NotNull String message, @NotNull Project project) {
-    lastNotificationRunnable = () -> showError(message, project);
     new Notification(groupAutoHide, title, message, NotificationType.ERROR).notify(project);
   }
 
   public static void showInfo(@NotNull String message, @NotNull Project project) {
-    lastNotificationRunnable = () -> showInfo(message, project);
     new Notification(groupAutoHide, title, message, NotificationType.INFORMATION).notify(project);
   }
 
   public static void showWarn(@NotNull String message, @NotNull Project project) {
-    lastNotificationRunnable = () -> showWarn(message, project);
     new Notification(groupAutoHide, title, message, NotificationType.WARNING).notify(project);
   }
 }

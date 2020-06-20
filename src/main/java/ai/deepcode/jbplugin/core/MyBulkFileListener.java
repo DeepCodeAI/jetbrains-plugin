@@ -24,7 +24,7 @@ public class MyBulkFileListener implements BulkFileListener {
   @Override
   public void after(@NotNull List<? extends VFileEvent> events) {
     // fixme debug only
-    DCLogger.info("MyBulkFileListener.after begins for " + events.size() + " events " + events);
+    DCLogger.getInstance().logInfo("MyBulkFileListener.after begins for " + events.size() + " events " + events);
     for (Project project : ProjectManager.getInstance().getOpenProjects()) {
       /*
           for (Project project : AnalysisData.getAllCachedProject()) {
@@ -41,7 +41,7 @@ public class MyBulkFileListener implements BulkFileListener {
           getFilteredFilesByEventTypes(
               project,
               events,
-              (psiFile -> DeepCodeUtils.isSupportedFileFormat(psiFile)
+              (psiFile -> DeepCodeUtils.getInstance().isSupportedFileFormat(psiFile)
               // to prevent updating files already done by
               // MyPsiTreeChangeAdapter
               // fixme: doesn't work, try to use isFromSave or isFromRefresh
@@ -52,18 +52,18 @@ public class MyBulkFileListener implements BulkFileListener {
               VFileCopyEvent.class,
               VFileCreateEvent.class);
       if (!filesChangedOrCreated.isEmpty()) {
-        DCLogger.info(filesChangedOrCreated.size() + " files changed: " + filesChangedOrCreated);
+        DCLogger.getInstance().logInfo(filesChangedOrCreated.size() + " files changed: " + filesChangedOrCreated);
         if (filesChangedOrCreated.size() > 10) {
           // if too many files changed then it's easier to do Bulk Mode full rescan
           BulkMode.set(project);
           // small delay to prevent multiple rescan Background tasks
-          RunUtils.rescanInBackgroundCancellableDelayed(project, RunUtils.DEFAULT_DELAY_SMALL, true);
+          RunUtils.rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, true);
         } else {
           for (PsiFile psiFile : filesChangedOrCreated) {
             RunUtils.runInBackgroundCancellable(
                 psiFile,
                 () -> {
-                  AnalysisData.removeFilesFromCache(Collections.singleton(psiFile));
+                  AnalysisData.getInstance().removeFilesFromCache(Collections.singleton(psiFile));
                   RunUtils.updateCachedAnalysisResults(project, Collections.singleton(psiFile));
                 });
           }
@@ -75,7 +75,7 @@ public class MyBulkFileListener implements BulkFileListener {
           getFilteredFilesByEventTypes(
               project,
               events,
-              DeepCodeIgnoreInfoHolder::is_dcignoreFile,
+              DeepCodeIgnoreInfoHolder.getInstance()::is_dcignoreFile,
               VFileContentChangeEvent.class,
               VFileCreateEvent.class);
       if (!gcignoreChangedFiles.isEmpty()) {
@@ -83,37 +83,37 @@ public class MyBulkFileListener implements BulkFileListener {
         for (PsiFile gcignoreFile : gcignoreChangedFiles) {
           RunUtils.runInBackgroundCancellable(
               gcignoreFile,
-              () -> DeepCodeIgnoreInfoHolder.update_dcignoreFileContent(gcignoreFile));
+              () -> DeepCodeIgnoreInfoHolder.getInstance().update_dcignoreFileContent(gcignoreFile));
         }
         // small delay to prevent multiple rescan Background tasks
-        RunUtils.rescanInBackgroundCancellableDelayed(project, RunUtils.DEFAULT_DELAY_SMALL, true);
+        RunUtils.rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, true);
       }
     }
     // fixme debug only
-    DCLogger.info("MyBulkFileListener.after ends");
+    DCLogger.getInstance().logInfo("MyBulkFileListener.after ends");
   }
 
   @Override
   public void before(@NotNull List<? extends VFileEvent> events) {
-    DCLogger.info("MyBulkFileListener.before begins for " + events.size() + " events " + events);
+    DCLogger.getInstance().logInfo("MyBulkFileListener.before begins for " + events.size() + " events " + events);
     for (Project project : ProjectManager.getInstance().getOpenProjects()) {
       // for (Project project : AnalysisData.getAllCachedProject()) {
       if (project.isDisposed()) continue;
       Set<PsiFile> filesRemoved =
           getFilteredFilesByEventTypes(
-              project, events, DeepCodeUtils::isSupportedFileFormat, VFileDeleteEvent.class);
+              project, events, DeepCodeUtils.getInstance()::isSupportedFileFormat, VFileDeleteEvent.class);
       if (!filesRemoved.isEmpty()) {
-        DCLogger.info("Found " + filesRemoved.size() + " files to remove: " + filesRemoved);
+        DCLogger.getInstance().logInfo("Found " + filesRemoved.size() + " files to remove: " + filesRemoved);
         // if too many files removed then it's easier to do full rescan
         if (filesRemoved.size() > 10) {
           BulkMode.set(project);
           // small delay to prevent multiple rescan Background tasks
-          RunUtils.rescanInBackgroundCancellableDelayed(project, RunUtils.DEFAULT_DELAY_SMALL, true);
+          RunUtils.rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, true);
         } else if (!RunUtils.isFullRescanRequested(project)) {
           RunUtils.runInBackground(
               project,
               () -> {
-                AnalysisData.removeFilesFromCache(filesRemoved);
+                AnalysisData.getInstance().removeFilesFromCache(PDU.toObjects(filesRemoved));
                 RunUtils.updateCachedAnalysisResults(
                     project, Collections.emptyList(), filesRemoved);
               });
@@ -122,11 +122,11 @@ public class MyBulkFileListener implements BulkFileListener {
 
       Set<PsiFile> ignoreFilesToRemove =
           getFilteredFilesByEventTypes(
-              project, events, DeepCodeIgnoreInfoHolder::is_ignoreFile, VFileDeleteEvent.class);
+              project, events, DeepCodeIgnoreInfoHolder.getInstance()::is_ignoreFile, VFileDeleteEvent.class);
       if (!ignoreFilesToRemove.isEmpty()) {
         BulkMode.set(project);
         // small delay to prevent multiple rescan Background tasks
-        RunUtils.rescanInBackgroundCancellableDelayed(project, RunUtils.DEFAULT_DELAY_SMALL, true);
+        RunUtils.rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, true);
         /*
                 RunUtils.rescanInBackgroundCancellableDelayed(
                     project,
@@ -139,7 +139,7 @@ public class MyBulkFileListener implements BulkFileListener {
         */
       }
     }
-    DCLogger.info("MyBulkFileListener.before ends");
+    DCLogger.getInstance().logInfo("MyBulkFileListener.before ends");
   }
 
   private Set<PsiFile> getFilteredFilesByEventTypes(

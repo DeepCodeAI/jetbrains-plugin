@@ -1,3 +1,6 @@
+## [1.2.0] - 2019-06-20
+- Moving common logic into java-client
+
 ## [1.1.2] - 2019-06-19
 - Fix bug parsing of trailing "**" in .dcignore
 

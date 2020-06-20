@@ -26,9 +26,9 @@ public class DeepCodeStartupActivity implements StartupActivity {
     // Keep commented - for DEBUG ONLY !!!!!!!!!!!!!!!!!
     //PropertiesComponent.getInstance(project).setValue("consentGiven", false);
 
-    AnalysisData.resetCachesAndTasks(project);
+    AnalysisData.getInstance().resetCachesAndTasks(project);
     // Initial logging if needed.
-    if (LoginUtils.isLogged(project, true)) {
+    if (LoginUtils.getInstance().isLogged(project, true)) {
       RunUtils.asyncAnalyseProjectAndUpdatePanel(project);
     }
     // Keep commented - for DEBUG ONLY !!!!!!!!!!!!!!!!!

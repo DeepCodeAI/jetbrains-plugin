@@ -20,16 +20,15 @@ import java.util.stream.Collectors;
 
 public class RunUtils {
 
-  private RunUtils() {}
+  private static final DCLogger dcLogger = DCLogger.getInstance();
 
-  public static final int DEFAULT_DELAY = 1000; // milliseconds
-  public static final int DEFAULT_DELAY_SMALL = 200; // milliseconds
+  private RunUtils() {}
 
   public static void asyncUpdateCurrentFilePanel(PsiFile psiFile) {}
 
   public static <T> T computeInReadActionInSmartMode(
       @NotNull Project project, @NotNull final Computable<T> computation) {
-    // DCLogger.info("computeInReadActionInSmartMode requested");
+    // DCLogger.getInstance().info("computeInReadActionInSmartMode requested");
     T result = null;
     final DumbService dumbService =
         ReadAction.compute(() -> project.isDisposed() ? null : DumbService.getInstance(project));
@@ -37,24 +36,14 @@ public class RunUtils {
     result =
         dumbService.runReadActionInSmartMode(
             () -> {
-              // DCLogger.info("computeInReadActionInSmartMode actually executing");
+              // DCLogger.getInstance().info("computeInReadActionInSmartMode actually executing");
               return computation.compute();
             });
     return result;
   }
 
-  public static void delay(long millis) {
-    try {
-      Thread.sleep(millis);
-    } catch (InterruptedException e) {
-      DCLogger.warn("InterruptedException: " + e.getMessage());
-      Thread.currentThread().interrupt();
-    }
-    ProgressManager.checkCanceled();
-  }
-
   public static void runInBackground(@NotNull Project project, @NotNull Runnable runnable) {
-    DCLogger.info("runInBackground requested");
+    dcLogger.logInfo("runInBackground requested");
     final ProgressManager progressManager = ProgressManager.getInstance();
     final MyBackgroundable myBackgroundable = new MyBackgroundable(project, runnable);
     final ProgressIndicator progressIndicator = progressManager.getProgressIndicator();
@@ -77,13 +66,13 @@ public class RunUtils {
 
     @Override
     public void run(@NotNull ProgressIndicator indicator) {
-      DCLogger.info("New Process started at " + project);
+      dcLogger.logInfo("New Process started at " + project);
       indicator.setIndeterminate(false);
       getRunningIndicators(project).add(indicator);
 
       runnable.run();
 
-      DCLogger.info("Process ending at " + project);
+      dcLogger.logInfo("Process ending at " + project);
       getRunningIndicators(project).remove(indicator);
     }
   }
@@ -105,7 +94,7 @@ public class RunUtils {
         getRunningIndicators(project).stream()
             .map(ProgressIndicator::toString)
             .collect(Collectors.joining("\n"));
-    DCLogger.info("Canceling ProgressIndicators:\n" + indicatorsList);
+    dcLogger.logInfo("Canceling ProgressIndicators:\n" + indicatorsList);
     // in case any indicator holds Bulk mode process
     BulkMode.forceUnset(project);
     getRunningIndicators(project).forEach(ProgressIndicator::cancel);
@@ -122,7 +111,7 @@ public class RunUtils {
       @NotNull PsiFile psiFile, @NotNull Runnable runnable) {
     final String s = runnable.toString();
     final String runId = s.substring(s.lastIndexOf('/'), s.length() - 1);
-    DCLogger.info(
+    dcLogger.logInfo(
         "runInBackgroundCancellable requested for: "
             + psiFile.getName()
             + " with Runnable "
@@ -132,9 +121,9 @@ public class RunUtils {
     // To proceed multiple PSI events in a bunch (every 100 milliseconds)
     Runnable prevRunnable = mapFile2Runnable.put(virtualFile, runnable);
     if (prevRunnable != null) return;
-    DCLogger.info(
+    dcLogger.logInfo(
         "new Background task registered for: " + psiFile.getName() + " with Runnable " + runId);
-    AnalysisData.setUpdateInProgress();
+    AnalysisData.getInstance().setUpdateInProgress();
 
     final Project project = psiFile.getProject();
     ProgressManager.getInstance()
@@ -151,7 +140,7 @@ public class RunUtils {
                     // can't use prevProgressIndicator.isRunning() due to
                     // https://youtrack.jetbrains.com/issue/IDEA-241055
                     && getRunningIndicators(project).contains(prevProgressIndicator)) {
-                  DCLogger.info(
+                  dcLogger.logInfo(
                       "Previous Process cancelling for "
                           + psiFile.getName()
                           + "\nProgressIndicator ["
@@ -159,30 +148,30 @@ public class RunUtils {
                           + "]");
                   prevProgressIndicator.cancel();
                   getRunningIndicators(project).remove(prevProgressIndicator);
-                  HashContentUtils.removeHashContent(psiFile);
+                  HashContentUtils.getInstance().removeFileHashContent(psiFile);
                 }
                 getRunningIndicators(project).add(indicator);
 
                 // small delay to let new consequent requests proceed and cancel current one
-                delay(DEFAULT_DELAY_SMALL);
+                PDU.getInstance().delay(PDU.DEFAULT_DELAY_SMALL);
 
                 Runnable actualRunnable = mapFile2Runnable.get(virtualFile);
                 if (actualRunnable != null) {
                   final String s1 = actualRunnable.toString();
                   final String runId = s1.substring(s1.lastIndexOf('/'), s1.length() - 1);
-                  DCLogger.info(
+                  dcLogger.logInfo(
                       "New Process started for " + psiFile.getName() + " with Runnable " + runId);
                   mapFile2Runnable.remove(virtualFile);
 
                   // final delay before actual heavy Network request
                   // to let new consequent requests proceed and cancel current one
-                  delay(DEFAULT_DELAY);
+                  PDU.getInstance().delay(PDU.DEFAULT_DELAY);
                   actualRunnable.run();
 
                 } else {
-                  DCLogger.warn("No actual Runnable found for: " + psiFile.getName());
+                  dcLogger.logWarn("No actual Runnable found for: " + psiFile.getName());
                 }
-                DCLogger.info("Process ending for " + psiFile.getName());
+                dcLogger.logInfo("Process ending for " + psiFile.getName());
               }
             });
   }
@@ -205,7 +194,7 @@ public class RunUtils {
   public static void rescanInBackgroundCancellableDelayed(
       @NotNull Project project, long delayMilliseconds, boolean inBulkMode) {
     final long requestId = System.currentTimeMillis();
-    DCLogger.info(
+    dcLogger.logInfo(
         "rescanInBackgroundCancellableDelayed requested for: "
             + project.getName()
             + "] with RequestId "
@@ -221,7 +210,7 @@ public class RunUtils {
       }
       return;
     }
-    DCLogger.info(
+    dcLogger.logInfo(
         "new Background Rescan task registered for ["
             + project.getName()
             + "] with RequestId "
@@ -241,7 +230,7 @@ public class RunUtils {
                     // can't use prevProgressIndicator.isRunning() due to
                     // https://youtrack.jetbrains.com/issue/IDEA-241055
                     && getRunningIndicators(project).remove(prevProgressIndicator)) {
-                  DCLogger.info(
+                  dcLogger.logInfo(
                       "Previous Rescan cancelling for "
                           + project.getName()
                           + "\nProgressIndicator ["
@@ -259,11 +248,11 @@ public class RunUtils {
 
                 // delay to let new consequent requests proceed and cancel current one
                 // or to let Idea proceed internal events (.gitignore update)
-                delay(delayMilliseconds);
+                PDU.getInstance().delay(delayMilliseconds);
 
                 Long actualRequestId = mapProject2RequestId.get(project);
                 if (actualRequestId != null) {
-                  DCLogger.info(
+                  dcLogger.logInfo(
                       "New Rescan started for ["
                           + project.getName()
                           + "] with RequestId "
@@ -271,17 +260,17 @@ public class RunUtils {
                   mapProject2RequestId.remove(project);
 
                   // actual rescan
-                  AnalysisData.removeProjectFromCaches(project);
+                  AnalysisData.getInstance().removeProjectFromCaches(project);
                   updateCachedAnalysisResults(project, null);
 
                   if (bulkModeRequests.remove(actualRequestId)) {
                     BulkMode.unset(project);
                   }
                 } else {
-                  DCLogger.warn("No actual RequestId found for: " + project.getName());
+                  dcLogger.logWarn("No actual RequestId found for: " + project.getName());
                 }
                 projectsWithFullRescanRequested.remove(project);
-                DCLogger.info("Rescan ending for " + project.getName());
+                dcLogger.logInfo("Rescan ending for " + project.getName());
               }
             });
   }
@@ -306,10 +295,14 @@ public class RunUtils {
       @NotNull Project project,
       @Nullable Collection<PsiFile> psiFiles,
       @NotNull Collection<PsiFile> filesToRemove) {
-    AnalysisData.updateCachedResultsForFiles(
-        project,
-        (psiFiles != null) ? psiFiles : DeepCodeUtils.getAllSupportedFilesInProject(project),
-        filesToRemove);
+    AnalysisData.getInstance()
+        .updateCachedResultsForFiles(
+            project,
+
+                (psiFiles != null)
+                    ? PDU.toObjects(psiFiles)
+                    : DeepCodeUtils.getInstance().getAllSupportedFilesInProject(project),
+            PDU.toObjects(filesToRemove));
     //      StatusBarUtil.setStatusBarInfo(project, message);
   }
 }

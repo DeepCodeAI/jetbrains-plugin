@@ -1,19 +1,17 @@
 package ai.deepcode.jbplugin.annotators;
 
+import ai.deepcode.javaclient.core.MyTextRange;
 import ai.deepcode.jbplugin.actions.DeepCodeIntentionAction;
 import ai.deepcode.jbplugin.core.DCLogger;
-import ai.deepcode.jbplugin.ui.myTodoView;
+import ai.deepcode.jbplugin.core.PDU;
 import ai.deepcode.jbplugin.core.AnalysisData;
 import ai.deepcode.jbplugin.core.DeepCodeUtils;
-import ai.deepcode.jbplugin.core.SuggestionForFile;
+import ai.deepcode.javaclient.core.SuggestionForFile;
 import com.intellij.lang.annotation.Annotation;
 import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.ExternalAnnotator;
-import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.progress.PerformInBackgroundOption;
 import com.intellij.openapi.progress.ProgressManager;
-import com.intellij.openapi.progress.impl.BackgroundableProcessIndicator;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
@@ -36,7 +34,7 @@ public class DeepCodeExternalAnnotator extends ExternalAnnotator<PsiFile, List<S
   @Nullable
   @Override
   public PsiFile collectInformation(@NotNull PsiFile psiFile) {
-    DCLogger.info("collectInformation(@NotNull PsiFile psiFile) for " + psiFile);
+    DCLogger.getInstance().info("collectInformation(@NotNull PsiFile psiFile) for " + psiFile);
     return psiFile;
   }
 
@@ -45,7 +43,7 @@ public class DeepCodeExternalAnnotator extends ExternalAnnotator<PsiFile, List<S
   @Nullable
   public PsiFile collectInformation(
       @NotNull PsiFile psiFile, @NotNull Editor editor, boolean hasErrors) {
-    //DCLogger.info("collectInformation(@NotNull PsiFile psiFile, @NotNull Editor editor, boolean hasErrors) for " + psiFile);
+    //DCLogger.getInstance().info("collectInformation(@NotNull PsiFile psiFile, @NotNull Editor editor, boolean hasErrors) for " + psiFile);
     return psiFile;
     //return collectInformation(psiFile);
   }
@@ -53,13 +51,13 @@ public class DeepCodeExternalAnnotator extends ExternalAnnotator<PsiFile, List<S
   @Nullable
   @Override
   public List<SuggestionForFile> doAnnotate(PsiFile psiFile) {
-    if (!DeepCodeUtils.isSupportedFileFormat(psiFile)) return Collections.emptyList();
+    if (!DeepCodeUtils.getInstance().isSupportedFileFormat(psiFile)) return Collections.emptyList();
     final long annotatorId = System.currentTimeMillis();
-    DCLogger.info("Annotator (" + annotatorId + ") requested for file: " + psiFile.getName());
-    AnalysisData.waitForUpdateAnalysisFinish();
+    DCLogger.getInstance().logInfo("Annotator (" + annotatorId + ") requested for file: " + psiFile.getName());
+    AnalysisData.getInstance().waitForUpdateAnalysisFinish();
     ProgressManager.checkCanceled();
-    List<SuggestionForFile> suggestions = AnalysisData.getAnalysis(psiFile);
-    DCLogger.info(
+    List<SuggestionForFile> suggestions = AnalysisData.getInstance().getAnalysis(psiFile);
+    DCLogger.getInstance().logInfo(
         "Annotator (" + annotatorId + ") suggestions gotten for file: " + psiFile.getName());
     ProgressManager.checkCanceled();
 
@@ -89,7 +87,8 @@ public class DeepCodeExternalAnnotator extends ExternalAnnotator<PsiFile, List<S
     for (SuggestionForFile suggestion : suggestions) {
       final String message = "DeepCode: " + suggestion.getMessage();
       Annotation annotation;
-      for (TextRange range : suggestion.getRanges()) {
+      for (MyTextRange myTextRange : suggestion.getRanges()) {
+        final TextRange range = PDU.toTextRange(myTextRange);
         switch (suggestion.getSeverity()) {
           case 1:
             annotation = holder.createWeakWarningAnnotation(range, message);

@@ -24,7 +24,7 @@ public class BulkMode {
       // cancel all running tasks first
       RunUtils.cancelRunningIndicators(project);
     }
-    DCLogger.info("BulkMode ON with " + counter + " total requests");
+    DCLogger.getInstance().logInfo("BulkMode ON with " + counter + " total requests");
     mapProject2RequestsCounter.put(project, counter);
   }
 
@@ -32,14 +32,14 @@ public class BulkMode {
     final int counter = getBulkRequestsCount(project) - 1;
     if (counter >= 0) {
       mapProject2RequestsCounter.put(project, counter);
-      DCLogger.info("BulkMode OFF with " + counter + " total requests");
+      DCLogger.getInstance().logInfo("BulkMode OFF with " + counter + " total requests");
     } else {
-      DCLogger.warn("BulkMode OFF request with already " + counter + " total requests");
+      DCLogger.getInstance().logWarn("BulkMode OFF request with already " + counter + " total requests");
     }
   }
 
   public static void forceUnset(@NotNull Project project) {
     mapProject2RequestsCounter.put(project, 0);
-    DCLogger.info("BulkMode OFF forced");
+    DCLogger.getInstance().logInfo("BulkMode OFF forced");
   }
 }

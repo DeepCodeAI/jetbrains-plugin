@@ -5,7 +5,10 @@
 - Install Java 11 or higher (https://adoptopenjdk.net/) and/or make sure JAVA_HOME is pointing to Java 11 installation path of the JDK;
 - Check if java is correctly installed (and your java version) with `java -version` command;
 - Place `java-client-{X.X.X}-all.jar` into `..\libs` dir (see [java-client](https://github.com/DeepCodeAI/java-client) repository for instruction how to build it);
+
+**Important note: Starting version 1.2.0 use of java-client version 2.0 or above required!**
 - At `build.gradle` file inside `intellij` block: uncomment `version` line and comment `localPath` line (or change `localPath` to pointing your locally installed Intellij Idea `2019.2` version instance);
+
 **Important note: For backward compatibility build MUST be run against Intellij Idea 2019.2 instance!**
 - Run `source gradlew buildPlugin`
 - Look for resulting ZIP file at `..\build\distributions`
