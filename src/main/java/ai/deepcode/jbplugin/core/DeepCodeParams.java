@@ -73,11 +73,13 @@ public class DeepCodeParams extends DeepCodeParamsBase {
     propertiesComponent.setValue("isEnable", isEnable);
   }
 
+  @Override
   public boolean consentGiven(@NotNull Object projectO) {
     Project project = PDU.toProject(projectO);
     return PropertiesComponent.getInstance(project).getBoolean("consentGiven", false);
   }
 
+  @Override
   public void setConsentGiven(@NotNull Object projectO) {
     Project project = PDU.toProject(projectO);
     PropertiesComponent.getInstance(project).setValue("consentGiven", true);

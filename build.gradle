@@ -7,7 +7,7 @@ plugins {
 
 //group 'org.example'
 
-version '1.2.0_experimental'
+version '1.2.0'
 sourceCompatibility = 1.8
 
 repositories {
@@ -35,6 +35,7 @@ patchPluginXml {
     untilBuild 203
 
     changeNotes """
+      1.2.0 - Internal major refactoring and bugfixes.<br>
       1.1.2 - Fix .dcignore misreading.<br>
       1.1.1 - Fix errors symbolic presentation; fix exception when analysis results not available.<br>
       1.1.0 - Speedup of large projects analysis and suggestions highlighting; various internal fixes and refactoring<br>

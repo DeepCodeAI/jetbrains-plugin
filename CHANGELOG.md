@@ -1,3 +1,6 @@
+## [1.2.0] - 2019-06-20
+- Moving common logic into java-client
+
 ## [1.1.0] - 2019-06-01
 - Speedup of large projects analysis and suggestions highlighting
 - Various internal fixes and refactoring
