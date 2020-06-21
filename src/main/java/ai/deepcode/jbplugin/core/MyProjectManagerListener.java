@@ -30,7 +30,7 @@ public class MyProjectManagerListener implements ProjectManagerListener {
 
   @Override
   public void projectClosing(@NotNull Project project) {
-    RunUtils.runInBackground(project, () -> {
+    RunUtils.runInBackground(project, "Project closing...",  (progress) -> {
       // lets all running ProgressIndicators release MUTEX first
       RunUtils.cancelRunningIndicators(project);
       AnalysisData.getInstance().removeProjectFromCaches(project);
@@ -47,7 +47,8 @@ public class MyProjectManagerListener implements ProjectManagerListener {
         // should be done in background to wait MUTEX released in case of currently running update
         RunUtils.runInBackground(
             psiFile.getProject(),
-            () -> AnalysisData.getInstance().removeFilesFromCache(Collections.singleton(psiFile)));
+            "Cache updating...",
+            (progress) -> AnalysisData.getInstance().removeFilesFromCache(Collections.singleton(psiFile)));
       }
       /*
             if (DeepCodeUtils.isSupportedFileFormat(psiFile)) {
@@ -74,13 +75,14 @@ public class MyProjectManagerListener implements ProjectManagerListener {
       if (DeepCodeUtils.getInstance().isSupportedFileFormat(psiFile)) {
         RunUtils.runInBackgroundCancellable(
             psiFile,
-            () -> {
+                "Analyzing files changed...",
+            (progress) -> {
               if (AnalysisData.getInstance().isFileInCache(psiFile)) {
                 // should be already deleted at beforeChildrenChange in most cases,
                 // but in case of update finished between beforeChildrenChange and now.
                 AnalysisData.getInstance().removeFilesFromCache(Collections.singleton(psiFile));
               }
-              RunUtils.updateCachedAnalysisResults(project, Collections.singleton(psiFile));
+              RunUtils.updateCachedAnalysisResults(project, Collections.singleton(psiFile), progress);
             });
       }
 

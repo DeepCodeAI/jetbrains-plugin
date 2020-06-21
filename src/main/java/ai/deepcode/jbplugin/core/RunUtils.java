@@ -16,6 +16,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class RunUtils {
@@ -42,10 +43,12 @@ public class RunUtils {
     return result;
   }
 
-  public static void runInBackground(@NotNull Project project, @NotNull Runnable runnable) {
+  public static void runInBackground(
+      @NotNull Project project, @NotNull String title, @NotNull Consumer<Object> progressConsumer) {
     dcLogger.logInfo("runInBackground requested");
     final ProgressManager progressManager = ProgressManager.getInstance();
-    final MyBackgroundable myBackgroundable = new MyBackgroundable(project, runnable);
+    final MyBackgroundable myBackgroundable =
+        new MyBackgroundable(project, title, progressConsumer);
     final ProgressIndicator progressIndicator = progressManager.getProgressIndicator();
     if (getRunningIndicators(project).contains(progressIndicator)) {
       progressManager.runProcessWithProgressAsynchronously(myBackgroundable, progressIndicator);
@@ -56,23 +59,24 @@ public class RunUtils {
 
   private static class MyBackgroundable extends Task.Backgroundable {
     private @NotNull final Project project;
-    private @NotNull final Runnable runnable;
+    private @NotNull final Consumer<Object> runnable;
 
-    public MyBackgroundable(@NotNull Project project, @NotNull Runnable runnable) {
-      super(project, "DeepCode: Analysing Files...");
+    public MyBackgroundable(
+        @NotNull Project project, @NotNull String title, @NotNull Consumer<Object> runnable) {
+      super(project, "DeepCode: " + title);
       this.project = project;
       this.runnable = runnable;
     }
 
     @Override
     public void run(@NotNull ProgressIndicator indicator) {
-      dcLogger.logInfo("New Process started at " + project);
+      dcLogger.logInfo("New Process [" + indicator.getText() + "] started at " + project);
       indicator.setIndeterminate(false);
       getRunningIndicators(project).add(indicator);
 
-      runnable.run();
+      runnable.accept(indicator);
 
-      dcLogger.logInfo("Process ending at " + project);
+      dcLogger.logInfo("Process [" + indicator.getText() + "] ending at " + project);
       getRunningIndicators(project).remove(indicator);
     }
   }
@@ -102,40 +106,42 @@ public class RunUtils {
     projectsWithFullRescanRequested.remove(project);
   }
 
-  private static final Map<VirtualFile, ProgressIndicator> mapFileProcessed2CancellableIndicator =
+  private static final Map<VirtualFile, ProgressIndicator> mapFileProcessed2CancellableProgress =
       new ConcurrentHashMap<>();
 
-  private static final Map<VirtualFile, Runnable> mapFile2Runnable = new ConcurrentHashMap<>();
+  private static final Map<VirtualFile, Consumer<Object>> mapFile2Runnable = new ConcurrentHashMap<>();
 
   public static void runInBackgroundCancellable(
-      @NotNull PsiFile psiFile, @NotNull Runnable runnable) {
-    final String s = runnable.toString();
+      @NotNull PsiFile psiFile, @NotNull String title, @NotNull Consumer<Object> progressConsumer) {
+    final String s = progressConsumer.toString();
     final String runId = s.substring(s.lastIndexOf('/'), s.length() - 1);
     dcLogger.logInfo(
         "runInBackgroundCancellable requested for: "
             + psiFile.getName()
-            + " with Runnable "
+            + " with progressConsumer "
             + runId);
     final VirtualFile virtualFile = psiFile.getVirtualFile();
 
     // To proceed multiple PSI events in a bunch (every 100 milliseconds)
-    Runnable prevRunnable = mapFile2Runnable.put(virtualFile, runnable);
+    Consumer<Object> prevRunnable = mapFile2Runnable.put(virtualFile, progressConsumer);
     if (prevRunnable != null) return;
     dcLogger.logInfo(
-        "new Background task registered for: " + psiFile.getName() + " with Runnable " + runId);
+        "new Background task registered for: " + psiFile.getName() + " with progressConsumer " + runId);
     AnalysisData.getInstance().setUpdateInProgress();
 
     final Project project = psiFile.getProject();
+
+    // todo: runInBackground(project, title, (progress) -> {});
     ProgressManager.getInstance()
         .run(
-            new Task.Backgroundable(project, "DeepCode: Analysing Files...") {
+            new Task.Backgroundable(project, "DeepCode: " + title) {
               @Override
               public void run(@NotNull ProgressIndicator indicator) {
                 indicator.setIndeterminate(false);
 
                 // To let new event cancel the currently running one
                 ProgressIndicator prevProgressIndicator =
-                    mapFileProcessed2CancellableIndicator.put(virtualFile, indicator);
+                    mapFileProcessed2CancellableProgress.put(virtualFile, indicator);
                 if (prevProgressIndicator != null
                     // can't use prevProgressIndicator.isRunning() due to
                     // https://youtrack.jetbrains.com/issue/IDEA-241055
@@ -143,7 +149,7 @@ public class RunUtils {
                   dcLogger.logInfo(
                       "Previous Process cancelling for "
                           + psiFile.getName()
-                          + "\nProgressIndicator ["
+                          + "\nProgress ["
                           + prevProgressIndicator.toString()
                           + "]");
                   prevProgressIndicator.cancel();
@@ -153,9 +159,9 @@ public class RunUtils {
                 getRunningIndicators(project).add(indicator);
 
                 // small delay to let new consequent requests proceed and cancel current one
-                PDU.getInstance().delay(PDU.DEFAULT_DELAY_SMALL);
+                PDU.getInstance().delay(PDU.DEFAULT_DELAY_SMALL, indicator);
 
-                Runnable actualRunnable = mapFile2Runnable.get(virtualFile);
+                Consumer<Object> actualRunnable = mapFile2Runnable.get(virtualFile);
                 if (actualRunnable != null) {
                   final String s1 = actualRunnable.toString();
                   final String runId = s1.substring(s1.lastIndexOf('/'), s1.length() - 1);
@@ -165,8 +171,8 @@ public class RunUtils {
 
                   // final delay before actual heavy Network request
                   // to let new consequent requests proceed and cancel current one
-                  PDU.getInstance().delay(PDU.DEFAULT_DELAY);
-                  actualRunnable.run();
+                  PDU.getInstance().delay(PDU.DEFAULT_DELAY, indicator);
+                  actualRunnable.accept(indicator);
 
                 } else {
                   dcLogger.logWarn("No actual Runnable found for: " + psiFile.getName());
@@ -192,7 +198,7 @@ public class RunUtils {
   private static final Set<Long> bulkModeRequests = ContainerUtil.newConcurrentSet();
 
   public static void rescanInBackgroundCancellableDelayed(
-      @NotNull Project project, long delayMilliseconds, boolean inBulkMode) {
+      @NotNull Project project, int delayMilliseconds, boolean inBulkMode) {
     final long requestId = System.currentTimeMillis();
     dcLogger.logInfo(
         "rescanInBackgroundCancellableDelayed requested for: "
@@ -248,7 +254,7 @@ public class RunUtils {
 
                 // delay to let new consequent requests proceed and cancel current one
                 // or to let Idea proceed internal events (.gitignore update)
-                PDU.getInstance().delay(delayMilliseconds);
+                PDU.getInstance().delay(delayMilliseconds, indicator);
 
                 Long actualRequestId = mapProject2RequestId.get(project);
                 if (actualRequestId != null) {
@@ -261,7 +267,7 @@ public class RunUtils {
 
                   // actual rescan
                   AnalysisData.getInstance().removeProjectFromCaches(project);
-                  updateCachedAnalysisResults(project, null);
+                  updateCachedAnalysisResults(project, null, indicator);
 
                   if (bulkModeRequests.remove(actualRequestId)) {
                     BulkMode.unset(project);
@@ -282,27 +288,31 @@ public class RunUtils {
             : new Project[] {project};
     for (Project prj : projects) {
       //    DumbService.getInstance(project).runWhenSmart(() ->
-      runInBackground(prj, () -> updateCachedAnalysisResults(prj, null));
+      runInBackground(
+          prj,
+          "Analysing project...",
+          (progress) -> updateCachedAnalysisResults(prj, null, progress));
     }
   }
 
   public static void updateCachedAnalysisResults(
-      @NotNull Project project, @Nullable Collection<PsiFile> psiFiles) {
-    updateCachedAnalysisResults(project, psiFiles, Collections.emptyList());
+      @NotNull Project project, @Nullable Collection<PsiFile> psiFiles, @NotNull Object progress) {
+    updateCachedAnalysisResults(project, psiFiles, Collections.emptyList(), progress);
   }
 
   public static void updateCachedAnalysisResults(
       @NotNull Project project,
       @Nullable Collection<PsiFile> psiFiles,
-      @NotNull Collection<PsiFile> filesToRemove) {
+      @NotNull Collection<PsiFile> filesToRemove,
+      @NotNull Object progress) {
     AnalysisData.getInstance()
         .updateCachedResultsForFiles(
             project,
-
-                (psiFiles != null)
-                    ? PDU.toObjects(psiFiles)
-                    : DeepCodeUtils.getInstance().getAllSupportedFilesInProject(project),
-            PDU.toObjects(filesToRemove));
+            (psiFiles != null)
+                ? PDU.toObjects(psiFiles)
+                : DeepCodeUtils.getInstance().getAllSupportedFilesInProject(project),
+            PDU.toObjects(filesToRemove),
+            progress);
     //      StatusBarUtil.setStatusBarInfo(project, message);
   }
 }

@@ -17,7 +17,9 @@ public class TestLoginProcess extends MyBasePlatformTestCase {
   public void testNotLoggedToken() {
     // need to run as a background process due to synchronized execution (??) in test environment.
     RunUtils.runInBackground(
-        project, () -> LoginUtils.getInstance().requestNewLogin(project, false));
+        project,
+        "New Login Request",
+        (progress) -> LoginUtils.getInstance().requestNewLogin(project, false));
     assertFalse(
         "Login with newly requested but not yet logged token should fail",
         LoginUtils.getInstance().isLogged(project, false));

@@ -17,6 +17,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class PDU extends PlatformDependentUtilsBase {
@@ -107,13 +108,15 @@ public class PDU extends PlatformDependentUtilsBase {
   }
 
   @Override
-  public void runInBackgroundCancellable(@NotNull Object file, @NotNull Runnable runnable) {
-    RunUtils.runInBackgroundCancellable(toPsiFile(file), runnable);
+  public void runInBackgroundCancellable(
+      @NotNull Object file, @NotNull String title, @NotNull Consumer<Object> progressConsumer) {
+    RunUtils.runInBackgroundCancellable(toPsiFile(file), title, progressConsumer);
   }
 
   @Override
-  public void runInBackground(@NotNull Object project, @NotNull Runnable runnable) {
-    RunUtils.runInBackground(toProject(project), runnable);
+  public void runInBackground(
+      @NotNull Object project, @NotNull String title, @NotNull Consumer<Object> progressConsumer) {
+    RunUtils.runInBackground(toProject(project), title, progressConsumer);
   }
 
   @Override
@@ -135,24 +138,29 @@ public class PDU extends PlatformDependentUtilsBase {
 
   @Override
   public boolean isLogged(@Nullable Object project, boolean userActionNeeded) {
-    return LoginUtils.getInstance().isLogged(project == null ? null : toProject(project), userActionNeeded);
+    return LoginUtils.getInstance()
+        .isLogged(project == null ? null : toProject(project), userActionNeeded);
   }
 
   @Override
-  public void progressSetText(String text) {
-    ProgressIndicator progress = ProgressManager.getInstance().getProgressIndicator();
-    progress.setText(text);
+  public void progressSetText(@Nullable Object progress, String text) {
+    if (progress instanceof ProgressIndicator) {
+      ((ProgressIndicator) progress).setText(text);
+    }
   }
 
   @Override
-  public void progressCheckCanceled() {
-    ProgressManager.checkCanceled();
+  public void progressCheckCanceled(@Nullable Object progress) {
+    if (progress instanceof ProgressIndicator) {
+      ((ProgressIndicator) progress).checkCanceled();
+    }
   }
 
   @Override
-  public void progressSetFraction(double fraction) {
-    ProgressIndicator progress = ProgressManager.getInstance().getProgressIndicator();
-    progress.setFraction(fraction);
+  public void progressSetFraction(@Nullable Object progress, double fraction) {
+    if (progress instanceof ProgressIndicator) {
+      ((ProgressIndicator) progress).setFraction(fraction);
+    }
   }
 
   @Override

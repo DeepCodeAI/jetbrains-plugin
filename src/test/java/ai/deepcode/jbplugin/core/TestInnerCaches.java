@@ -23,12 +23,17 @@ public class TestInnerCaches extends MyBasePlatformTestCase {
 
     runInBackground(
         project,
-        () ->
-            AnalysisData.getInstance().updateCachedResultsForFiles(
-                project, Collections.singleton(psiTestFile), Collections.emptyList()));
+        "Test analysis",
+        (progress) ->
+            AnalysisData.getInstance()
+                .updateCachedResultsForFiles(
+                    project,
+                    Collections.singleton(psiTestFile),
+                    Collections.emptyList(),
+                    progress));
 
-    AnalysisData.getInstance().waitForUpdateAnalysisFinish();
-    //RunUtils.delay(1000);
+    AnalysisData.getInstance().waitForUpdateAnalysisFinish(null);
+    // RunUtils.delay(1000);
   }
 
   public void testProjectInCache() {
@@ -41,7 +46,8 @@ public class TestInnerCaches extends MyBasePlatformTestCase {
   public void testFileInCache() {
     assertTrue("Test file is not in cache", AnalysisData.getInstance().isFileInCache(psiTestFile));
 
-    final Set<Object> filesWithSuggestions = AnalysisData.getInstance().getAllFilesWithSuggestions(project);
+    final Set<Object> filesWithSuggestions =
+        AnalysisData.getInstance().getAllFilesWithSuggestions(project);
     assertFalse("List of Files with suggestions is empty", filesWithSuggestions.isEmpty());
     assertTrue("Test file has no suggestions in cache", filesWithSuggestions.contains(psiTestFile));
   }

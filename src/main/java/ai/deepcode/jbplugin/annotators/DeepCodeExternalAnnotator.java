@@ -54,7 +54,7 @@ public class DeepCodeExternalAnnotator extends ExternalAnnotator<PsiFile, List<S
     if (!DeepCodeUtils.getInstance().isSupportedFileFormat(psiFile)) return Collections.emptyList();
     final long annotatorId = System.currentTimeMillis();
     DCLogger.getInstance().logInfo("Annotator (" + annotatorId + ") requested for file: " + psiFile.getName());
-    AnalysisData.getInstance().waitForUpdateAnalysisFinish();
+    AnalysisData.getInstance().waitForUpdateAnalysisFinish(ProgressManager.getInstance().getProgressIndicator());
     ProgressManager.checkCanceled();
     List<SuggestionForFile> suggestions = AnalysisData.getInstance().getAnalysis(psiFile);
     DCLogger.getInstance().logInfo(

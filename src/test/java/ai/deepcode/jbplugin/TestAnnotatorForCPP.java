@@ -10,7 +10,7 @@ public class TestAnnotatorForCPP extends MyBasePlatformTestCase {
     DeepCodeParams.getInstance().setConsentGiven(project);
     myFixture.configureByFile("AnnotatorTest.cpp");
     //fixme: delay to let annotators do the job
-    PDU.getInstance().delay(2000);
+    PDU.getInstance().delay(2000, null);
     myFixture.checkHighlighting(true, true, true, false);
   }
 
