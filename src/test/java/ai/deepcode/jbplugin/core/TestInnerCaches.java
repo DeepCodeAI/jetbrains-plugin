@@ -1,8 +1,8 @@
 package ai.deepcode.jbplugin.core;
 
 import ai.deepcode.jbplugin.MyBasePlatformTestCase;
-import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiFile;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.Set;
@@ -15,6 +15,8 @@ public class TestInnerCaches extends MyBasePlatformTestCase {
   @Override
   protected void setUp() throws Exception {
     super.setUp();
+    LoggerFactory.getLogger(this.getClass()).info("-------------------TestInnerCaches.setUp--------------------");
+
     DeepCodeParams.getInstance().setSessionToken(loggedToken);
     DeepCodeParams.getInstance().setConsentGiven(project);
 
@@ -37,6 +39,7 @@ public class TestInnerCaches extends MyBasePlatformTestCase {
   }
 
   public void testProjectInCache() {
+    LoggerFactory.getLogger(this.getClass()).info("-------------------testProjectInCache--------------------");
     final Set<Object> allCachedProject = AnalysisData.getInstance().getAllCachedProject();
     assertTrue(
         "Current Project should be in cache.",
@@ -44,8 +47,8 @@ public class TestInnerCaches extends MyBasePlatformTestCase {
   }
 
   public void testFileInCache() {
+    LoggerFactory.getLogger(this.getClass()).info("-------------------testFileInCache--------------------");
     assertTrue("Test file is not in cache", AnalysisData.getInstance().isFileInCache(psiTestFile));
-
     final Set<Object> filesWithSuggestions =
         AnalysisData.getInstance().getAllFilesWithSuggestions(project);
     assertFalse("List of Files with suggestions is empty", filesWithSuggestions.isEmpty());

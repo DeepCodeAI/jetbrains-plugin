@@ -4,10 +4,12 @@ import ai.deepcode.jbplugin.core.DeepCodeParams;
 import ai.deepcode.jbplugin.core.LoginUtils;
 import ai.deepcode.jbplugin.core.RunUtils;
 import com.intellij.ide.util.PropertiesComponent;
+import org.slf4j.LoggerFactory;
 
 public class TestLoginProcess extends MyBasePlatformTestCase {
 
   public void testMalformedToken() {
+    LoggerFactory.getLogger(this.getClass()).info("-------------------testMalformedToken--------------------");
     DeepCodeParams.getInstance().setSessionToken("blablabla");
     assertFalse(
         "Login with malformed Token should fail",
@@ -15,6 +17,7 @@ public class TestLoginProcess extends MyBasePlatformTestCase {
   }
 
   public void testNotLoggedToken() {
+    LoggerFactory.getLogger(this.getClass()).info("-------------------testNotLoggedToken--------------------");
     // need to run as a background process due to synchronized execution (??) in test environment.
     RunUtils.runInBackground(
         project,
@@ -26,6 +29,7 @@ public class TestLoginProcess extends MyBasePlatformTestCase {
   }
 
   public void testNotGivenConsent() {
+    LoggerFactory.getLogger(this.getClass()).info("-------------------testNotGivenConsent--------------------");
     DeepCodeParams.getInstance().setSessionToken(loggedToken);
     PropertiesComponent.getInstance(project).setValue("consentGiven", false);
     assertFalse(
@@ -33,6 +37,7 @@ public class TestLoginProcess extends MyBasePlatformTestCase {
   }
 
   public void testLoggedTokenAndGivenConsent() {
+    LoggerFactory.getLogger(this.getClass()).info("-------------------testLoggedTokenAndGivenConsent--------------------");
     DeepCodeParams.getInstance().setSessionToken(loggedToken);
     DeepCodeParams.getInstance().setConsentGiven(project);
     assertTrue(
