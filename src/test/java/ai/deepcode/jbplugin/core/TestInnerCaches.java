@@ -7,8 +7,6 @@ import org.slf4j.LoggerFactory;
 import java.util.Collections;
 import java.util.Set;
 
-import static ai.deepcode.jbplugin.core.RunUtils.runInBackground;
-
 public class TestInnerCaches extends MyBasePlatformTestCase {
   PsiFile psiTestFile;
 
@@ -23,7 +21,7 @@ public class TestInnerCaches extends MyBasePlatformTestCase {
     myFixture.configureByFile("AnnotatorTest_ValidJS.js");
     psiTestFile = myFixture.getFile();
 
-    runInBackground(
+    RunUtils.getInstance().runInBackground(
         project,
         "Test analysis",
         (progress) ->
@@ -40,6 +38,8 @@ public class TestInnerCaches extends MyBasePlatformTestCase {
 
   public void testProjectInCache() {
     LoggerFactory.getLogger(this.getClass()).info("-------------------testProjectInCache--------------------");
+    //delay to let caches update process finish
+    PDU.getInstance().delay(2000, null);
     final Set<Object> allCachedProject = AnalysisData.getInstance().getAllCachedProject();
     assertTrue(
         "Current Project should be in cache.",

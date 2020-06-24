@@ -16,7 +16,7 @@ public class AnalyseProjectAction extends AnAction {
     // fixme: ?? background task here to avoid potential freeze due to MUTEX lock
     AnalysisData.getInstance().resetCachesAndTasks(project);
     if (LoginUtils.getInstance().isLogged(project, true)) {
-      RunUtils.asyncAnalyseProjectAndUpdatePanel(project);
+      RunUtils.getInstance().asyncAnalyseProjectAndUpdatePanel(project);
     }
   }
 }

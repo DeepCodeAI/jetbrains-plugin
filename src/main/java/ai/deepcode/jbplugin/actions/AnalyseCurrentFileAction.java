@@ -45,7 +45,7 @@ public class AnalyseCurrentFileAction extends AnAction {
               project);
       return;
     }
-    RunUtils.asyncUpdateCurrentFilePanel(psiFile);
+    //RunUtils.asyncUpdateCurrentFilePanel(psiFile);
     ServiceManager.getService(project, myTodoView.class).refresh();
   }
 }

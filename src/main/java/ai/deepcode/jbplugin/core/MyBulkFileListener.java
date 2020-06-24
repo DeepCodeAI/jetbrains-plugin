@@ -59,15 +59,15 @@ public class MyBulkFileListener implements BulkFileListener {
           // if too many files changed then it's easier to do Bulk Mode full rescan
           BulkMode.set(project);
           // small delay to prevent multiple rescan Background tasks
-          RunUtils.rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, true);
+          RunUtils.getInstance().rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, true);
         } else {
           for (PsiFile psiFile : filesChangedOrCreated) {
-            RunUtils.runInBackgroundCancellable(
+            RunUtils.getInstance().runInBackgroundCancellable(
                 psiFile,
                 "Analyzing files changed...",
                 (progress) -> {
                   AnalysisData.getInstance().removeFilesFromCache(Collections.singleton(psiFile));
-                  RunUtils.updateCachedAnalysisResults(project, Collections.singleton(psiFile), progress);
+                  RunUtils.getInstance().updateCachedAnalysisResults(project, Collections.singleton(psiFile), progress);
                 });
           }
         }
@@ -84,14 +84,14 @@ public class MyBulkFileListener implements BulkFileListener {
       if (!gcignoreChangedFiles.isEmpty()) {
         BulkMode.set(project);
         for (PsiFile gcignoreFile : gcignoreChangedFiles) {
-          RunUtils.runInBackgroundCancellable(
+          RunUtils.getInstance().runInBackgroundCancellable(
               gcignoreFile,
               "Updating ignored files list...",
               (progress) ->
                   DeepCodeIgnoreInfoHolder.getInstance().update_dcignoreFileContent(gcignoreFile));
         }
         // small delay to prevent multiple rescan Background tasks
-        RunUtils.rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, true);
+        RunUtils.getInstance().rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, true);
       }
     }
     // fixme debug only
@@ -118,15 +118,15 @@ public class MyBulkFileListener implements BulkFileListener {
         if (filesRemoved.size() > 10) {
           BulkMode.set(project);
           // small delay to prevent multiple rescan Background tasks
-          RunUtils.rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, true);
-        } else if (!RunUtils.isFullRescanRequested(project)) {
-          RunUtils.runInBackground(
+          RunUtils.getInstance().rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, true);
+        } else if (!RunUtils.getInstance().isFullRescanRequested(project)) {
+          RunUtils.getInstance().runInBackground(
               project,
               "Removing locally deleted files on server...",
               (progress) -> {
                 AnalysisData.getInstance().removeFilesFromCache(PDU.toObjects(filesRemoved));
-                RunUtils.updateCachedAnalysisResults(
-                    project, Collections.emptyList(), filesRemoved, progress);
+                RunUtils.getInstance().updateCachedAnalysisResults(
+                    project, Collections.emptyList(), PDU.toObjects(filesRemoved), progress);
               });
         }
       }
@@ -140,7 +140,7 @@ public class MyBulkFileListener implements BulkFileListener {
       if (!ignoreFilesToRemove.isEmpty()) {
         BulkMode.set(project);
         // small delay to prevent multiple rescan Background tasks
-        RunUtils.rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, true);
+        RunUtils.getInstance().rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, true);
         /*
                 RunUtils.rescanInBackgroundCancellableDelayed(
                     project,

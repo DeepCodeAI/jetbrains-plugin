@@ -22,7 +22,7 @@ public class BulkMode {
     final int counter = getBulkRequestsCount(project) + 1;
     if (counter == 1) {
       // cancel all running tasks first
-      RunUtils.cancelRunningIndicators(project);
+      RunUtils.getInstance().cancelRunningIndicators(project);
     }
     DCLogger.getInstance().logInfo("BulkMode ON with " + counter + " total requests");
     mapProject2RequestsCounter.put(project, counter);

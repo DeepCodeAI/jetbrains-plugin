@@ -59,7 +59,7 @@ public class DeepCodeNotifications {
                     () -> {
                       DeepCodeParams.getInstance().setConsentGiven(project);
                       consentRequestShown = false;
-                      RunUtils.asyncAnalyseProjectAndUpdatePanel(project);
+                      RunUtils.getInstance().asyncAnalyseProjectAndUpdatePanel(project);
                     },
                     true))
             .addAction(

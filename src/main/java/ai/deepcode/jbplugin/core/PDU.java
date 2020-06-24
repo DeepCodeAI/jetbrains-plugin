@@ -107,27 +107,31 @@ public class PDU extends PlatformDependentUtilsBase {
     return document.getLineStartOffset(line);
   }
 
+  // can't link directly due to circular dependencies
   @Override
   public void runInBackgroundCancellable(
       @NotNull Object file, @NotNull String title, @NotNull Consumer<Object> progressConsumer) {
-    RunUtils.runInBackgroundCancellable(toPsiFile(file), title, progressConsumer);
+    RunUtils.getInstance().runInBackgroundCancellable(file, title, progressConsumer);
   }
 
+  // can't link directly due to circular dependencies
   @Override
   public void runInBackground(
       @NotNull Object project, @NotNull String title, @NotNull Consumer<Object> progressConsumer) {
-    RunUtils.runInBackground(toProject(project), title, progressConsumer);
+    RunUtils.getInstance().runInBackground(project, title, progressConsumer);
   }
 
+  // can't link directly due to circular dependencies
   @Override
   public void cancelRunningIndicators(@NotNull Object project) {
-    RunUtils.cancelRunningIndicators(toProject(project));
+    RunUtils.getInstance().cancelRunningIndicators(project);
   }
 
+  // can't link directly due to circular dependencies
   @Override
   public void doFullRescan(@NotNull Object project) {
-    if (!RunUtils.isFullRescanRequested(toProject(project))) {
-      RunUtils.rescanInBackgroundCancellableDelayed(toProject(project), DEFAULT_DELAY_SMALL, false);
+    if (!RunUtils.getInstance().isFullRescanRequested(project)) {
+      RunUtils.getInstance().rescanInBackgroundCancellableDelayed(project, DEFAULT_DELAY_SMALL, false);
     }
   }
 

@@ -78,7 +78,7 @@ public class DeepCodeConfigEntry implements Configurable {
     if (needClearCachesAndRescan) {
       AnalysisData.getInstance().resetCachesAndTasks(null);
       if (LoginUtils.getInstance().isLogged(null, true)) {
-        RunUtils.asyncAnalyseProjectAndUpdatePanel(null);
+        RunUtils.getInstance().asyncAnalyseProjectAndUpdatePanel(null);
       }
     }
   }

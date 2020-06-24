@@ -30,9 +30,9 @@ public class MyProjectManagerListener implements ProjectManagerListener {
 
   @Override
   public void projectClosing(@NotNull Project project) {
-    RunUtils.runInBackground(project, "Project closing...",  (progress) -> {
+    RunUtils.getInstance().runInBackground(project, "Project closing...",  (progress) -> {
       // lets all running ProgressIndicators release MUTEX first
-      RunUtils.cancelRunningIndicators(project);
+      RunUtils.getInstance().cancelRunningIndicators(project);
       AnalysisData.getInstance().removeProjectFromCaches(project);
     });
   }
@@ -45,7 +45,7 @@ public class MyProjectManagerListener implements ProjectManagerListener {
       if (AnalysisData.getInstance().isFileInCache(psiFile)) {
         // ?? immediate delete for visual updates in Panel, annotations, etc.
         // should be done in background to wait MUTEX released in case of currently running update
-        RunUtils.runInBackground(
+        RunUtils.getInstance().runInBackground(
             psiFile.getProject(),
             "Cache updating...",
             (progress) -> AnalysisData.getInstance().removeFilesFromCache(Collections.singleton(psiFile)));
@@ -73,7 +73,7 @@ public class MyProjectManagerListener implements ProjectManagerListener {
       if (BulkMode.isActive(project)) return;
 
       if (DeepCodeUtils.getInstance().isSupportedFileFormat(psiFile)) {
-        RunUtils.runInBackgroundCancellable(
+        RunUtils.getInstance().runInBackgroundCancellable(
             psiFile,
                 "Analyzing files changed...",
             (progress) -> {
@@ -82,14 +82,14 @@ public class MyProjectManagerListener implements ProjectManagerListener {
                 // but in case of update finished between beforeChildrenChange and now.
                 AnalysisData.getInstance().removeFilesFromCache(Collections.singleton(psiFile));
               }
-              RunUtils.updateCachedAnalysisResults(project, Collections.singleton(psiFile), progress);
+              RunUtils.getInstance().updateCachedAnalysisResults(project, Collections.singleton(psiFile), progress);
             });
       }
 
       if (DeepCodeIgnoreInfoHolder.getInstance().is_dcignoreFile(psiFile)) {
         DeepCodeIgnoreInfoHolder.getInstance().update_dcignoreFileContent(psiFile);
         // delayed to prevent unnecessary updates in case of continuous typing by user
-        RunUtils.rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY, false);
+        RunUtils.getInstance().rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY, false);
       }
       // .gitignore content delay to be parsed https://youtrack.jetbrains.com/issue/IDEA-239773
       final VirtualFile virtualFile = psiFile.getVirtualFile();
@@ -98,7 +98,7 @@ public class MyProjectManagerListener implements ProjectManagerListener {
         if (document != null) {
           FileDocumentManager.getInstance().saveDocument(document);
           // delayed to let git update it meta-info
-          RunUtils.rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY, false);
+          RunUtils.getInstance().rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY, false);
         }
       }
     }
@@ -113,7 +113,7 @@ public class MyProjectManagerListener implements ProjectManagerListener {
       if (DeepCodeIgnoreInfoHolder.getInstance().is_ignoreFile(psiFile)) {
         DeepCodeIgnoreInfoHolder.getInstance().remove_dcignoreFileContent(psiFile);
         // ??? small delay to prevent duplicated delete with MyBulkFileListener
-        RunUtils.rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, false);
+        RunUtils.getInstance().rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, false);
       }
     }
   }
