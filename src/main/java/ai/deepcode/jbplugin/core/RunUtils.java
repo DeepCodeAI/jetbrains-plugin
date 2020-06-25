@@ -33,17 +33,17 @@ public class RunUtils extends RunUtilsBase {
   public static <T> T computeInReadActionInSmartMode(
       @NotNull Project project, @NotNull final Computable<T> computation) {
     // DCLogger.getInstance().info("computeInReadActionInSmartMode requested");
-    T result = null;
     final DumbService dumbService =
         ReadAction.compute(() -> project.isDisposed() ? null : DumbService.getInstance(project));
-    if (dumbService == null) return result;
-    result =
-        dumbService.runReadActionInSmartMode(
+    if (dumbService == null) {
+      DCLogger.getInstance().logWarn("dumbService == null");
+      return null;
+    }
+    return dumbService.runReadActionInSmartMode(
             () -> {
               // DCLogger.getInstance().info("computeInReadActionInSmartMode actually executing");
               return computation.compute();
             });
-    return result;
   }
 
   /**
