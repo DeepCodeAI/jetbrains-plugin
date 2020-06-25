@@ -23,12 +23,11 @@ public class RunUtils extends RunUtilsBase {
 
   private RunUtils() {
     super(
-            PDU.getInstance(),
-            HashContentUtils.getInstance(),
-            AnalysisData.getInstance(),
-            DeepCodeUtils.getInstance(),
-            DCLogger.getInstance()
-    );
+        PDU.getInstance(),
+        HashContentUtils.getInstance(),
+        AnalysisData.getInstance(),
+        DeepCodeUtils.getInstance(),
+        DCLogger.getInstance());
   }
 
   public static <T> T computeInReadActionInSmartMode(
@@ -48,20 +47,30 @@ public class RunUtils extends RunUtilsBase {
   }
 
   /**
-   * Should implement background task creation with call of progressConsumer() inside Job.run()
+   * Should implement reuse of currently running parent DeepCode Progress if possible
+   *
+   * @return true if reuse been successful
    */
   @Override
-  protected void doBackgroundRun(@NotNull Object project, @NotNull String title, @NotNull Consumer<Object> progressConsumer) {
-    dcLogger.logInfo("runInBackground requested");
+  protected boolean reuseCurrentProgress(
+      @NotNull Object project, @NotNull String title, @NotNull Consumer<Object> progressConsumer) {
     final ProgressManager progressManager = ProgressManager.getInstance();
-    final MyBackgroundable myBackgroundable =
-        new MyBackgroundable(PDU.toProject(project), title, progressConsumer);
     final ProgressIndicator progressIndicator = progressManager.getProgressIndicator();
     if (getRunningProgresses(PDU.toProject(project)).contains(progressIndicator)) {
+      final MyBackgroundable myBackgroundable =
+          new MyBackgroundable(PDU.toProject(project), title, progressConsumer);
       progressManager.runProcessWithProgressAsynchronously(myBackgroundable, progressIndicator);
-    } else {
-      progressManager.run(myBackgroundable);
+      return true;
     }
+    return false;
+  }
+
+  /** Should implement background task creation with call of progressConsumer() inside Job.run() */
+  @Override
+  protected void doBackgroundRun(
+      @NotNull Object project, @NotNull String title, @NotNull Consumer<Object> progressConsumer) {
+    ProgressManager.getInstance()
+        .run(new MyBackgroundable(PDU.toProject(project), title, progressConsumer));
   }
 
   @NotNull
