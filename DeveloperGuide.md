@@ -8,13 +8,14 @@
 
 **Important note: Starting version 1.2.0 use of java-client version 2.0 or above required!**
 
-See below correspondent `java-client` version required:
+See below correspondent `java-client` version requirements:
 
 | jetbrains-plugin | java-client |
 |------------------|-------------|
 | 1.2.0            | 2.0.0       |
 | 1.2.2            | 2.0.4       |
 | 1.2.3            | 2.0.5       |
+| 1.2.4            | 2.0.6       |
 
 - At `build.gradle` file inside `intellij` block: uncomment `version` line and comment `localPath` line (or change `localPath` to pointing your locally installed Intellij Idea `2019.2` version instance);
 

@@ -7,7 +7,7 @@ plugins {
 
 //group 'org.example'
 
-version '1.2.3'
+version '1.2.4'
 sourceCompatibility = 1.8
 
 repositories {
@@ -35,7 +35,7 @@ patchPluginXml {
     untilBuild 203
 
     changeNotes """
-      1.2.0 - Internal major refactoring and bugfixes.<br>
+      1.2.x - Internal major refactoring and bugfixes.<br>
       1.1.2 - Fix bug parsing of trailing "**" in .dcignore<br>
       1.1.1 - Fix errors symbolic presentation; fix exception when analysis results not available.<br>
       1.1.0 - Speedup of large projects analysis and suggestions highlighting; various internal fixes and refactoring<br>
@@ -59,7 +59,7 @@ task runIC_201(type: RunIdeTask){
 
 task runIC_202(type: RunIdeTask){
     jvmArgs '-Xmx2G'
-    ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-0\\202.5428.22'
+    ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-0\\202.5958.24'
 }
 
 task runIC_193(type: RunIdeTask){

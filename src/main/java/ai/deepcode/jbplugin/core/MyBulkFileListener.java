@@ -27,27 +27,11 @@ public class MyBulkFileListener implements BulkFileListener {
     DCLogger.getInstance()
         .logInfo("MyBulkFileListener.after begins for " + events.size() + " events " + events);
     for (Project project : ProjectManager.getInstance().getOpenProjects()) {
-      /*
-          for (Project project : AnalysisData.getAllCachedProject()) {
-            RunUtils.runInBackground(
-                project,
-                () -> {
-      */
       Set<PsiFile> filesChangedOrCreated =
-          /*
-                          RunUtils.computeInReadActionInSmartMode(
-                              project,
-                              () ->
-          */
           getFilteredFilesByEventTypes(
               project,
               events,
-              (psiFile -> DeepCodeUtils.getInstance().isSupportedFileFormat(psiFile)
-              // to prevent updating files already done by
-              // MyPsiTreeChangeAdapter
-              // fixme: doesn't work, try to use isFromSave or isFromRefresh
-              // && AnalysisData.isHashChanged(psiFile)
-              ),
+              (psiFile -> DeepCodeUtils.getInstance().isSupportedFileFormat(psiFile)),
               VFileContentChangeEvent.class,
               VFileMoveEvent.class,
               VFileCopyEvent.class,

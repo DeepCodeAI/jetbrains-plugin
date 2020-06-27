@@ -11,6 +11,7 @@ import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.util.Computable;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
 import java.util.function.Consumer;
 
 public class RunUtils extends RunUtilsBase {
@@ -74,7 +75,7 @@ public class RunUtils extends RunUtilsBase {
   }
 
   @NotNull
-  public static ProgressIndicator toProgress(@NotNull Object progress) {
+  private static ProgressIndicator toProgress(@NotNull Object progress) {
     if (!(progress instanceof ProgressIndicator))
       throw new IllegalArgumentException("progress should be ProgressIndicator instance");
     return (ProgressIndicator) progress;
@@ -102,7 +103,7 @@ public class RunUtils extends RunUtilsBase {
   }
 
   @Override
-  protected void updateUI(Object project) {
+  protected void updateAnalysisResultsUIPresentation(@NotNull Collection<Object> files) {
     // code from T0D0 already have listener for updates
   }
 
