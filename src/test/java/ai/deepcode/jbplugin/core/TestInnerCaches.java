@@ -18,7 +18,7 @@ public class TestInnerCaches extends MyBasePlatformTestCase {
     DeepCodeParams.getInstance().setSessionToken(loggedToken);
     DeepCodeParams.getInstance().setConsentGiven(project);
 
-    myFixture.configureByFile("AnnotatorTest_ValidJS.js");
+    myFixture.configureByFile("AnnotatorTest_ValidCPP.cpp");
     psiTestFile = myFixture.getFile();
 
     RunUtils.getInstance().runInBackground(
