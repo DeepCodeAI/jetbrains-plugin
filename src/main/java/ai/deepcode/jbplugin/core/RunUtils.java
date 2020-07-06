@@ -98,11 +98,6 @@ public class RunUtils extends RunUtilsBase {
   }
 
   @Override
-  protected Object[] getOpenProjects() {
-    return ProjectManager.getInstance().getOpenProjects();
-  }
-
-  @Override
   protected void updateAnalysisResultsUIPresentation(@NotNull Collection<Object> files) {
     // code from T0D0 already have listener for updates
   }

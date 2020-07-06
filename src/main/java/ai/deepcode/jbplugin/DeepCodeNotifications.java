@@ -12,6 +12,10 @@ import com.intellij.openapi.project.ProjectManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 public class DeepCodeNotifications {
 
   static final String title = "DeepCode";
@@ -30,12 +34,17 @@ public class DeepCodeNotifications {
         (project != null)
             ? new Project[] {project}
             : ProjectManager.getInstance().getOpenProjects();
+    List<Notification> notificationsToExpireWith = new ArrayList<>();
     for (Project prj : projects) {
       final Notification notification =
           new Notification(groupNeedAction, title, message, NotificationType.WARNING)
               .addAction(
                   new ShowClickableLinkAction(
-                      "Login", () -> LoginUtils.getInstance().requestNewLogin(prj, true), true));
+                      "Login",
+                      () -> LoginUtils.getInstance().requestNewLogin(prj, true),
+                      true,
+                      notificationsToExpireWith));
+      notificationsToExpireWith.add(notification);
       notification.notify(prj);
     }
   }
@@ -49,7 +58,7 @@ public class DeepCodeNotifications {
     final Notification notification =
         new ConsentNotification(
                 groupNeedAction,
-                title + ": Confirm remote analysis of",
+                title + ": Confirm remote analysis of ",
                 project.getName(),
                 NotificationType.WARNING,
                 null /*NotificationListener.URL_OPENING_LISTENER*/)
@@ -61,12 +70,14 @@ public class DeepCodeNotifications {
                       consentRequestShown = false;
                       RunUtils.getInstance().asyncAnalyseProjectAndUpdatePanel(project);
                     },
-                    true))
+                    true,
+                    Collections.emptyList()))
             .addAction(
                 new ShowClickableLinkAction(
                     "Terms and Conditions",
                     () -> BrowserUtil.open("https://www.deepcode.ai/tc"),
-                    false));
+                    false,
+                    Collections.emptyList()));
     notification.notify(project);
     consentRequestShown = true;
   }
@@ -75,17 +86,25 @@ public class DeepCodeNotifications {
 
     private final Runnable onClickRunnable;
     private final boolean expiredIfClicked;
+    private final List<Notification> notificationsToExpireWith;
 
     ShowClickableLinkAction(
-        @NotNull String linkText, @NotNull Runnable onClickRunnable, boolean expiredIfClicked) {
+        @NotNull String linkText,
+        @NotNull Runnable onClickRunnable,
+        boolean expiredIfClicked,
+        List<Notification> notificationsToExpireWith) {
       super(linkText);
       this.onClickRunnable = onClickRunnable;
       this.expiredIfClicked = expiredIfClicked;
+      this.notificationsToExpireWith = notificationsToExpireWith;
     }
 
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
-      if (expiredIfClicked) expireNotification(Notification.get(e));
+      if (expiredIfClicked) {
+        notificationsToExpireWith.forEach(DeepCodeNotifications::expireNotification);
+        expireNotification(Notification.get(e));
+      }
       onClickRunnable.run();
     }
   }

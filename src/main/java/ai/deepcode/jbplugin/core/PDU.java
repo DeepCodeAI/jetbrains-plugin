@@ -10,6 +10,7 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
@@ -87,6 +88,11 @@ public class PDU extends PlatformDependentUtilsBase {
       absolutePath = absolutePath.replace(projectPath, "");
     }
     return absolutePath;
+  }
+
+  @Override
+  public Object[] getOpenProjects() {
+    return ProjectManager.getInstance().getOpenProjects();
   }
 
   @Override
