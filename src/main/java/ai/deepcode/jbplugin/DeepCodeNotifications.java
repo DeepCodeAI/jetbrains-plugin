@@ -12,9 +12,7 @@ import com.intellij.openapi.project.ProjectManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 public class DeepCodeNotifications {
 
@@ -49,17 +47,17 @@ public class DeepCodeNotifications {
     }
   }
 
-  private static boolean consentRequestShown = false;
+  private static final Set<Object> projectsWithConsentRequestShown = new HashSet<>();
 
   public static void showConsentRequest(@NotNull Project project, boolean userActionNeeded) {
-    if (!userActionNeeded && consentRequestShown) return;
+    if (!userActionNeeded && projectsWithConsentRequestShown.contains(project)) return;
     final String message = "Confirm remote analysis of " + project.getBasePath();
     //            + " (<a href=\"https://www.deepcode.ai/tc\">Terms & Conditions</a>)";
     final Notification notification =
         new ConsentNotification(
                 groupNeedAction,
                 title + ": Confirm remote analysis of ",
-                project.getName(),
+                project,
                 NotificationType.WARNING,
                 null /*NotificationListener.URL_OPENING_LISTENER*/)
             .addAction(
@@ -67,7 +65,7 @@ public class DeepCodeNotifications {
                     "CONFIRM",
                     () -> {
                       DeepCodeParams.getInstance().setConsentGiven(project);
-                      consentRequestShown = false;
+                      projectsWithConsentRequestShown.remove(project);
                       RunUtils.getInstance().asyncAnalyseProjectAndUpdatePanel(project);
                     },
                     true,
@@ -79,7 +77,7 @@ public class DeepCodeNotifications {
                     false,
                     Collections.emptyList()));
     notification.notify(project);
-    consentRequestShown = true;
+    projectsWithConsentRequestShown.add(project);
   }
 
   private static class ShowClickableLinkAction extends DumbAwareAction {
@@ -118,13 +116,16 @@ public class DeepCodeNotifications {
   }
 
   private static class ConsentNotification extends Notification {
+    private final Project project;
+
     public ConsentNotification(
         @NotNull String groupDisplayId,
         @NotNull String title,
-        @NotNull String content,
+        @NotNull Project project,
         @NotNull NotificationType type,
         @Nullable NotificationListener listener) {
-      super(groupDisplayId, title, content, type, listener);
+      super(groupDisplayId, title, project.getName(), type, listener);
+      this.project = project;
     }
 
     @Override
@@ -134,7 +135,7 @@ public class DeepCodeNotifications {
 
     public void consentExpired() {
       super.expire();
-      consentRequestShown = false;
+      projectsWithConsentRequestShown.remove(project);
     }
   }
 
