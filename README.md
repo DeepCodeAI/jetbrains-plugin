@@ -1,5 +1,7 @@
 # DeepCode plugin for JetBrains IDEs
 
+[![deepcode](https://www.deepcode.ai/api/gh/badge?key=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwbGF0Zm9ybTEiOiJnaCIsIm93bmVyMSI6IkRlZXBDb2RlQUkiLCJyZXBvMSI6ImpldGJyYWlucy1wbHVnaW4iLCJpbmNsdWRlTGludCI6ZmFsc2UsImF1dGhvcklkIjoxMjQ2OSwiaWF0IjoxNTk2MDk3MzY3fQ.I4fh42mlQnikGT8WrYD8k3BD0c3ZhfdpA2teyBnevYQ)](https://www.deepcode.ai/app/gh/DeepCodeAI/jetbrains-plugin/_/dashboard?utm_content=gh%2FDeepCodeAI%2Fjetbrains-plugin)
+
 **The JetBrains IDE extension provided by <a href="https://www.deepcode.ai">DeepCode.ai</a> finds bugs and critical vulnerabilities in your code. We support Java, C/C++, Python, JavaScript and TypeScript.**
 _Note:_ We support IntelliJ, PyCharm, and WebStorm. While it works in CLion, it is not officially supported. Feedback is always welcome, though.
 
