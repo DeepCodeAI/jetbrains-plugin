@@ -22,11 +22,13 @@ class DeepCodeIgnoreInfoHolder extends DeepCodeIgnoreInfoHolderBase {
     return PDU.toPsiFile(file).getVirtualFile().getPath();
   }
 
+/*
   @Override
   protected boolean inScope(@NotNull Object dcignoreFile, @NotNull Object fileToCheck) {
     final VirtualFile dcignoreDir = PDU.toPsiFile(dcignoreFile).getVirtualFile().getParent();
     return VfsUtil.isAncestor(dcignoreDir, PDU.toPsiFile(fileToCheck).getVirtualFile(), true);
   }
+*/
 
   @Override
   protected String getFileName(@NotNull Object file) {

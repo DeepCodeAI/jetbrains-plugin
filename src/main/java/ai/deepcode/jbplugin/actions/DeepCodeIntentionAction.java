@@ -21,14 +21,14 @@ import java.util.regex.Pattern;
 public class DeepCodeIntentionAction implements IntentionAction {
   private final PsiFile myPsiFile;
   private final TextRange myRange;
-  private final String fullSuggestionId;
+  private final String rule;
   private final boolean isFileIntention;
 
   public DeepCodeIntentionAction(
-      PsiFile psiFile, TextRange range, String id, boolean isFileIntention) {
+      PsiFile psiFile, TextRange range, String rule, boolean isFileIntention) {
     myPsiFile = psiFile;
     myRange = range;
-    fullSuggestionId = id;
+    this.rule = rule;
     this.isFileIntention = isFileIntention;
   }
 
@@ -82,16 +82,6 @@ public class DeepCodeIntentionAction implements IntentionAction {
             .anyMatch(r -> r.contains(myRange));
   }
 
-  private static final String DEFAULT_LINE_COMMENT_PREFIX = "//";
-
-  @NotNull
-  private static String getLineCommentPrefix(@NotNull PsiFile psiFile) {
-    final Commenter commenter = LanguageCommenters.INSTANCE.forLanguage(psiFile.getLanguage());
-    if (commenter == null) return DEFAULT_LINE_COMMENT_PREFIX;
-    String prefix = commenter.getLineCommentPrefix();
-    return prefix == null ? DEFAULT_LINE_COMMENT_PREFIX : prefix;
-  }
-
   /**
    * Called when user invokes intention. This method is called inside command. If {@link
    * #startInWriteAction()} returns {@code true}, this method is also called inside write action.
@@ -108,15 +98,19 @@ public class DeepCodeIntentionAction implements IntentionAction {
     if (document.getTextLength() < 0) return;
     int lineNumber = document.getLineNumber(myRange.getStartOffset());
     int insertPosition = document.getLineStartOffset(lineNumber);
+
     final int lineStart = document.getLineStartOffset(lineNumber);
     final int lineEnd = document.getLineEndOffset(lineNumber);
     String lineText = document.getText(new TextRange(lineStart, lineEnd));
+
     String prefix = getLeadingSpaces(lineText) + getLineCommentPrefix(file);
     String postfix = "\n";
     if (lineNumber > 0) {
+
       final int prevLineStart = document.getLineStartOffset(lineNumber - 1);
       final int prevLineEnd = document.getLineEndOffset(lineNumber - 1);
       String prevLine = document.getText(new TextRange(prevLineStart, prevLineEnd)).toLowerCase();
+
       final Pattern ignorePattern =
           Pattern.compile(".*" + getLineCommentPrefix(file) + ".*deepcode\\s?ignore.*");
       if (ignorePattern.matcher(prevLine).matches()) {
@@ -126,15 +120,15 @@ public class DeepCodeIntentionAction implements IntentionAction {
       }
     }
 
-    final String[] splitedId = fullSuggestionId.split("%2F");
-    String suggestionId = splitedId[splitedId.length - 1];
+//    final String[] splitedId = rule.split("%2F");
+//    String suggestionId = splitedId[splitedId.length - 1];
 
     final String ignoreCommand =
         prefix
             + (prefix.endsWith(" ") ? "" : " ")
             + (isFileIntention ? "file " : "")
             + "deepcode ignore "
-            + suggestionId
+            + rule
             + ": ";
     final String ignoreDescription = "<please specify a reason of ignoring this>";
 
@@ -149,10 +143,20 @@ public class DeepCodeIntentionAction implements IntentionAction {
     IdeFocusManager.getInstance(project).requestFocus(editor.getContentComponent(), true);
   }
 
-  private static String getLeadingSpaces(@NotNull String string) {
+  private static final String DEFAULT_LINE_COMMENT_PREFIX = "//";
+
+  @NotNull
+  private static String getLineCommentPrefix(@NotNull PsiFile psiFile) {
+    final Commenter commenter = LanguageCommenters.INSTANCE.forLanguage(psiFile.getLanguage());
+    if (commenter == null) return DEFAULT_LINE_COMMENT_PREFIX;
+    String prefix = commenter.getLineCommentPrefix();
+    return prefix == null ? DEFAULT_LINE_COMMENT_PREFIX : prefix;
+  }
+
+  private static String getLeadingSpaces(@NotNull String lineText) {
     int index = 0;
-    while (index < string.length() && Character.isWhitespace(string.charAt(index))) index++;
-    return string.substring(0, index);
+    while (index < lineText.length() && Character.isWhitespace(lineText.charAt(index))) index++;
+    return lineText.substring(0, index);
   }
 
   /**

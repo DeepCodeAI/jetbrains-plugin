@@ -104,9 +104,9 @@ public class DeepCodeExternalAnnotator extends ExternalAnnotator<PsiFile, List<S
             break;
         }
         annotation.registerFix(
-            new DeepCodeIntentionAction(psiFile, range, suggestion.getId(), false));
+            new DeepCodeIntentionAction(psiFile, range, suggestion.getRule(), false));
         annotation.registerFix(
-            new DeepCodeIntentionAction(psiFile, range, suggestion.getId(), true));
+            new DeepCodeIntentionAction(psiFile, range, suggestion.getRule(), true));
         /*
                 holder
                     .newAnnotation(severity, "DeepCode: " + suggestion.getMessage())

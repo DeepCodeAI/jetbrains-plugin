@@ -7,7 +7,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class HashContentUtils extends HashContentUtilsBase {
 
-  private final static HashContentUtils INSTANCE = new HashContentUtils(PDU.getInstance());
+  private static final HashContentUtils INSTANCE = new HashContentUtils(PDU.getInstance());
 
   private HashContentUtils(@NotNull PlatformDependentUtilsBase platformDependentUtils) {
     super(platformDependentUtils);
@@ -20,8 +20,10 @@ public class HashContentUtils extends HashContentUtilsBase {
   @NotNull
   public String doGetFileContent(@NotNull Object file) {
     PsiFile psiFile = PDU.toPsiFile(file);
-    return RunUtils.computeInReadActionInSmartMode(
-        psiFile.getProject(), () -> getPsiFileText(psiFile));
+    final String fileContent =
+        RunUtils.computeInReadActionInSmartMode(
+            psiFile.getProject(), () -> getPsiFileText(psiFile));
+    return fileContent != null ? fileContent : "";
   }
 
   /** Should be run inside <b>Read action</b> !!! */
@@ -34,5 +36,4 @@ public class HashContentUtils extends HashContentUtilsBase {
     // psiFile.getText() is NOT expensive as it's goes to VirtualFileContent.getText()
     return psiFile.getText();
   }
-
 }

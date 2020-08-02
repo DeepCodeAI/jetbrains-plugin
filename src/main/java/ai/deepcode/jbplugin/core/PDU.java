@@ -8,7 +8,6 @@ import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.util.TextRange;
@@ -23,7 +22,8 @@ import java.util.stream.Collectors;
 
 public class PDU extends PlatformDependentUtilsBase {
 
-  private PDU() {};
+  private PDU() {}
+  ;
 
   private static final PDU INSTANCE = new PDU();
 
@@ -137,7 +137,8 @@ public class PDU extends PlatformDependentUtilsBase {
   @Override
   public void doFullRescan(@NotNull Object project) {
     if (!RunUtils.getInstance().isFullRescanRequested(project)) {
-      RunUtils.getInstance().rescanInBackgroundCancellableDelayed(project, DEFAULT_DELAY_SMALL, false);
+      RunUtils.getInstance()
+          .rescanInBackgroundCancellableDelayed(project, DEFAULT_DELAY_SMALL, false);
     }
   }
 
@@ -189,17 +190,27 @@ public class PDU extends PlatformDependentUtilsBase {
   }
 
   @Override
-  public void showInfo(String message, Object project) {
-    DeepCodeNotifications.showInfo(message, toProject(project));
+  public void showInfo(String message, @Nullable Object project) {
+    doShowMessage(project, (prj) -> DeepCodeNotifications.showInfo(message, prj));
   }
 
   @Override
-  public void showWarn(String message, Object project) {
-    DeepCodeNotifications.showWarn(message, toProject(project));
+  public void showWarn(String message, @Nullable Object project) {
+    doShowMessage(project, (prj) -> DeepCodeNotifications.showWarn(message, prj));
   }
 
   @Override
-  public void showError(String message, Object project) {
-    DeepCodeNotifications.showError(message, toProject(project));
+  public void showError(String message, @Nullable Object project) {
+    doShowMessage(project, (prj) -> DeepCodeNotifications.showError(message, prj));
+    //    DeepCodeNotifications.showError(message, toProject(project));
+  }
+
+  private void doShowMessage(@Nullable Object project, Consumer<Project> showFunction) {
+    if (project != null) {
+      showFunction.accept(toProject(project));
+    } else
+      for (Object prj : getOpenProjects()) {
+        showFunction.accept(toProject(prj));
+      }
   }
 }

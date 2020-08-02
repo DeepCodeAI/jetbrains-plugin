@@ -7,7 +7,7 @@ plugins {
 
 //group 'org.example'
 
-version '1.2.5'
+version '1.2.7'
 sourceCompatibility = 1.8
 
 repositories {
@@ -23,9 +23,9 @@ dependencies {
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {
     pluginName "DeepCode-$project.name"
-    version '2019.2.4'
+//    version '2019.2.4'
 //    localPath '/Users/arvid/Library/Application Support/JetBrains/Toolbox/apps/IDEA-C/ch-0/201.7223.91/IntelliJ IDEA CE.app/Contents'
-//    localPath 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-U\\ch-1\\192.7142.36'
+    localPath 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-U\\ch-1\\192.7142.36'
 //    plugins += 'java'
 //    plugins += 'PsiViewer:192-SNAPSHOT'
 
