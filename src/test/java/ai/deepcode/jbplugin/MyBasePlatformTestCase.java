@@ -20,7 +20,7 @@ public abstract class MyBasePlatformTestCase extends BasePlatformTestCase {
 
   // !!! Will works only with already logged sessionToken
   protected static final String loggedToken =
-      "aeedc7d1c2656ea4b0adb1e215999f588b457cedf415c832a0209c9429c7636e";
+      "7803ae6756d34b5cec056616fd59f4d6e499fce7fc3ce6db5cfd07f6e893e23a";
 
   @Override
   protected String getTestDataPath() {

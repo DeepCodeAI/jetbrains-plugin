@@ -48,7 +48,7 @@ public class MyBulkFileListener implements BulkFileListener {
           for (PsiFile psiFile : filesChangedOrCreated) {
             RunUtils.getInstance().runInBackgroundCancellable(
                 psiFile,
-                "Analyzing files changed...",
+                "Analyzing changes in " + psiFile.getName(),
                 (progress) -> {
                   AnalysisData.getInstance().removeFilesFromCache(Collections.singleton(psiFile));
                   RunUtils.getInstance().updateCachedAnalysisResults(project, Collections.singleton(psiFile), progress);
@@ -106,7 +106,7 @@ public class MyBulkFileListener implements BulkFileListener {
         } else if (!RunUtils.getInstance().isFullRescanRequested(project)) {
           RunUtils.getInstance().runInBackground(
               project,
-              "Removing locally deleted files on server...",
+              "Removing " + filesRemoved.size() + " locally deleted files on server...",
               (progress) -> {
                 AnalysisData.getInstance().removeFilesFromCache(PDU.toObjects(filesRemoved));
                 RunUtils.getInstance().updateCachedAnalysisResults(
@@ -125,16 +125,6 @@ public class MyBulkFileListener implements BulkFileListener {
         BulkMode.set(project);
         // small delay to prevent multiple rescan Background tasks
         RunUtils.getInstance().rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, true);
-        /*
-                RunUtils.rescanInBackgroundCancellableDelayed(
-                    project,
-                    100, // small delay to prevent multiple rescan
-                    () -> {
-                      ignoreFilesToRemove.forEach(DeepCodeIgnoreInfoHolder::remove_dcignoreFileContent);
-                      RunUtils.rescanProject(project);
-                      RunUtils.unsetBulkMode(project);
-                    });
-        */
       }
     }
     DCLogger.getInstance().logInfo("MyBulkFileListener.before ends");
