@@ -23,6 +23,9 @@ public class DeepCodeStartupActivity implements StartupActivity {
       messageBusConnection.subscribe(ProjectManager.TOPIC, new MyProjectManagerListener(project));
       listenersActivated = true;
     }
+    if (DeepCodeParams.getInstance().isFirstStart()) {
+      DeepCodeNotifications.showTutorialRequest(project);
+    }
     // Keep commented - for DEBUG ONLY !!!!!!!!!!!!!!!!!
     //PropertiesComponent.getInstance(project).setValue("consentGiven", false);
 

@@ -80,6 +80,20 @@ public class DeepCodeNotifications {
     projectsWithConsentRequestShown.add(project);
   }
 
+  public static void showTutorialRequest(@NotNull Project project) {
+    final String message = "Thank you for installing DeepCode plugin !";
+    new Notification(groupNeedAction, title, message, NotificationType.INFORMATION)
+        .addAction(
+            new ShowClickableLinkAction(
+                "See official Tutorial.",
+                () ->
+                    BrowserUtil.open(
+                        "https://github.com/DeepCodeAI/jetbrains-plugin/blob/master/README.md#deepcode-plugin-for-jetbrains-ides"),
+                true,
+                Collections.emptyList()))
+        .notify(project);
+  }
+
   private static class ShowClickableLinkAction extends DumbAwareAction {
 
     private final Runnable onClickRunnable;

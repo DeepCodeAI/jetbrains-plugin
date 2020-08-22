@@ -22,7 +22,7 @@ public class DeepCodeParams extends DeepCodeParamsBase {
     super(
         PropertiesComponent.getInstance().getBoolean("isEnable", true),
         PropertiesComponent.getInstance().getValue("apiUrl", "https://www.deepcode.ai/"),
-        PropertiesComponent.getInstance().getBoolean("useLinter", false),
+        PropertiesComponent.getInstance().getBoolean("useLinter"),
         PropertiesComponent.getInstance().getInt("minSeverity", 1),
         PropertiesComponent.getInstance().getValue("sessionToken", ""),
         PropertiesComponent.getInstance().getValue("loginUrl", ""),
@@ -70,18 +70,25 @@ public class DeepCodeParams extends DeepCodeParamsBase {
   @Override
   public void setEnable(boolean isEnable) {
     super.setEnable(isEnable);
-    propertiesComponent.setValue("isEnable", isEnable);
+    propertiesComponent.setValue("isEnable", isEnable, true);
   }
 
   @Override
   public boolean consentGiven(@NotNull Object projectO) {
     Project project = PDU.toProject(projectO);
-    return PropertiesComponent.getInstance(project).getBoolean("consentGiven", false);
+    return PropertiesComponent.getInstance(project).getBoolean("consentGiven");
   }
 
   @Override
   public void setConsentGiven(@NotNull Object projectO) {
     Project project = PDU.toProject(projectO);
     PropertiesComponent.getInstance(project).setValue("consentGiven", true);
+  }
+
+  public boolean isFirstStart() {
+    boolean result = PropertiesComponent.getInstance().getBoolean("deepcode.isFirstStart", true);
+    if (result)
+      PropertiesComponent.getInstance().setValue("deepcode.isFirstStart", false, true);
+    return result;
   }
 }
