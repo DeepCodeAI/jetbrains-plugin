@@ -1,5 +1,6 @@
 package ai.deepcode.jbplugin.ui.config;
 
+import ai.deepcode.jbplugin.DeepCodeNotifications;
 import ai.deepcode.jbplugin.core.*;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
@@ -62,21 +63,28 @@ public class DeepCodeConfigEntry implements Configurable {
   @Override
   public void apply() throws ConfigurationException {
     if (myForm == null) return;
-    boolean needClearCachesAndRescan = false;
-    if (!myForm.getTokenID().equals(DeepCodeParams.getInstance().getSessionToken())) {
+    boolean tokenChanged, urlChanged, severityChanged, linterChanged, enableChanged = false;
+    if (tokenChanged =
+        !myForm.getTokenID().equals(DeepCodeParams.getInstance().getSessionToken())) {
       DeepCodeParams.getInstance().setSessionToken(myForm.getTokenID());
       DeepCodeParams.getInstance().setLoginUrl("");
-      needClearCachesAndRescan = true;
     }
-    if (!myForm.getBaseURL().equals(DeepCodeParams.getInstance().getApiUrl())) {
+    if (urlChanged = !myForm.getBaseURL().equals(DeepCodeParams.getInstance().getApiUrl())) {
       DeepCodeParams.getInstance().setApiUrl(myForm.getBaseURL());
-      needClearCachesAndRescan = true;
     }
-    DeepCodeParams.getInstance().setMinSeverity(myForm.getMinSeverityLevel());
-    DeepCodeParams.getInstance().setUseLinter(myForm.isLintersEnabled());
-    DeepCodeParams.getInstance().setEnable(myForm.isPluginEnabled());
-    if (needClearCachesAndRescan) {
+    if (severityChanged =
+        myForm.getMinSeverityLevel() != DeepCodeParams.getInstance().getMinSeverity()) {
+      DeepCodeParams.getInstance().setMinSeverity(myForm.getMinSeverityLevel());
+    }
+    if (linterChanged = myForm.isLintersEnabled() != DeepCodeParams.getInstance().useLinter()) {
+      DeepCodeParams.getInstance().setUseLinter(myForm.isLintersEnabled());
+    }
+    if (enableChanged = myForm.isPluginEnabled() != DeepCodeParams.getInstance().isEnable()) {
+      DeepCodeParams.getInstance().setEnable(myForm.isPluginEnabled());
+    }
+    if (tokenChanged || urlChanged || severityChanged || linterChanged || enableChanged) {
       AnalysisData.getInstance().resetCachesAndTasks(null);
+      DeepCodeNotifications.expireShownLoginNotifications();
       if (LoginUtils.getInstance().isLogged(null, true)) {
         RunUtils.getInstance().asyncAnalyseProjectAndUpdatePanel(null);
       }

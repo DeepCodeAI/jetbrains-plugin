@@ -25,7 +25,10 @@ public class DeepCodeNotifications {
         groupNeedAction, NotificationDisplayType.STICKY_BALLOON, true, "DeepCode");
   }
 
+  private static final List<Notification> shownLoginNotifications = new ArrayList<>();
+
   public static void showLoginLink(@Nullable Project project, @NotNull String message) {
+    expireShownLoginNotifications();
     // application wide notifications (with project=null) are not shown
     // https://youtrack.jetbrains.com/issue/IDEA-220408
     Project[] projects =
@@ -45,6 +48,12 @@ public class DeepCodeNotifications {
       notificationsToExpireWith.add(notification);
       notification.notify(prj);
     }
+    shownLoginNotifications.addAll(notificationsToExpireWith);
+  }
+
+  public static void expireShownLoginNotifications() {
+    shownLoginNotifications.forEach(Notification::expire);
+    shownLoginNotifications.clear();
   }
 
   private static final Set<Object> projectsWithConsentRequestShown = new HashSet<>();
