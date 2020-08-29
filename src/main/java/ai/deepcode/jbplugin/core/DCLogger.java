@@ -3,12 +3,12 @@ package ai.deepcode.jbplugin.core;
 import ai.deepcode.javaclient.core.DCLoggerBase;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
-import org.slf4j.LoggerFactory;
 
 public class DCLogger extends DCLoggerBase {
 
@@ -20,10 +20,10 @@ public class DCLogger extends DCLoggerBase {
 
   private DCLogger() {
     super(
-        () -> LoggerFactory.getLogger("DeepCode")::info,
-        () -> LoggerFactory.getLogger("DeepCode")::warn,
-        () -> LoggerFactory.getLogger("DeepCode").isInfoEnabled(),
-        () -> LoggerFactory.getLogger("DeepCode").isWarnEnabled());
+        () -> Logger.getInstance("DeepCode")::debug,
+        () -> Logger.getInstance("DeepCode")::warn,
+        () -> Logger.getInstance("DeepCode").isDebugEnabled(),
+        () -> true);
   }
 
   @Override

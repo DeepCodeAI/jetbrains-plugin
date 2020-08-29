@@ -27,7 +27,12 @@ See below correspondent `java-client` version requirements:
 
 ### Run tests
 
-- Run gradle test task: `source gradlew test --stacktrace --scan`
+Run gradle test task: `source gradlew test --stacktrace --scan`
+
+### See log output 
+
+To see plugin's log output in idea.log (related to testing Idea instance), please enable Debug level logging 
+(in testing Idea instance) by open `Help -> Diagnostic Tools -> Debug Log Settings...` and type there `DeepCode` (case-sensitive!).
 
 ### Useful links
 - IntelliJ Platform SDK [documentation](https://www.jetbrains.org/intellij/sdk/docs/intro/welcome.html)
