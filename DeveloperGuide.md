@@ -18,8 +18,7 @@ See below correspondent `java-client` version requirements:
 | 1.2.4            | 2.0.6       |
 | 1.2.5            | 2.0.8       |
 | 1.2.7            | 2.0.12      |
-
-- At `build.gradle` file inside `intellij` block: uncomment `version` line and comment `localPath` line (or change `localPath` to pointing your locally installed Intellij Idea `2019.2` version instance);
+| 1.2.8            | 2.0.14      |
 
 **Important note: For backward compatibility build MUST be run against Intellij Idea 2019.2 instance!**
 - Run `source gradlew buildPlugin`

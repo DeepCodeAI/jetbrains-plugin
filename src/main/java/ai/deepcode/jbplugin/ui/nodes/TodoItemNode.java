@@ -113,24 +113,40 @@ public final class TodoItemNode extends BaseToDoNode<SmartTodoItemPointer>
         && (chars.charAt(lineStartOffset) == '\t' || chars.charAt(lineStartOffset) == ' ')) {
       lineStartOffset++;
     }
-
     int lineEndOffset = document.getLineEndOffset(lineNumber);
-
-    final String markerMsgPrefix =
-        (todoItem instanceof MarkerItemImpl)
-            ? "      " + ((MarkerItemImpl) todoItem).getMessage() + "  :  "
-            : "";
-    final String lineColumnPrefix = markerMsgPrefix + "(" + (lineNumber + 1) + ", " + (columnNumber + 1) + ") ";
 
     // Update highlighted regions
     myHighlightedRegions.clear();
+
+    final String lineColumnPrefix = "(" + (lineNumber + 1) + ", " + (columnNumber + 1) + ") ";
+    String fullPrefix = lineColumnPrefix;
+    if (todoItem instanceof MarkerItemImpl) {
+      final String markerPrefixSpacer = "      ";
+      final String markerMsg = ((MarkerItemImpl) todoItem).getMessage();
+      final String markerMsgPostfix = " :    ";
+
+      fullPrefix = markerPrefixSpacer + lineColumnPrefix + markerMsg + markerMsgPostfix;
+
+      TextAttributes markerMsgAttributes =
+          EditorColorsManager.getInstance()
+              .getGlobalScheme()
+              .getAttributes(DefaultLanguageHighlighterColors.IDENTIFIER)
+              .clone();
+      markerMsgAttributes.setFontType(Font.ITALIC);
+      myHighlightedRegions.add(
+          new HighlightedRegion(
+                  markerPrefixSpacer.length() + lineColumnPrefix.length(),
+                  markerPrefixSpacer.length() + lineColumnPrefix.length() + markerMsg.length(),
+                  markerMsgAttributes));
+    }
+
     EditorHighlighter highlighter = myBuilder.getHighlighter(todoItem.getFile(), document);
     collectHighlights(
         myHighlightedRegions,
         highlighter,
         lineStartOffset,
         lineEndOffset,
-        lineColumnPrefix.length());
+        fullPrefix.length());
 
     TextAttributes attributes =
         EditorColorsManager.getInstance()
@@ -140,25 +156,14 @@ public final class TodoItemNode extends BaseToDoNode<SmartTodoItemPointer>
     // todoItem.getPattern().getAttributes().getTextAttributes();
     myHighlightedRegions.add(
         new HighlightedRegion(
-            lineColumnPrefix.length() + startOffset - lineStartOffset,
-            lineColumnPrefix.length() + endOffset - lineStartOffset,
+            fullPrefix.length() + startOffset - lineStartOffset,
+            fullPrefix.length() + endOffset - lineStartOffset,
             attributes));
-
-    if (todoItem instanceof MarkerItemImpl) {
-      TextAttributes prefixAttributes =
-          EditorColorsManager.getInstance()
-              .getGlobalScheme()
-              .getAttributes(DefaultLanguageHighlighterColors.IDENTIFIER)
-              .clone();
-      prefixAttributes.setFontType(Font.ITALIC);
-      myHighlightedRegions.add(
-          new HighlightedRegion(0, markerMsgPrefix.length(), prefixAttributes));
-    }
 
     // Update name
     String highlightedText =
         chars.subSequence(lineStartOffset, Math.min(lineEndOffset, chars.length())).toString();
-    presentation.setPresentableText(lineColumnPrefix + highlightedText);
+    presentation.setPresentableText(fullPrefix + highlightedText);
 
     // Update icon
     if (!(todoItem instanceof MarkerItemImpl)) {

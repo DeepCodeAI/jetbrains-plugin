@@ -1,3 +1,14 @@
+## [1.2.8] - 2019-06-20
+- Improvements:
+  * markers for each suggestion are shown in the List and highlighted in Preview
+  * more informative Progress indicator messages
+
+- Bug fixes:
+  * fix missing re-analyse in some corner cases
+  * fix missing/"too many" login/consent requests
+  * fix ignoring action (quick fix) been broken in some cases
+  * fix logger to not pollute IntelliJ general log (see readme.md how to collect log information)
+
 ## [1.2.0] - 2019-06-20
 - Moving common logic into java-client
 
