@@ -323,6 +323,7 @@ abstract class TodoPanel extends SimpleToolWindowPanel implements OccurenceNavig
     attributes.setEffectType(EffectType.BOXED);
     attributes.setEffectColor(DefaultLanguageHighlighterColors.IDENTIFIER.getDefaultAttributes().getForegroundColor() /*JBColor.BLACK*/);
     final TextAttributes boxedAttributes = attributes.clone();
+    myUsagePreviewPanel.updateUI();
     // actual blinking
     alarm = new Alarm(myUsagePreviewPanel){
       @Override
@@ -563,6 +564,7 @@ abstract class TodoPanel extends SimpleToolWindowPanel implements OccurenceNavig
     @Override
     public void collapseAll() {
       TreeUtil.collapseAll(myTree, 0);
+      TreeUtil.expand(myTree, 2);
     }
 
     @Override
