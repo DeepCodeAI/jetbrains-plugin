@@ -26,7 +26,11 @@ See below correspondent `java-client` version requirements:
 
 ### Run tests
 
-Run gradle test task: `source gradlew test --stacktrace --scan`
+- environment variable with __already logged__ Token need to be declared:
+
+`deepcode.ai_token` - logged at https://www.deepcode.ai Token 
+
+- Run gradle test task: `source gradlew test --stacktrace --scan`
 
 ### See log output 
 

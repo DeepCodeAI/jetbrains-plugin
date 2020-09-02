@@ -19,8 +19,7 @@ public abstract class MyBasePlatformTestCase extends BasePlatformTestCase {
   }
 
   // !!! Will works only with already logged sessionToken
-  protected static final String loggedToken =
-      "7803ae6756d34b5cec056616fd59f4d6e499fce7fc3ce6db5cfd07f6e893e23a";
+  protected static final String loggedToken = System.getenv("deepcode.ai_token");
 
   @Override
   protected String getTestDataPath() {
