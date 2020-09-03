@@ -8,8 +8,4 @@ import com.intellij.testFramework.PlatformTestCase;
  */
 public abstract class MyPlatformTestCase extends PlatformTestCase {
 
-  // !!! Will works only with already logged sessionToken
-  protected static final String loggedToken =
-          "aeedc7d1c2656ea4b0adb1e215999f588b457cedf415c832a0209c9429c7636e";
-
 }

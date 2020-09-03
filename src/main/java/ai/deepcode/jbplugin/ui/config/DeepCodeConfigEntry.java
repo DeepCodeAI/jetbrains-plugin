@@ -1,5 +1,6 @@
 package ai.deepcode.jbplugin.ui.config;
 
+import ai.deepcode.jbplugin.DeepCodeNotifications;
 import ai.deepcode.jbplugin.core.*;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
@@ -41,11 +42,11 @@ public class DeepCodeConfigEntry implements Configurable {
   @Override
   public boolean isModified() {
     return (myForm != null)
-        && (!myForm.getBaseURL().equals(DeepCodeParams.getApiUrl())
-            || !myForm.getTokenID().equals(DeepCodeParams.getSessionToken())
-            || !(myForm.isPluginEnabled() == DeepCodeParams.isEnable())
-            || !(myForm.isLintersEnabled() == DeepCodeParams.useLinter())
-            || myForm.getMinSeverityLevel() != DeepCodeParams.getMinSeverity());
+        && (!myForm.getBaseURL().equals(DeepCodeParams.getInstance().getApiUrl())
+            || !myForm.getTokenID().equals(DeepCodeParams.getInstance().getSessionToken())
+            || !(myForm.isPluginEnabled() == DeepCodeParams.getInstance().isEnable())
+            || !(myForm.isLintersEnabled() == DeepCodeParams.getInstance().useLinter())
+            || myForm.getMinSeverityLevel() != DeepCodeParams.getInstance().getMinSeverity());
   }
 
   @Override
@@ -62,23 +63,30 @@ public class DeepCodeConfigEntry implements Configurable {
   @Override
   public void apply() throws ConfigurationException {
     if (myForm == null) return;
-    boolean needClearCachesAndRescan = false;
-    if (!myForm.getTokenID().equals(DeepCodeParams.getSessionToken())) {
-      DeepCodeParams.setSessionToken(myForm.getTokenID());
-      DeepCodeParams.setLoginUrl("");
-      needClearCachesAndRescan = true;
+    boolean tokenChanged, urlChanged, severityChanged, linterChanged, enableChanged = false;
+    if (tokenChanged =
+        !myForm.getTokenID().equals(DeepCodeParams.getInstance().getSessionToken())) {
+      DeepCodeParams.getInstance().setSessionToken(myForm.getTokenID());
+      DeepCodeParams.getInstance().setLoginUrl("");
     }
-    if (!myForm.getBaseURL().equals(DeepCodeParams.getApiUrl())) {
-      DeepCodeParams.setApiUrl(myForm.getBaseURL());
-      needClearCachesAndRescan = true;
+    if (urlChanged = !myForm.getBaseURL().equals(DeepCodeParams.getInstance().getApiUrl())) {
+      DeepCodeParams.getInstance().setApiUrl(myForm.getBaseURL());
     }
-    DeepCodeParams.setMinSeverity(myForm.getMinSeverityLevel());
-    DeepCodeParams.setUseLinter(myForm.isLintersEnabled());
-    DeepCodeParams.setEnable(myForm.isPluginEnabled());
-    if (needClearCachesAndRescan) {
-      AnalysisData.resetCachesAndTasks(null);
-      if (LoginUtils.isLogged(null, true)) {
-        RunUtils.asyncAnalyseProjectAndUpdatePanel(null);
+    if (severityChanged =
+        myForm.getMinSeverityLevel() != DeepCodeParams.getInstance().getMinSeverity()) {
+      DeepCodeParams.getInstance().setMinSeverity(myForm.getMinSeverityLevel());
+    }
+    if (linterChanged = myForm.isLintersEnabled() != DeepCodeParams.getInstance().useLinter()) {
+      DeepCodeParams.getInstance().setUseLinter(myForm.isLintersEnabled());
+    }
+    if (enableChanged = myForm.isPluginEnabled() != DeepCodeParams.getInstance().isEnable()) {
+      DeepCodeParams.getInstance().setEnable(myForm.isPluginEnabled());
+    }
+    if (tokenChanged || urlChanged || severityChanged || linterChanged || enableChanged) {
+      AnalysisData.getInstance().resetCachesAndTasks(null);
+      DeepCodeNotifications.expireShownLoginNotifications();
+      if (LoginUtils.getInstance().isLogged(null, true)) {
+        RunUtils.getInstance().asyncAnalyseProjectAndUpdatePanel(null);
       }
     }
   }
@@ -86,10 +94,10 @@ public class DeepCodeConfigEntry implements Configurable {
   @Override
   public void reset() {
     if (myForm == null) return;
-    myForm.setBaseURL(DeepCodeParams.getApiUrl());
-    myForm.setTokenID(DeepCodeParams.getSessionToken());
-    myForm.setAddLinters(DeepCodeParams.useLinter());
-    myForm.setMinSeverityLevel(DeepCodeParams.getMinSeverity());
-    myForm.enablePlugin(DeepCodeParams.isEnable());
+    myForm.setBaseURL(DeepCodeParams.getInstance().getApiUrl());
+    myForm.setTokenID(DeepCodeParams.getInstance().getSessionToken());
+    myForm.setAddLinters(DeepCodeParams.getInstance().useLinter());
+    myForm.setMinSeverityLevel(DeepCodeParams.getInstance().getMinSeverity());
+    myForm.enablePlugin(DeepCodeParams.getInstance().isEnable());
   }
 }

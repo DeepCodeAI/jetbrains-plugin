@@ -1,15 +1,13 @@
 // Copyright 2000-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
 package ai.deepcode.jbplugin.ui;
 
+import ai.deepcode.jbplugin.ui.nodes.TodoFileNode;
+import ai.deepcode.jbplugin.ui.nodes.TodoItemNode;
+import ai.deepcode.jbplugin.ui.nodes.TodoTreeHelper;
 import com.intellij.find.FindModel;
 import com.intellij.find.impl.FindInProjectUtil;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.*;
-import com.intellij.ide.actions.NextOccurenceToolbarAction;
-import com.intellij.ide.actions.PreviousOccurenceToolbarAction;
-import ai.deepcode.jbplugin.ui.nodes.TodoFileNode;
-import ai.deepcode.jbplugin.ui.nodes.TodoItemNode;
-import ai.deepcode.jbplugin.ui.nodes.TodoTreeHelper;
 import com.intellij.ide.todo.TodoConfiguration;
 import com.intellij.ide.todo.TodoFilter;
 import com.intellij.ide.util.PsiNavigationSupport;
@@ -19,8 +17,13 @@ import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.editor.DefaultLanguageHighlighterColors;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.RangeMarker;
+import com.intellij.openapi.editor.colors.EditorColors;
+import com.intellij.openapi.editor.colors.EditorColorsManager;
+import com.intellij.openapi.editor.markup.EffectType;
+import com.intellij.openapi.editor.markup.TextAttributes;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
@@ -32,7 +35,10 @@ import com.intellij.openapi.wm.impl.VisibilityWatcher;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
-import com.intellij.ui.*;
+import com.intellij.ui.AutoScrollToSourceHandler;
+import com.intellij.ui.OnePixelSplitter;
+import com.intellij.ui.ScrollPaneFactory;
+import com.intellij.ui.TreeSpeedSearch;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.tree.AsyncTreeModel;
 import com.intellij.ui.tree.StructureTreeModel;
@@ -170,7 +176,7 @@ abstract class TodoPanel extends SimpleToolWindowPanel implements OccurenceNavig
       }
     }
   }
-  
+
   protected abstract TodoTreeBuilder createTreeBuilder(JTree tree, Project project);
 
   private void initUI() {
@@ -277,7 +283,10 @@ abstract class TodoPanel extends SimpleToolWindowPanel implements OccurenceNavig
     return splitter;
   }
 
+  private static Alarm alarm = null;
+
   private void updatePreviewPanel() {
+    if (alarm != null) alarm.cancelAllRequests();
     if (myProject == null || myProject.isDisposed()) return;
     List<UsageInfo> infos = new ArrayList<>();
     final TreePath path = myTree.getSelectionPath();
@@ -304,6 +313,46 @@ abstract class TodoPanel extends SimpleToolWindowPanel implements OccurenceNavig
       }
     }
     myUsagePreviewPanel.updateLayout(infos.isEmpty() ? null : infos);
+    // blinking selection border for markers
+    // temp change Selection highlighting (see why: com.intellij.usages.impl.UsagePreviewPanel.highlight)
+    TextAttributes attributes =
+        EditorColorsManager.getInstance()
+            .getGlobalScheme()
+            .getAttributes(EditorColors.SEARCH_RESULT_ATTRIBUTES);
+    final TextAttributes originalAttributes = attributes.clone();
+    attributes.setEffectType(EffectType.BOXED);
+    attributes.setEffectColor(DefaultLanguageHighlighterColors.IDENTIFIER.getDefaultAttributes().getForegroundColor() /*JBColor.BLACK*/);
+    final TextAttributes boxedAttributes = attributes.clone();
+    myUsagePreviewPanel.updateUI();
+    // actual blinking
+    alarm = new Alarm(myUsagePreviewPanel){
+      @Override
+      public int cancelAllRequests() {
+        attributes.copyFrom(originalAttributes);
+        myUsagePreviewPanel.updateUI();
+        alarm = null;
+        return super.cancelAllRequests();
+      }
+    };
+    alarm.addRequest(
+        () -> {
+          attributes.copyFrom(originalAttributes);
+          myUsagePreviewPanel.updateUI();
+        },
+        400);
+    alarm.addRequest(
+        () -> {
+          attributes.copyFrom(boxedAttributes);
+          myUsagePreviewPanel.updateUI();
+        },
+        800);
+    alarm.addRequest(
+        () -> {
+          attributes.copyFrom(originalAttributes);
+          myUsagePreviewPanel.updateUI();
+          alarm = null;
+        },
+        1200);
   }
 
   @Override
@@ -500,7 +549,7 @@ abstract class TodoPanel extends SimpleToolWindowPanel implements OccurenceNavig
   TreeExpander getTreeExpander() {
     return myTreeExpander;
   }
-  
+
   private final class MyTreeExpander implements TreeExpander {
     @Override
     public boolean canCollapse() {
@@ -515,6 +564,7 @@ abstract class TodoPanel extends SimpleToolWindowPanel implements OccurenceNavig
     @Override
     public void collapseAll() {
       TreeUtil.collapseAll(myTree, 0);
+      TreeUtil.expand(myTree, 2);
     }
 
     @Override

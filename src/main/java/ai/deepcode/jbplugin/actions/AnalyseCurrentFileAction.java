@@ -32,12 +32,12 @@ public class AnalyseCurrentFileAction extends AnAction {
     final PsiFile psiFile = event.getRequiredData(PlatformDataKeys.PSI_FILE);
     Project project = psiFile.getProject();
 
-    if (!LoginUtils.isLogged(project, true)) {
+    if (!LoginUtils.getInstance().isLogged(project, true)) {
 //      DeepCodeNotifications.reShowLastNotification();
       return;
     }
 
-    if (!DeepCodeUtils.isSupportedFileFormat(psiFile)) {
+    if (!DeepCodeUtils.getInstance().isSupportedFileFormat(psiFile)) {
       DeepCodeNotifications.showInfo(
               String.format(
                       "Files with `%1$s` extension are not supported yet.",
@@ -45,7 +45,7 @@ public class AnalyseCurrentFileAction extends AnAction {
               project);
       return;
     }
-    RunUtils.asyncUpdateCurrentFilePanel(psiFile);
+    //RunUtils.asyncUpdateCurrentFilePanel(psiFile);
     ServiceManager.getService(project, myTodoView.class).refresh();
   }
 }

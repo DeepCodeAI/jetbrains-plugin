@@ -106,4 +106,10 @@ In _Settings_, you can find _DeepCode Settings_.
 # Feedback and contact
 
 - In case you need to contact us or you want to provide feedback, we love to hear from you - [here is how to get in touch with us](https://www.deepcode.ai/feedback).
+- If you would like to report the issue/bug, please follow the next guideline:
+  * enable Debug level logging by open `Help -> Diagnostic Tools -> Debug Log Settings...` and type there `DeepCode` (case-sensitive!);
+  * reproduce the issue/bug;
+  * find idea.log file ([Locating IDE log files](https://intellij-support.jetbrains.com/hc/en-us/articles/207241085-Locating-IDE-log-files)) and send it to us together with the problem's description. 
+  * disable Debug level logging by removing `DeepCode` from `Help -> Diagnostic Tools -> Debug Log Settings...` (to avoid polluting idea.log in case you'll need to report it later to JetBrains or other plugin's vendor);
+  * Thank You!
 - If you need to update this file, you can do so by [editing this README.md](https://github.com/DeepCodeAI/vscode-extension/edit/master/README.md).

@@ -3,6 +3,7 @@
 
 package ai.deepcode.jbplugin.ui.nodes;
 
+import ai.deepcode.jbplugin.core.PDU;
 import ai.deepcode.jbplugin.ui.HighlightedRegionProvider;
 import ai.deepcode.jbplugin.ui.TodoTreeBuilder;
 import ai.deepcode.jbplugin.ui.utils.DeepCodeUIUtils;
@@ -58,7 +59,7 @@ public final class TodoFileNode extends PsiFileNode implements HighlightedRegion
 
   private Collection<AbstractTreeNode> createGeneralList() {
     PsiFile psiFile = getValue();
-    return AnalysisData.getAnalysis(psiFile).stream()
+    return AnalysisData.getInstance().getAnalysis(psiFile).stream()
         .map(suggestion -> new SuggestionNode(getProject(), psiFile, myBuilder, suggestion))
         .sorted((o1, o2) -> o2.getValue().getSeverity() - o1.getValue().getSeverity())
         .collect(Collectors.toList());
@@ -68,7 +69,7 @@ public final class TodoFileNode extends PsiFileNode implements HighlightedRegion
   protected void updateImpl(@NotNull PresentationData data) {
     super.updateImpl(data);
     PsiFile psiFile = getValue();
-    String newName = DeepCodeUtils.getDeepCodedFilePath(psiFile);
+    String newName = PDU.getInstance().getDeepCodedFilePath(psiFile);
     final int length = newName.length();
     if (length > 100) {
       newName = "..." + newName.substring(length - 97, length);

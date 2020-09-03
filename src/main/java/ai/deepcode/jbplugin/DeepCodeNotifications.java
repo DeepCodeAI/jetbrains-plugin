@@ -12,97 +12,120 @@ import com.intellij.openapi.project.ProjectManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class DeepCodeNotifications {
 
   static final String title = "DeepCode";
   static final String groupNeedAction = "DeepCodeNeedAction";
   static final String groupAutoHide = "DeepCodeAutoHide";
-  static Runnable lastNotificationRunnable = () -> {};
-  static final List<Notification> lastNotifications = new ArrayList<>();
 
   static {
     new NotificationGroup(
         groupNeedAction, NotificationDisplayType.STICKY_BALLOON, true, "DeepCode");
   }
 
-  public static void reShowLastNotification() {
-    lastNotificationRunnable.run();
-  }
+  private static final List<Notification> shownLoginNotifications = new ArrayList<>();
 
   public static void showLoginLink(@Nullable Project project, @NotNull String message) {
-    lastNotificationRunnable = () -> showLoginLink(project, message);
+    expireShownLoginNotifications();
     // application wide notifications (with project=null) are not shown
     // https://youtrack.jetbrains.com/issue/IDEA-220408
     Project[] projects =
         (project != null)
             ? new Project[] {project}
             : ProjectManager.getInstance().getOpenProjects();
-    lastNotifications.forEach(DeepCodeNotifications::expireNotification);
-    lastNotifications.clear();
+    List<Notification> notificationsToExpireWith = new ArrayList<>();
     for (Project prj : projects) {
       final Notification notification =
           new Notification(groupNeedAction, title, message, NotificationType.WARNING)
               .addAction(
                   new ShowClickableLinkAction(
-                      "Login", () -> LoginUtils.requestNewLogin(prj, true), true));
-      lastNotifications.add(notification);
+                      "Login",
+                      () -> LoginUtils.getInstance().requestNewLogin(prj, true),
+                      true,
+                      notificationsToExpireWith));
+      notificationsToExpireWith.add(notification);
       notification.notify(prj);
     }
+    shownLoginNotifications.addAll(notificationsToExpireWith);
   }
 
-  private static boolean consentRequestShown = false;
+  public static void expireShownLoginNotifications() {
+    shownLoginNotifications.forEach(Notification::expire);
+    shownLoginNotifications.clear();
+  }
+
+  private static final Set<Object> projectsWithConsentRequestShown = new HashSet<>();
 
   public static void showConsentRequest(@NotNull Project project, boolean userActionNeeded) {
-    if (!userActionNeeded && consentRequestShown) return;
-    lastNotificationRunnable = () -> showConsentRequest(project, userActionNeeded);
+    if (!userActionNeeded && projectsWithConsentRequestShown.contains(project)) return;
     final String message = "Confirm remote analysis of " + project.getBasePath();
     //            + " (<a href=\"https://www.deepcode.ai/tc\">Terms & Conditions</a>)";
     final Notification notification =
         new ConsentNotification(
                 groupNeedAction,
-                title + ": Confirm remote analysis of",
-                project.getName(),
+                title + ": Confirm remote analysis of ",
+                project,
                 NotificationType.WARNING,
                 null /*NotificationListener.URL_OPENING_LISTENER*/)
             .addAction(
                 new ShowClickableLinkAction(
                     "CONFIRM",
                     () -> {
-                      DeepCodeParams.setConsentGiven(project);
-                      consentRequestShown = false;
-                      RunUtils.asyncAnalyseProjectAndUpdatePanel(project);
+                      DeepCodeParams.getInstance().setConsentGiven(project);
+                      projectsWithConsentRequestShown.remove(project);
+                      RunUtils.getInstance().asyncAnalyseProjectAndUpdatePanel(project);
                     },
-                    true))
+                    true,
+                    Collections.emptyList()))
             .addAction(
                 new ShowClickableLinkAction(
                     "Terms and Conditions",
                     () -> BrowserUtil.open("https://www.deepcode.ai/tc"),
-                    false));
-    lastNotifications.forEach(DeepCodeNotifications::expireNotification);
-    lastNotifications.clear();
-    lastNotifications.add(notification);
+                    false,
+                    Collections.emptyList()));
     notification.notify(project);
-    consentRequestShown = true;
+    projectsWithConsentRequestShown.add(project);
+  }
+
+  public static void showTutorialRequest(@NotNull Project project) {
+    final String message = "Thank you for installing DeepCode plugin !";
+    new Notification(groupNeedAction, title, message, NotificationType.INFORMATION)
+        .addAction(
+            new ShowClickableLinkAction(
+                "See official Tutorial.",
+                () ->
+                    BrowserUtil.open(
+                        "https://github.com/DeepCodeAI/jetbrains-plugin/blob/master/README.md#deepcode-plugin-for-jetbrains-ides"),
+                true,
+                Collections.emptyList()))
+        .notify(project);
   }
 
   private static class ShowClickableLinkAction extends DumbAwareAction {
 
     private final Runnable onClickRunnable;
     private final boolean expiredIfClicked;
+    private final List<Notification> notificationsToExpireWith;
 
     ShowClickableLinkAction(
-        @NotNull String linkText, @NotNull Runnable onClickRunnable, boolean expiredIfClicked) {
+        @NotNull String linkText,
+        @NotNull Runnable onClickRunnable,
+        boolean expiredIfClicked,
+        List<Notification> notificationsToExpireWith) {
       super(linkText);
       this.onClickRunnable = onClickRunnable;
       this.expiredIfClicked = expiredIfClicked;
+      this.notificationsToExpireWith = notificationsToExpireWith;
     }
 
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
-      if (expiredIfClicked) expireNotification(Notification.get(e));
+      if (expiredIfClicked) {
+        notificationsToExpireWith.forEach(DeepCodeNotifications::expireNotification);
+        expireNotification(Notification.get(e));
+      }
       onClickRunnable.run();
     }
   }
@@ -116,13 +139,16 @@ public class DeepCodeNotifications {
   }
 
   private static class ConsentNotification extends Notification {
+    private final Project project;
+
     public ConsentNotification(
         @NotNull String groupDisplayId,
         @NotNull String title,
-        @NotNull String content,
+        @NotNull Project project,
         @NotNull NotificationType type,
         @Nullable NotificationListener listener) {
-      super(groupDisplayId, title, content, type, listener);
+      super(groupDisplayId, title, project.getName(), type, listener);
+      this.project = project;
     }
 
     @Override
@@ -132,22 +158,19 @@ public class DeepCodeNotifications {
 
     public void consentExpired() {
       super.expire();
-      consentRequestShown = false;
+      projectsWithConsentRequestShown.remove(project);
     }
   }
 
   public static void showError(@NotNull String message, @NotNull Project project) {
-    lastNotificationRunnable = () -> showError(message, project);
     new Notification(groupAutoHide, title, message, NotificationType.ERROR).notify(project);
   }
 
   public static void showInfo(@NotNull String message, @NotNull Project project) {
-    lastNotificationRunnable = () -> showInfo(message, project);
     new Notification(groupAutoHide, title, message, NotificationType.INFORMATION).notify(project);
   }
 
   public static void showWarn(@NotNull String message, @NotNull Project project) {
-    lastNotificationRunnable = () -> showWarn(message, project);
     new Notification(groupAutoHide, title, message, NotificationType.WARNING).notify(project);
   }
 }

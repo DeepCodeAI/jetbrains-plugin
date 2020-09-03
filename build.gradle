@@ -7,7 +7,7 @@ plugins {
 
 //group 'org.example'
 
-version '1.1.2'
+version '1.2.8'
 sourceCompatibility = 1.8
 
 repositories {
@@ -24,8 +24,6 @@ dependencies {
 intellij {
     pluginName "DeepCode-$project.name"
     version '2019.2.4'
-//    localPath '/Users/arvid/Library/Application Support/JetBrains/Toolbox/apps/IDEA-C/ch-0/201.7223.91/IntelliJ IDEA CE.app/Contents'
-//    localPath 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\PyCharm-C\\ch-0\\193.5233.109'
 //    plugins += 'java'
 //    plugins += 'PsiViewer:192-SNAPSHOT'
 
@@ -35,14 +33,22 @@ patchPluginXml {
     untilBuild 203
 
     changeNotes """
-      1.1.2 - Fix bug parsing of trailing "**" in .dcignore<br>
-      1.1.1 - Fix errors symbolic presentation; fix exception when analysis results not available.<br>
-      1.1.0 - Speedup of large projects analysis and suggestions highlighting; various internal fixes and refactoring<br>
-      1.0.4 - Bugfixing internals<br>
-      1.0.3 - Bugfixing and optimization of bulk file changes<br>
-      1.0.2 - Bugfixing and better support for refactoring<br>
-      1.0.1 - Updated Java-client and added support for Java 8, required for Android Studio<br>
-      1.0.0 - First public beta release.<br>      
+1.2.8 - Improvements: <br>
+           * markers for each suggestion are shown in the List and highlighted in Preview <br>
+           * more informative Progress indicator messages <br>
+      - Bug fixes: <br>
+           * fix missing re-analyse in some corner cases <br>
+           * fix missing/"too many" login/consent requests <br>
+           * fix ignoring action (quick fix) been broken in some cases <br>
+           * fix logger to not pollute IntelliJ general log (see readme.md) <br>
+1.1.2 - Fix bug parsing of trailing "**" in .dcignore<br>
+1.1.1 - Fix errors symbolic presentation; fix exception when analysis results not available.<br>
+1.1.0 - Speedup of large projects analysis and suggestions highlighting; various internal fixes and refactoring<br>
+1.0.4 - Bugfixing internals<br>
+1.0.3 - Bugfixing and optimization of bulk file changes<br>
+1.0.2 - Bugfixing and better support for refactoring<br>
+1.0.1 - Updated Java-client and added support for Java 8, required for Android Studio<br>
+1.0.0 - First public beta release.<br>      
     """
 }
 
@@ -52,13 +58,12 @@ runIde {
 
 task runIC_201(type: RunIdeTask){
     jvmArgs '-Xmx2G'
-//    ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-0\\201.6668.121'
-    ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-0\\201.7223.91'
+    ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-1\\201.7846.76'
 }
 
 task runIC_202(type: RunIdeTask){
     jvmArgs '-Xmx2G'
-    ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-0\\202.5428.22'
+    ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-0\\202.6397.94'
 }
 
 task runIC_193(type: RunIdeTask){
