@@ -1,4 +1,4 @@
-## [1.2.8] - 2019-06-20
+## [1.2.8] - 2019-09-03
 - Improvements:
   * markers for each suggestion are shown in the List and highlighted in Preview
   * more informative Progress indicator messages
