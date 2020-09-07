@@ -130,13 +130,8 @@ public class SummaryNode extends BaseToDoNode<ToDoSummary> implements Highlighte
           IdeBundle.message("node.todo.summary", todoItemCount, fileCount)
               .replace("TODO item", "occurrence");
       DCLogger.getInstance().logInfo(message);
-      message =
-          DeepCodeUIUtils.addErrWarnInfoCounts(
-              // fixme
-              PDU.toPsiFiles(AnalysisData.getInstance().getAllFilesWithSuggestions(project)),
-              message,
-              false,
-              myHighlightedRegions);
+
+      message = DeepCodeUIUtils.addErrWarnInfoCounts(project, message, false, myHighlightedRegions);
     }
     presentation.setPresentableText(message);
     myBuilder.expandTree(2);

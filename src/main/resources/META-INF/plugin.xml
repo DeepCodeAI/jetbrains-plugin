@@ -69,6 +69,8 @@
         <!--  es6, js  -->
         <externalAnnotator language="ECMAScript 6"
                            implementationClass="ai.deepcode.jbplugin.annotators.DeepCodeExternalAnnotator"/>
+
+        <statusBarWidgetProvider implementation="ai.deepcode.jbplugin.DeepCodeStatusBarWidgetProvider"/>
     </extensions>
 
     <actions>
