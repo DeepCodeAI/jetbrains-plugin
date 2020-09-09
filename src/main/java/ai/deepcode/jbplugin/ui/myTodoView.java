@@ -1,7 +1,7 @@
 // Copyright 2000-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
 package ai.deepcode.jbplugin.ui;
 
-import ai.deepcode.jbplugin.ui.utils.DeepCodeUIUtils;
+import ai.deepcode.jbplugin.DeepCodeStatusBarWidgetProvider;
 import com.intellij.ide.IdeBundle;
 import com.intellij.ide.todo.TodoConfiguration;
 import com.intellij.openapi.Disposable;
@@ -17,7 +17,6 @@ import com.intellij.openapi.fileTypes.FileTypeEvent;
 import com.intellij.openapi.fileTypes.FileTypeListener;
 import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.progress.ProcessCanceledException;
-import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.util.text.StringUtil;
@@ -25,10 +24,11 @@ import com.intellij.openapi.vcs.ProjectLevelVcsManager;
 import com.intellij.openapi.vcs.VcsListener;
 import com.intellij.openapi.vcs.changes.ChangeListManager;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.wm.StatusBar;
+import com.intellij.openapi.wm.StatusBarWidget;
 import com.intellij.openapi.wm.ToolWindow;
-import com.intellij.openapi.wm.ToolWindowManager;
+import com.intellij.openapi.wm.WindowManager;
 import com.intellij.openapi.wm.ex.ToolWindowEx;
-import com.intellij.ui.IdeUICustomization;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
@@ -38,8 +38,6 @@ import com.intellij.util.messages.MessageBusConnection;
 import com.intellij.util.xmlb.annotations.Attribute;
 import com.intellij.util.xmlb.annotations.OptionTag;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.TestOnly;
 
 import javax.swing.*;
 import java.beans.PropertyChangeEvent;
@@ -201,7 +199,6 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
     myPanels.add(myChangeListTodosPanel);
     myPanels.add(myCurrentFileTodosPanel);
     myPanels.add(myScopeBasedTodosPanel);
-    toolWindow.setIcon(DeepCodeUIUtils.EMPTY_EWI_ICON);
   }
 
   @NotNull
@@ -265,8 +262,14 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
   }
 
   public void refresh() {
+    StatusBar statusBar = WindowManager.getInstance().getStatusBar(myProject);
+    if (statusBar != null) {
+      StatusBarWidget widget = statusBar.getWidget("DeepCodeAnalysisStatus");
+      if (widget instanceof DeepCodeStatusBarWidgetProvider.DeepCodeStatusBarWidget)
+        ((DeepCodeStatusBarWidgetProvider.DeepCodeStatusBarWidget) widget).update();
+    }
+
     Map<TodoPanel, Set<VirtualFile>> files = new HashMap<>();
-    Icon[] summaryIcon = {DeepCodeUIUtils.EMPTY_EWI_ICON};
     ReadAction.nonBlocking(() -> {
       if (myAllTodos == null) {
         return;
@@ -277,17 +280,12 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
           return true;
         });
       }
-      summaryIcon[0] = DeepCodeUIUtils.getSummaryIcon(myProject);
     })
       .finishOnUiThread(ModalityState.NON_MODAL, (__) -> {
         for (TodoPanel panel : myPanels) {
           panel.rebuildCache(ObjectUtils.notNull(files.get(panel), new HashSet<>()));
           panel.updateTree();
           notifyUpdateFinished();
-        }
-        ToolWindow myToolWindow = ToolWindowManager.getInstance(myProject).getToolWindow("DeepCode");
-        if (myToolWindow != null) {
-          myToolWindow.setIcon(summaryIcon[0]);
         }
       })
       .inSmartMode(myProject)

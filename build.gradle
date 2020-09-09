@@ -7,7 +7,7 @@ plugins {
 
 //group 'org.example'
 
-version '1.2.8'
+version '1.2.9'
 sourceCompatibility = 1.8
 
 repositories {
@@ -33,6 +33,7 @@ patchPluginXml {
     untilBuild 203
 
     changeNotes """
+1.2.9 - Status Bar widget with summary info added; .dcignore parsing fixed. <br>
 1.2.8 - Improvements: <br>
            * markers for each suggestion are shown in the List and highlighted in Preview <br>
            * more informative Progress indicator messages <br>

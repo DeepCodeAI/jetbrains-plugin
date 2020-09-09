@@ -21,6 +21,7 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -51,10 +52,25 @@ public class DeepCodeUIUtils {
   }
 
   public static String addErrWarnInfoCounts(
+      @NotNull Project project,
+      String originalMsg,
+      boolean withTextEWI,
+      @Nullable List<HighlightedRegion> regionsToUpdate) {
+    return addErrWarnInfoCounts(
+        PDU.toPsiFiles(AnalysisData.getInstance().getAllFilesWithSuggestions(project)),
+        originalMsg,
+        withTextEWI,
+        regionsToUpdate);
+  }
+
+  public static String addErrWarnInfoCounts(
       @NotNull Collection<PsiFile> psiFiles,
       String originalMsg,
       boolean withTextEWI,
-      @NotNull List<HighlightedRegion> regionsToUpdate) {
+      @Nullable List<HighlightedRegion> regionsToUpdate) {
+    if (regionsToUpdate == null) {
+      regionsToUpdate = new ArrayList<>(); // i.e. ignore
+    }
     DeepCodeUtils.ErrorsWarningsInfos ewi =
         DeepCodeUtils.getInstance().getEWI(PDU.toObjects(psiFiles));
     int errors = ewi.getErrors();

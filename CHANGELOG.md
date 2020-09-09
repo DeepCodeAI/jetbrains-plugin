@@ -1,3 +1,7 @@
+## [1.2.9] - 2019-09-08
+- Status Bar widget with summary info added; 
+- .dcignore parsing fixed.
+
 ## [1.2.8] - 2019-09-03
 - Improvements:
   * markers for each suggestion are shown in the List and highlighted in Preview

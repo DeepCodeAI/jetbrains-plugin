@@ -16,9 +16,4 @@ public class DeepCodeToolWindowFactory implements ToolWindowFactory {
         .runWhenSmart(
             () -> ServiceManager.getService(project, myTodoView.class).initToolWindow(toolWindow));
   }
-
-  @Override
-  public void init(ToolWindow window) {
-    window.setIcon(DeepCodeUIUtils.EMPTY_EWI_ICON);
-  }
 }
