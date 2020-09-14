@@ -46,7 +46,8 @@ public class DeepCodeConfigEntry implements Configurable {
             || !myForm.getTokenID().equals(DeepCodeParams.getInstance().getSessionToken())
             || !(myForm.isPluginEnabled() == DeepCodeParams.getInstance().isEnable())
             || !(myForm.isLintersEnabled() == DeepCodeParams.getInstance().useLinter())
-            || myForm.getMinSeverityLevel() != DeepCodeParams.getInstance().getMinSeverity());
+            || myForm.getMinSeverityLevel() != DeepCodeParams.getInstance().getMinSeverity()
+            || myForm.getUpdateMode() != DeepCodeParams.getInstance().getUpdateMode());
   }
 
   @Override
@@ -89,6 +90,9 @@ public class DeepCodeConfigEntry implements Configurable {
         RunUtils.getInstance().asyncAnalyseProjectAndUpdatePanel(null);
       }
     }
+    if (myForm.getUpdateMode() != DeepCodeParams.getInstance().getUpdateMode()) {
+      DeepCodeParams.getInstance().setUpdateMode(myForm.getUpdateMode());
+    }
   }
 
   @Override
@@ -98,6 +102,7 @@ public class DeepCodeConfigEntry implements Configurable {
     myForm.setTokenID(DeepCodeParams.getInstance().getSessionToken());
     myForm.setAddLinters(DeepCodeParams.getInstance().useLinter());
     myForm.setMinSeverityLevel(DeepCodeParams.getInstance().getMinSeverity());
+    myForm.setUpdateMode(DeepCodeParams.getInstance().getUpdateMode());
     myForm.enablePlugin(DeepCodeParams.getInstance().isEnable());
   }
 }

@@ -15,6 +15,14 @@ public class DeepCodeParams extends DeepCodeParamsBase {
     return INSTANCE;
   }
 
+  public static enum UpdateMode {
+    INTERACTIVE_MODE,
+    ON_SAVE_MODE,
+    MANUAL_MODE
+  }
+
+  private UpdateMode updateMode;
+
   // TODO https://www.jetbrains.org/intellij/sdk/docs/basics/persisting_sensitive_data.html
   private final PropertiesComponent propertiesComponent = PropertiesComponent.getInstance();
 
@@ -35,6 +43,9 @@ public class DeepCodeParams extends DeepCodeParamsBase {
       clearLoginParams();
       propertiesComponent.setValue("ideProductName", ideProductName);
     }
+    updateMode =
+        UpdateMode.valueOf(
+            propertiesComponent.getValue("updateMode", UpdateMode.INTERACTIVE_MODE.name()));
   }
 
   @Override
@@ -87,8 +98,16 @@ public class DeepCodeParams extends DeepCodeParamsBase {
 
   public boolean isFirstStart() {
     boolean result = PropertiesComponent.getInstance().getBoolean("deepcode.isFirstStart", true);
-    if (result)
-      PropertiesComponent.getInstance().setValue("deepcode.isFirstStart", false, true);
+    if (result) PropertiesComponent.getInstance().setValue("deepcode.isFirstStart", false, true);
     return result;
+  }
+
+  public UpdateMode getUpdateMode() {
+    return updateMode;
+  }
+
+  public void setUpdateMode(UpdateMode updateMode) {
+    this.updateMode = updateMode;
+    propertiesComponent.setValue("updateMode", updateMode.name());
   }
 }

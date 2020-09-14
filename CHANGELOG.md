@@ -1,3 +1,9 @@
+## [1.2.10] - 2019-09-14
+- Update modes added:
+  * Interactive (on any source file change);
+  * On Save (when source file saved on disk);
+  * On Demand (only if explicitly invoked).
+
 ## [1.2.9] - 2019-09-08
 - Status Bar widget with summary info added; 
 - .dcignore parsing fixed.

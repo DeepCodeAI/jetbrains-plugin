@@ -121,7 +121,8 @@ public class DeepCodeUIUtils {
           IconUtil.textToIcon("?", new JLabel(), fontToScale));
 
   public static Icon getSummaryIcon(@NotNull Project project) {
-    if (AnalysisData.getInstance().isAnalysisResultsNOTAvailable(project)) {
+    if (AnalysisData.getInstance().isProjectNOTAnalysed(project)
+        || AnalysisData.getInstance().isUpdateAnalysisInProgress(project)) {
       DCLogger.getInstance().logInfo("EMPTY icon set");
       return EMPTY_EWI_ICON;
     }
