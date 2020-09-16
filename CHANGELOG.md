@@ -1,3 +1,7 @@
+## [1.2.11] - 2019-09-16
+1.2.11 - Fix bug with IndexOutOfBound Exception for wrongly positioned suggestion/marker;
+       - Fix bug with multiple analyses processes on project opening.
+
 ## [1.2.10] - 2019-09-14
 - Update modes added:
   * Interactive (on any source file change);
