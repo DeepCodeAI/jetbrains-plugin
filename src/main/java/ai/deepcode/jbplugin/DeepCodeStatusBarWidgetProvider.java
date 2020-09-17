@@ -12,6 +12,15 @@ import java.awt.event.MouseEvent;
 
 public class DeepCodeStatusBarWidgetProvider implements StatusBarWidgetProvider {
 
+  public static void updateWidget(@NotNull Project project) {
+    StatusBar statusBar = WindowManager.getInstance().getStatusBar(project);
+    if (statusBar != null) {
+      StatusBarWidget widget = statusBar.getWidget("DeepCodeAnalysisStatus");
+      if (widget instanceof DeepCodeStatusBarWidget)
+        ((DeepCodeStatusBarWidget) widget).update();
+    }
+  }
+
   @Nullable
   @Override
   public StatusBarWidget getWidget(@NotNull Project project) {
@@ -24,7 +33,7 @@ public class DeepCodeStatusBarWidgetProvider implements StatusBarWidgetProvider 
     return StatusBar.Anchors.before(StatusBar.StandardWidgets.POSITION_PANEL);
   }
 
-  public class DeepCodeStatusBarWidget
+  public static class DeepCodeStatusBarWidget
       implements StatusBarWidget, StatusBarWidget.IconPresentation {
     private final Project project;
     private StatusBar myStatusBar;
@@ -36,7 +45,7 @@ public class DeepCodeStatusBarWidgetProvider implements StatusBarWidgetProvider 
       update();
     }
 
-    public void update() {
+    private void update() {
       myCurrentIcon = DeepCodeUIUtils.getSummaryIcon(project);
       myToolTipText = DeepCodeUIUtils.addErrWarnInfoCounts(project, "DeepCode", true, null);
       if (myStatusBar != null) myStatusBar.updateWidget(ID());

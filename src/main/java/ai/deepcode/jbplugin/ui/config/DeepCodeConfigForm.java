@@ -1,5 +1,6 @@
 package ai.deepcode.jbplugin.ui.config;
 
+import ai.deepcode.jbplugin.core.DeepCodeParams;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -11,11 +12,20 @@ public class DeepCodeConfigForm {
   private JCheckBox addLinters;
   private JComboBox minSeverityLevel;
   private JCheckBox enableDeepCodePlugin;
+  private JComboBox updateMode;
 
   public DeepCodeConfigForm() {
     minSeverityLevel.setModel(
         new DefaultComboBoxModel(
             new String[] {"Infos, Warnings and Errors", "Warnings and Errors", "Errors only"}));
+    updateMode.setModel(
+        new DefaultComboBoxModel(
+            new String[] {
+              "Interactive (on any source file change)",
+              "On Save (when source file saved on disk)",
+              "On Demand (only if explicitly invoked)"
+            }));
+    updateMode.setSelectedIndex(1);
     minSeverityLevel.setSelectedIndex(0);
   }
 
@@ -56,6 +66,14 @@ public class DeepCodeConfigForm {
     this.minSeverityLevel.setSelectedIndex(minSeverityLevel - 1);
   }
 
+  public DeepCodeParams.UpdateMode getUpdateMode() {
+    return DeepCodeParams.UpdateMode.values()[updateMode.getSelectedIndex()];
+  }
+
+  public void setUpdateMode(DeepCodeParams.UpdateMode mode) {
+    this.updateMode.setSelectedIndex(mode.ordinal());
+  }
+
   public boolean isPluginEnabled() {
     return enableDeepCodePlugin.getModel().isSelected();
   }
@@ -63,5 +81,4 @@ public class DeepCodeConfigForm {
   public void enablePlugin(boolean enableDeepCodePlugin) {
     this.enableDeepCodePlugin.getModel().setSelected(enableDeepCodePlugin);
   }
-
 }

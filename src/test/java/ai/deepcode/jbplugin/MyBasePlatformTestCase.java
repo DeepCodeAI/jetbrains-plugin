@@ -1,5 +1,6 @@
 package ai.deepcode.jbplugin;
 
+import ai.deepcode.jbplugin.core.DeepCodeParams;
 import com.intellij.openapi.project.Project;
 import com.intellij.testFramework.fixtures.BasePlatformTestCase;
 import org.slf4j.LoggerFactory;
@@ -16,6 +17,7 @@ public abstract class MyBasePlatformTestCase extends BasePlatformTestCase {
     super.setUp();
     LoggerFactory.getLogger(this.getClass()).info("-------------------MyBasePlatformTestCase.setUp--------------------\n");
     project = myFixture.getProject();
+    DeepCodeParams.getInstance().setUpdateMode(DeepCodeParams.UpdateMode.INTERACTIVE_MODE);
   }
 
   // !!! Will works only with already logged sessionToken

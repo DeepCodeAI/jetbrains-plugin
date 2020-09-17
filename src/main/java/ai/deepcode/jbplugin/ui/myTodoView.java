@@ -24,10 +24,7 @@ import com.intellij.openapi.vcs.ProjectLevelVcsManager;
 import com.intellij.openapi.vcs.VcsListener;
 import com.intellij.openapi.vcs.changes.ChangeListManager;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.wm.StatusBar;
-import com.intellij.openapi.wm.StatusBarWidget;
 import com.intellij.openapi.wm.ToolWindow;
-import com.intellij.openapi.wm.WindowManager;
 import com.intellij.openapi.wm.ex.ToolWindowEx;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
@@ -262,12 +259,7 @@ public class myTodoView implements PersistentStateComponent<myTodoView.State>, D
   }
 
   public void refresh() {
-    StatusBar statusBar = WindowManager.getInstance().getStatusBar(myProject);
-    if (statusBar != null) {
-      StatusBarWidget widget = statusBar.getWidget("DeepCodeAnalysisStatus");
-      if (widget instanceof DeepCodeStatusBarWidgetProvider.DeepCodeStatusBarWidget)
-        ((DeepCodeStatusBarWidgetProvider.DeepCodeStatusBarWidget) widget).update();
-    }
+    DeepCodeStatusBarWidgetProvider.updateWidget(myProject);
 
     Map<TodoPanel, Set<VirtualFile>> files = new HashMap<>();
     ReadAction.nonBlocking(() -> {

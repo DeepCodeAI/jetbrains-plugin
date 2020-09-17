@@ -30,22 +30,23 @@ public class DeepCodeExternalAnnotator extends ExternalAnnotator<PsiFile, List<S
 
   private static final Logger LOG = LoggerFactory.getLogger("DeepCode.Annotator");
 
-/*
-  @Nullable
-  @Override
-  public PsiFile collectInformation(@NotNull PsiFile psiFile) {
-    DCLogger.getInstance().info("collectInformation(@NotNull PsiFile psiFile) for " + psiFile);
-    return psiFile;
-  }
+  /*
+    @Nullable
+    @Override
+    public PsiFile collectInformation(@NotNull PsiFile psiFile) {
+      DCLogger.getInstance().info("collectInformation(@NotNull PsiFile psiFile) for " + psiFile);
+      return psiFile;
+    }
 
-*/
+  */
   @Override
   @Nullable
   public PsiFile collectInformation(
       @NotNull PsiFile psiFile, @NotNull Editor editor, boolean hasErrors) {
-    //DCLogger.getInstance().info("collectInformation(@NotNull PsiFile psiFile, @NotNull Editor editor, boolean hasErrors) for " + psiFile);
+    // DCLogger.getInstance().info("collectInformation(@NotNull PsiFile psiFile, @NotNull Editor
+    // editor, boolean hasErrors) for " + psiFile);
     return psiFile;
-    //return collectInformation(psiFile);
+    // return collectInformation(psiFile);
   }
 
   @Nullable
@@ -53,12 +54,15 @@ public class DeepCodeExternalAnnotator extends ExternalAnnotator<PsiFile, List<S
   public List<SuggestionForFile> doAnnotate(PsiFile psiFile) {
     if (!DeepCodeUtils.getInstance().isSupportedFileFormat(psiFile)) return Collections.emptyList();
     final long annotatorId = System.currentTimeMillis();
-    DCLogger.getInstance().logInfo("Annotator (" + annotatorId + ") requested for file: " + psiFile.getName());
-    AnalysisData.getInstance().waitForUpdateAnalysisFinish(ProgressManager.getInstance().getProgressIndicator());
+    DCLogger.getInstance()
+        .logInfo("Annotator (" + annotatorId + ") requested for file: " + psiFile.getName());
+    AnalysisData.getInstance()
+        .waitForUpdateAnalysisFinish(psiFile.getProject(), ProgressManager.getInstance().getProgressIndicator());
     ProgressManager.checkCanceled();
     List<SuggestionForFile> suggestions = AnalysisData.getInstance().getAnalysis(psiFile);
-    DCLogger.getInstance().logInfo(
-        "Annotator (" + annotatorId + ") suggestions gotten for file: " + psiFile.getName());
+    DCLogger.getInstance()
+        .logInfo(
+            "Annotator (" + annotatorId + ") suggestions gotten for file: " + psiFile.getName());
     ProgressManager.checkCanceled();
 
     return suggestions;

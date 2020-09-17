@@ -53,9 +53,11 @@ public class MyProjectManagerListener implements ProjectManagerListener {
             .runInBackground(
                 psiFile.getProject(),
                 "Cache updating...",
-                (progress) ->
-                    AnalysisData.getInstance()
-                        .removeFilesFromCache(Collections.singleton(psiFile)));
+                (progress) -> {
+                  AnalysisData.getInstance().removeFilesFromCache(Collections.singleton(psiFile));
+                  // to postpone Annotator and show ? in UI
+                  AnalysisData.getInstance().setUpdateInProgress(psiFile.getProject());
+                });
       }
       /*
             if (DeepCodeUtils.isSupportedFileFormat(psiFile)) {
@@ -78,6 +80,8 @@ public class MyProjectManagerListener implements ProjectManagerListener {
       if (psiFile == null) return;
       final Project project = psiFile.getProject();
       if (BulkMode.isActive(project)) return;
+      if (DeepCodeParams.getInstance().getUpdateMode()
+          != DeepCodeParams.UpdateMode.INTERACTIVE_MODE) return;
 
       if (DeepCodeUtils.getInstance().isSupportedFileFormat(psiFile)) {
         RunUtils.getInstance()
@@ -121,6 +125,8 @@ public class MyProjectManagerListener implements ProjectManagerListener {
       if (psiFile == null) return;
       final Project project = psiFile.getProject();
       if (BulkMode.isActive(project)) return;
+      if (DeepCodeParams.getInstance().getUpdateMode()
+          != DeepCodeParams.UpdateMode.INTERACTIVE_MODE) return;
 
       if (DeepCodeIgnoreInfoHolder.getInstance().is_ignoreFile(psiFile)) {
         DeepCodeIgnoreInfoHolder.getInstance().remove_dcignoreFileContent(psiFile);

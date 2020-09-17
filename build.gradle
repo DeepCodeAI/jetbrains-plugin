@@ -7,7 +7,7 @@ plugins {
 
 //group 'org.example'
 
-version '1.2.9'
+version '1.2.11'
 sourceCompatibility = 1.8
 
 repositories {
@@ -33,6 +33,11 @@ patchPluginXml {
     untilBuild 203
 
     changeNotes """
+1.2.11 - Fix bugs and performance optimisation<br>
+1.2.10 - Update modes added:<br>
+          * Interactive (on any source file change);<br>
+          * On Save (when source file saved on disk);<br>
+          * On Demand (only if explicitly invoked).<br>
 1.2.9 - Status Bar widget with summary info added; .dcignore parsing fixed. <br>
 1.2.8 - Improvements: <br>
            * markers for each suggestion are shown in the List and highlighted in Preview <br>
@@ -64,7 +69,7 @@ task runIC_201(type: RunIdeTask){
 
 task runIC_202(type: RunIdeTask){
     jvmArgs '-Xmx2G'
-    ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-0\\202.6397.94'
+    ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-0\\202.7319.50'
 }
 
 task runIC_193(type: RunIdeTask){

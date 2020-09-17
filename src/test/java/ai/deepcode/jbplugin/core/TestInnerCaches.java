@@ -32,7 +32,7 @@ public class TestInnerCaches extends MyBasePlatformTestCase {
                     Collections.emptyList(),
                     progress));
 
-    AnalysisData.getInstance().waitForUpdateAnalysisFinish(null);
+    AnalysisData.getInstance().waitForUpdateAnalysisFinish(project, null);
     // RunUtils.delay(1000);
   }
 

@@ -5,7 +5,6 @@ package ai.deepcode.jbplugin.ui.nodes;
 
 import ai.deepcode.jbplugin.core.AnalysisData;
 import ai.deepcode.jbplugin.core.DCLogger;
-import ai.deepcode.jbplugin.core.PDU;
 import ai.deepcode.jbplugin.core.RunUtils;
 import ai.deepcode.jbplugin.ui.DeepCodeDirAndModuleComparator;
 import ai.deepcode.jbplugin.ui.HighlightedRegionProvider;
@@ -121,8 +120,9 @@ public class SummaryNode extends BaseToDoNode<ToDoSummary> implements Highlighte
       DCLogger.getInstance().logWarn("Project is NULL");
       return;
     }
-    if (AnalysisData.getInstance().isAnalysisResultsNOTAvailable(project)) {
-      message = "Analysis results are not available yet...";
+    if (AnalysisData.getInstance().isUpdateAnalysisInProgress(project)
+        || AnalysisData.getInstance().isProjectNOTAnalysed(project)) {
+      message = "Full analysis results are not available yet...";
     } else {
       int todoItemCount = getTodoItemCount(getValue());
       int fileCount = getFileCount(getValue());

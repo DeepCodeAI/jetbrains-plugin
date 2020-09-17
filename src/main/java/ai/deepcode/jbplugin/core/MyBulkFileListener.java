@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
  * <b>outside</b> of IDE.
  */
 public class MyBulkFileListener implements BulkFileListener {
+
   @Override
   public void after(@NotNull List<? extends VFileEvent> events) {
     // fixme debug only
@@ -43,20 +44,24 @@ public class MyBulkFileListener implements BulkFileListener {
           // if too many files changed then it's easier to do Bulk Mode full rescan
           BulkMode.set(project);
           // small delay to prevent multiple rescan Background tasks
-          RunUtils.getInstance().rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, true);
+          RunUtils.getInstance()
+              .rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, true);
         } else {
           for (PsiFile psiFile : filesChangedOrCreated) {
-            RunUtils.getInstance().runInBackgroundCancellable(
-                psiFile,
-                "Analyzing changes in " + psiFile.getName(),
-                (progress) -> {
-                  AnalysisData.getInstance().removeFilesFromCache(Collections.singleton(psiFile));
-                  RunUtils.getInstance().updateCachedAnalysisResults(project, Collections.singleton(psiFile), progress);
-                });
+            RunUtils.getInstance()
+                .runInBackgroundCancellable(
+                    psiFile,
+                    "Analyzing changes in " + psiFile.getName(),
+                    (progress) -> {
+                      AnalysisData.getInstance()
+                          .removeFilesFromCache(Collections.singleton(psiFile));
+                      RunUtils.getInstance()
+                          .updateCachedAnalysisResults(
+                              project, Collections.singleton(psiFile), progress);
+                    });
           }
         }
       }
-      //          });
 
       Set<PsiFile> dcignoreChangedFiles =
           getFilteredFilesByEventTypes(
@@ -68,14 +73,17 @@ public class MyBulkFileListener implements BulkFileListener {
       if (!dcignoreChangedFiles.isEmpty()) {
         BulkMode.set(project);
         for (PsiFile dcignoreFile : dcignoreChangedFiles) {
-          RunUtils.getInstance().runInBackgroundCancellable(
-              dcignoreFile,
-              "Updating ignored files list...",
-              (progress) ->
-                  DeepCodeIgnoreInfoHolder.getInstance().update_dcignoreFileContent(dcignoreFile));
+          RunUtils.getInstance()
+              .runInBackgroundCancellable(
+                  dcignoreFile,
+                  "Updating ignored files list...",
+                  (progress) ->
+                      DeepCodeIgnoreInfoHolder.getInstance()
+                          .update_dcignoreFileContent(dcignoreFile));
         }
         // small delay to prevent multiple rescan Background tasks
-        RunUtils.getInstance().rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, true);
+        RunUtils.getInstance()
+            .rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, true);
       }
     }
     // fixme debug only
@@ -102,16 +110,22 @@ public class MyBulkFileListener implements BulkFileListener {
         if (filesRemoved.size() > 10) {
           BulkMode.set(project);
           // small delay to prevent multiple rescan Background tasks
-          RunUtils.getInstance().rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, true);
+          RunUtils.getInstance()
+              .rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, true);
         } else if (!RunUtils.getInstance().isFullRescanRequested(project)) {
-          RunUtils.getInstance().runInBackground(
-              project,
-              "Removing " + filesRemoved.size() + " locally deleted files on server...",
-              (progress) -> {
-                AnalysisData.getInstance().removeFilesFromCache(PDU.toObjects(filesRemoved));
-                RunUtils.getInstance().updateCachedAnalysisResults(
-                    project, Collections.emptyList(), PDU.toObjects(filesRemoved), progress);
-              });
+          RunUtils.getInstance()
+              .runInBackground(
+                  project,
+                  "Removing " + filesRemoved.size() + " locally deleted files on server...",
+                  (progress) -> {
+                    AnalysisData.getInstance().removeFilesFromCache(PDU.toObjects(filesRemoved));
+                    RunUtils.getInstance()
+                        .updateCachedAnalysisResults(
+                            project,
+                            Collections.emptyList(),
+                            PDU.toObjects(filesRemoved),
+                            progress);
+                  });
         }
       }
 
@@ -124,10 +138,24 @@ public class MyBulkFileListener implements BulkFileListener {
       if (!ignoreFilesToRemove.isEmpty()) {
         BulkMode.set(project);
         // small delay to prevent multiple rescan Background tasks
-        RunUtils.getInstance().rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, true);
+        RunUtils.getInstance()
+            .rescanInBackgroundCancellableDelayed(project, PDU.DEFAULT_DELAY_SMALL, true);
       }
     }
     DCLogger.getInstance().logInfo("MyBulkFileListener.before ends");
+  }
+
+  private Predicate<VFileEvent> getUpdateModeFilter() {
+    switch (DeepCodeParams.getInstance().getUpdateMode()) {
+      case INTERACTIVE_MODE:
+        // to prevent updating files already done by MyPsiTreeChangeAdapter
+        return VFileEvent::isFromRefresh;
+      case ON_SAVE_MODE:
+        return VFileEvent::isFromSave;
+      case MANUAL_MODE:
+        return event -> false;
+    }
+    return event -> false;
   }
 
   private Set<PsiFile> getFilteredFilesByEventTypes(
@@ -137,8 +165,7 @@ public class MyBulkFileListener implements BulkFileListener {
       @NotNull Class<?>... classesOfEventsToFilter) {
     PsiManager manager = PsiManager.getInstance(project);
     return events.stream()
-        // to prevent updating files already done by MyPsiTreeChangeAdapter
-        .filter(VFileEvent::isFromRefresh)
+        .filter(getUpdateModeFilter())
         .filter(event -> PsiTreeUtil.instanceOf(event, classesOfEventsToFilter))
         .map(VFileEvent::getFile)
         .filter(Objects::nonNull)
