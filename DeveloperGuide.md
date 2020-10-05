@@ -21,6 +21,7 @@ See below correspondent `java-client` version requirements:
 | 1.2.8            | 2.0.14      |
 | 1.2.10           | 2.0.16      |
 | 1.2.11           | 2.0.17      |
+| 1.2.12           | 2.0.18      |
 
 **Important note: For backward compatibility build MUST be run against Intellij Idea 2019.2 instance!**
 - Run `source gradlew buildPlugin`
