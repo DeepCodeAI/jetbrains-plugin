@@ -7,7 +7,7 @@ plugins {
 
 //group 'org.example'
 
-version '1.2.11'
+version '1.2.12'
 sourceCompatibility = 1.8
 
 repositories {
@@ -30,9 +30,10 @@ intellij {
 }
 patchPluginXml {
     sinceBuild 192
-    untilBuild 203
+    untilBuild 204
 
     changeNotes """
+1.2.12 - Upcoming 2020.3 compatibility and bug fixes<br>
 1.2.11 - Fix bugs and performance optimisation<br>
 1.2.10 - Update modes added:<br>
           * Interactive (on any source file change);<br>
@@ -70,6 +71,11 @@ task runIC_201(type: RunIdeTask){
 task runIC_202(type: RunIdeTask){
     jvmArgs '-Xmx2G'
     ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-0\\202.7319.50'
+}
+
+task runIC_203(type: RunIdeTask){
+    jvmArgs '-Xmx2G'
+    ideDirectory 'C:\\Users\\artem\\AppData\\Local\\JetBrains\\Toolbox\\apps\\IDEA-C\\ch-3\\203.4203.26'
 }
 
 task runIC_193(type: RunIdeTask){

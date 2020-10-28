@@ -1,3 +1,6 @@
+## [1.2.12] - 2019-10-05
+1.2.12 - Upcoming 2020.3 compatibility and bug fixes;
+
 ## [1.2.11] - 2019-09-16
 1.2.11 - Fix bug with IndexOutOfBound Exception for wrongly positioned suggestion/marker;
        - Fix bug with multiple analyses processes on project opening.
