@@ -1,7 +1,6 @@
 package ai.deepcode.jbplugin;
 
 import ai.deepcode.jbplugin.core.*;
-import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
@@ -16,6 +15,12 @@ public class DeepCodeStartupActivity implements StartupActivity {
 
   @Override
   public void runActivity(@NotNull Project project) {
+    if (DeepCodeParams.getInstance().isPluginDeprecated()) {
+      DeepCodeNotifications.showPluginDeprecationAnnouncement(project);
+      // Unfortunately, we can't disable plugin here programmatically: https://intellij-support.jetbrains.com/hc/en-us/community/posts/360009820960/comments/360002292200
+      // as workaround will return `isLogged() = false` to stop requesting disabled API
+    }
+
     if (!listenersActivated) {
       final MessageBusConnection messageBusConnection =
           ApplicationManager.getApplication().getMessageBus().connect();
@@ -25,6 +30,9 @@ public class DeepCodeStartupActivity implements StartupActivity {
     }
     if (DeepCodeParams.getInstance().isFirstStart()) {
       DeepCodeNotifications.showTutorialRequest(project);
+    }
+    if (DeepCodeParams.getInstance().isReplacementMessageNotShownThisMonth()) {
+      DeepCodeNotifications.showPluginReplacementAnnouncement(project);
     }
     // Keep commented - for DEBUG ONLY !!!!!!!!!!!!!!!!!
     //PropertiesComponent.getInstance(project).setValue("consentGiven", false);
