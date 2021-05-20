@@ -3,6 +3,7 @@ package ai.deepcode.jbplugin.core;
 import ai.deepcode.javaclient.core.LoginUtilsBase;
 import com.intellij.openapi.application.ApplicationInfo;
 import com.intellij.openapi.application.ApplicationNamesInfo;
+import org.jetbrains.annotations.Nullable;
 
 public class LoginUtils extends LoginUtilsBase {
 
@@ -29,5 +30,10 @@ public class LoginUtils extends LoginUtilsBase {
   @Override
   protected String getUserAgent() {
     return userAgent;
+  }
+
+  @Override
+  public boolean isLogged(@Nullable Object project, boolean userActionNeeded) {
+    return !DeepCodeParams.getInstance().isPluginDeprecated() && super.isLogged(project, userActionNeeded);
   }
 }

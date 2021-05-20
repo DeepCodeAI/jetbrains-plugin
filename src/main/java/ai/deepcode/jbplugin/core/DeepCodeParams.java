@@ -7,6 +7,8 @@ import com.intellij.openapi.application.ApplicationNamesInfo;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Calendar;
+
 public class DeepCodeParams extends DeepCodeParamsBase {
 
   private static final DeepCodeParams INSTANCE = new DeepCodeParams();
@@ -100,6 +102,20 @@ public class DeepCodeParams extends DeepCodeParamsBase {
     boolean result = PropertiesComponent.getInstance().getBoolean("deepcode.isFirstStart", true);
     if (result) PropertiesComponent.getInstance().setValue("deepcode.isFirstStart", false, true);
     return result;
+  }
+
+  public boolean isReplacementMessageNotShownThisMonth() {
+    int lastMonthShown = PropertiesComponent.getInstance().getInt("deepcode.lastMonthReplacementMessageShownFor", 0);
+    int currentMonth = Calendar.getInstance().get(Calendar.MONTH);
+    final boolean result = lastMonthShown != currentMonth;
+    if (result) PropertiesComponent.getInstance().setValue("deepcode.lastMonthReplacementMessageShownFor", currentMonth, 0);
+    return result;
+  }
+
+  public boolean isPluginDeprecated() {
+    int currentMonth = Calendar.getInstance().get(Calendar.MONTH);
+    int currentYear = Calendar.getInstance().get(Calendar.YEAR);
+    return currentYear >= 2021 && currentMonth >= Calendar.SEPTEMBER;
   }
 
   public UpdateMode getUpdateMode() {

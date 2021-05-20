@@ -1,3 +1,10 @@
+# Latest update 🗞️ (start here first 👇)
+
+- Dear developers 👋, thank you for your support and feedback!
+- With the DeepCode acquisition by [Snyk](https://snyk.io) we will be starting a new journey, a better one, towards helping you write robust and secure application code. The DeepCode plugin will be replaced by [Snyk's JetBrains plugin](https://plugins.jetbrains.com/plugin/10972-snyk-vulnerability-scanner) with includes DeepCode's functionality and more.
+- If you want to read more about it, here is the [official announcement](https://www.deepcode.ai/). We will start sunsetting the official DeepCode API in August, 2021. In the mean time we will do one last update of the JetBrains plugin with this message to ensure you are up to date.
+- We invite you to join us and start using the new Snyk plugin! We are excited and looking forward to helping you build stable and secure applications 🚀
+
 ### Build
 
 - Clone this repository: `git clone https://github.com/DeepCodeAI/jetbrains-plugin.git` 
@@ -22,6 +29,7 @@ See below correspondent `java-client` version requirements:
 | 1.2.10           | 2.0.16      |
 | 1.2.11           | 2.0.17      |
 | 1.2.12           | 2.0.18      |
+| 1.2.13           | 2.0.18      |
 
 **Important note: For backward compatibility build MUST be run against Intellij Idea 2019.2 instance!**
 - Run `source gradlew buildPlugin`

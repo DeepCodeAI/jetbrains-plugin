@@ -103,6 +103,34 @@ public class DeepCodeNotifications {
         .notify(project);
   }
 
+  public static void showPluginReplacementAnnouncement(@NotNull Project project) {
+    final String message = "The DeepCode plugin will be replaced by Snyk's JetBrains plugin with included DeepCode's functionality and more.";
+    new Notification(groupNeedAction, title, message, NotificationType.INFORMATION)
+        .addAction(
+            new ShowClickableLinkAction(
+                "See official announcement",
+                () ->
+                    BrowserUtil.open(
+                        "https://www.deepcode.ai/"),
+                false,
+                Collections.emptyList()))
+        .notify(project);
+  }
+
+  public static void showPluginDeprecationAnnouncement(@NotNull Project project) {
+    final String message = "The DeepCode plugin is deprecated. Use Snyk's plugin with included DeepCode's functionality and more.";
+    new Notification(groupNeedAction, title, message, NotificationType.WARNING)
+        .addAction(
+            new ShowClickableLinkAction(
+                "Snyk's JetBrains plugin",
+                () ->
+                    BrowserUtil.open(
+                        "https://plugins.jetbrains.com/plugin/10972-snyk-vulnerability-scanner"),
+                false,
+                Collections.emptyList()))
+        .notify(project);
+  }
+
   private static class ShowClickableLinkAction extends DumbAwareAction {
 
     private final Runnable onClickRunnable;
