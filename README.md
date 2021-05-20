@@ -1,3 +1,10 @@
+# Latest update 🗞️ (start here first 👇) 
+
+- Dear developers 👋, thank you for your support and feedback! 
+- With the DeepCode acquisition by [Snyk](https://snyk.io) we will be starting a new journey, a better one, towards helping you write robust and secure application code. The DeepCode plugin will be replaced by [Snyk's JetBrains plugin](https://plugins.jetbrains.com/plugin/10972-snyk-vulnerability-scanner) with includes DeepCode's functionality and more. 
+- If you want to read more about it, here is the [official announcement](https://www.deepcode.ai/). We will start sunsetting the official DeepCode API in August, 2021. In the mean time we will do one last update of the JetBrains plugin with this message to ensure you are up to date.
+- We invite you to join us and start using the new Snyk plugin! We are excited and looking forward to helping you build stable and secure applications 🚀
+
 # DeepCode plugin for JetBrains IDEs
 
 [![deepcode](https://www.deepcode.ai/api/gh/badge?key=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwbGF0Zm9ybTEiOiJnaCIsIm93bmVyMSI6IkRlZXBDb2RlQUkiLCJyZXBvMSI6ImpldGJyYWlucy1wbHVnaW4iLCJpbmNsdWRlTGludCI6ZmFsc2UsImF1dGhvcklkIjoxMjQ2OSwiaWF0IjoxNTk2MDk3MzY3fQ.I4fh42mlQnikGT8WrYD8k3BD0c3ZhfdpA2teyBnevYQ)](https://www.deepcode.ai/app/gh/DeepCodeAI/jetbrains-plugin/_/dashboard?utm_content=gh%2FDeepCodeAI%2Fjetbrains-plugin)
