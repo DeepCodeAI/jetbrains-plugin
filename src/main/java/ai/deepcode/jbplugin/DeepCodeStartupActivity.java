@@ -31,7 +31,7 @@ public class DeepCodeStartupActivity implements StartupActivity {
     if (DeepCodeParams.getInstance().isFirstStart()) {
       DeepCodeNotifications.showTutorialRequest(project);
     }
-    if (DeepCodeParams.getInstance().isReplacementMessageNotShownThisMonth()) {
+    if (DeepCodeParams.getInstance().needToShowReplacementMessage()) {
       DeepCodeNotifications.showPluginReplacementAnnouncement(project);
     }
     // Keep commented - for DEBUG ONLY !!!!!!!!!!!!!!!!!

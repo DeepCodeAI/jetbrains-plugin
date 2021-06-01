@@ -5,6 +5,9 @@
 - If you want to read more about it, here is the [official announcement](https://www.deepcode.ai/). We will start sunsetting the official DeepCode API in August, 2021. In the mean time we will do one last update of the JetBrains plugin with this message to ensure you are up to date.
 - We invite you to join us and start using the new Snyk plugin! We are excited and looking forward to helping you build stable and secure applications 🚀
 
+## [1.2.14] - 2021-06
+1.2.14 - fix deprecation deadline and links at plugin replacement announcement;<br>
+
 ## [1.2.13] - 2021-05
 1.2.13 - 2021.1 compatibility and plugin replacement announcement;<br>
 

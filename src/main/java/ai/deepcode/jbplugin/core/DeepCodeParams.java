@@ -104,18 +104,20 @@ public class DeepCodeParams extends DeepCodeParamsBase {
     return result;
   }
 
-  public boolean isReplacementMessageNotShownThisMonth() {
+  public boolean needToShowReplacementMessage() {
     int lastMonthShown = PropertiesComponent.getInstance().getInt("deepcode.lastMonthReplacementMessageShownFor", 0);
     int currentMonth = Calendar.getInstance().get(Calendar.MONTH);
-    final boolean result = lastMonthShown != currentMonth;
+    int currentYear = Calendar.getInstance().get(Calendar.YEAR);
+    final boolean result = lastMonthShown != currentMonth || (currentYear == 2021 && currentMonth >= Calendar.AUGUST);
     if (result) PropertiesComponent.getInstance().setValue("deepcode.lastMonthReplacementMessageShownFor", currentMonth, 0);
     return result;
   }
 
   public boolean isPluginDeprecated() {
+    int currentDayOfMonth = Calendar.getInstance().get(Calendar.DAY_OF_MONTH);
     int currentMonth = Calendar.getInstance().get(Calendar.MONTH);
     int currentYear = Calendar.getInstance().get(Calendar.YEAR);
-    return currentYear >= 2021 && currentMonth >= Calendar.SEPTEMBER;
+    return currentYear >= 2021 && currentMonth >= Calendar.AUGUST && currentDayOfMonth > 7;
   }
 
   public UpdateMode getUpdateMode() {
